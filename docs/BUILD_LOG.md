@@ -29,6 +29,21 @@ it is historical evidence, not a second specification.
 
 ## Completed
 
+### 2026-07-16 — Background retrieval source inclusion
+
+- Confirmed from the installed OpenAI SDK 6.47.0 types that
+  `responses.retrieve(responseID, query)` accepts `include` in its second,
+  non-streaming query argument.
+- Corrected the background status path so every retrieval of an existing
+  response passes `include: ["web_search_call.action.sources"]`; no creation,
+  schema, extractor, validator, model, prompt, or UI behavior changed.
+- Added one focused two-poll test proving the same provider response ID is used,
+  both retrievals receive the sources include query, a completed
+  `action.sources` result passes the existing validator, and no response is
+  created during polling.
+- Made no live request. Verification passed: the focused test (1 passed, 23
+  skipped), `npm run typecheck`, and `git diff --check`.
+
 ### 2026-07-16 — Completed-response source extraction fix
 
 - Made no live OpenAI request and did not change the model, Structured Outputs

@@ -448,6 +448,55 @@ describe("background research generation", () => {
     expect(provider.create).not.toHaveBeenCalled();
   });
 
+  it("polls the same response with source inclusion and validates completed search sources", async () => {
+    const provider = backgroundProvider();
+    provider.retrieve
+      .mockResolvedValueOnce(providerResponse("in_progress"))
+      .mockResolvedValueOnce(
+        providerResponse("completed", [
+          completedSearchCall(DEMO_RETRIEVED_SOURCE_URLS),
+          completedMessage(
+            JSON.stringify({ status: "success", nodes: DEMO_RESEARCH_NODES }),
+            [],
+          ),
+        ]),
+      );
+
+    await expect(
+      retrieveBackgroundResearch(
+        "resp_background_test",
+        VALID_PROFILE_FIXTURE,
+        DEMO_PATH_BRANCHES[0],
+        DEMO_RESEARCH_QUESTION,
+        "2026-07-16",
+        { ...baseOptions, provider },
+      ),
+    ).resolves.toEqual({ status: "in_progress" });
+
+    await expect(
+      retrieveBackgroundResearch(
+        "resp_background_test",
+        VALID_PROFILE_FIXTURE,
+        DEMO_PATH_BRANCHES[0],
+        DEMO_RESEARCH_QUESTION,
+        "2026-07-16",
+        { ...baseOptions, provider },
+      ),
+    ).resolves.toEqual({
+      status: "completed",
+      result: { status: "success", nodes: DEMO_RESEARCH_NODES },
+    });
+
+    expect(provider.retrieve).toHaveBeenCalledTimes(2);
+    expect(provider.retrieve).toHaveBeenNthCalledWith(1, "resp_background_test", {
+      include: ["web_search_call.action.sources"],
+    });
+    expect(provider.retrieve).toHaveBeenNthCalledWith(2, "resp_background_test", {
+      include: ["web_search_call.action.sources"],
+    });
+    expect(provider.create).not.toHaveBeenCalled();
+  });
+
   it("parses a completed response through the existing schema and source validation", async () => {
     const provider = backgroundProvider();
     provider.retrieve.mockResolvedValueOnce(

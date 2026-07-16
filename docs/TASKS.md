@@ -39,11 +39,11 @@ deployment records, and audit evidence.
   `source_processing/model_output_validation/retrieved_sources_missing`; the
   public route returned HTTP 502. No upstream code or request ID was available,
   no result rendered, and no retry occurred.
-- Deterministic inspection confirmed creation already includes
-  `web_search_call.action.sources` and requires web search. The completed-response
-  extractor now allow-lists provider-backed URLs from both search-call sources
-  and output-text `url_citation` annotations; model-authored URLs still cannot
-  pass without matching provider evidence.
+- Creation and every background status retrieval now request
+  `web_search_call.action.sources`; creation still requires web search. The
+  completed-response extractor allow-lists provider-backed URLs from both
+  search-call sources and output-text `url_citation` annotations; model-authored
+  URLs still cannot pass without matching provider evidence.
 - Active student, map, and research state remain intentionally in memory.
 
 ## Active Milestone
@@ -125,8 +125,9 @@ no automatic or repeated retries; audit the rendered sources if it succeeds.
 
 ## Unverified Behavior
 
-- The corrected dual-location provider-source extractor has not been exercised
-  against a live completed GPT-5.6 response. No live request was made in this pass.
+- The corrected retrieval include and dual-location provider-source extractor
+  have not been exercised against a live completed GPT-5.6 response. No live
+  request was made in this pass.
 - Live background creation, polling, and provider completion are verified.
   Live source normalization and research rendering remain unverified at the
   `retrieved_sources_missing` boundary.

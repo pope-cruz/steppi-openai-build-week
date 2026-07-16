@@ -10,6 +10,7 @@ import type {
   ResponseCreateParamsNonStreaming,
   ResponseFunctionWebSearch,
   ResponseOutputMessage,
+  ResponseRetrieveParamsNonStreaming,
   ResponseStatus,
 } from "openai/resources/responses/responses";
 import { z } from "zod";
@@ -33,6 +34,9 @@ import {
 
 const DEFAULT_MODEL = "gpt-5.6";
 const REQUEST_TIMEOUT_MS = 45_000;
+const BACKGROUND_RETRIEVE_PARAMS: ResponseRetrieveParamsNonStreaming = {
+  include: ["web_search_call.action.sources"],
+};
 
 const RESEARCH_INSTRUCTIONS = `You are Steppi, an educational exploration assistant for high-school students.
 Answer one focused question about one selected path using current web sources and the confirmed student profile.
@@ -91,7 +95,10 @@ type GenerateResearchOptions = {
 
 export type ResearchBackgroundProvider = {
   create: (params: ResponseCreateParamsNonStreaming) => Promise<OpenAIResponse>;
-  retrieve: (responseId: string) => Promise<OpenAIResponse>;
+  retrieve: (
+    responseId: string,
+    params: ResponseRetrieveParamsNonStreaming,
+  ) => Promise<OpenAIResponse>;
   cancel: (responseId: string) => Promise<OpenAIResponse>;
 };
 
@@ -392,7 +399,7 @@ function backgroundProvider(
   const client = new OpenAI({ apiKey, maxRetries: 0, timeout: REQUEST_TIMEOUT_MS });
   return {
     create: (params) => client.responses.create(params),
-    retrieve: (responseId) => client.responses.retrieve(responseId),
+    retrieve: (responseId, params) => client.responses.retrieve(responseId, params),
     cancel: (responseId) => client.responses.cancel(responseId),
   };
 }
@@ -477,7 +484,10 @@ export async function retrieveBackgroundResearch(
   let response: OpenAIResponse;
 
   try {
-    response = await backgroundProvider(apiKey, options.provider).retrieve(responseId);
+    response = await backgroundProvider(apiKey, options.provider).retrieve(
+      responseId,
+      BACKGROUND_RETRIEVE_PARAMS,
+    );
   } catch (error) {
     const diagnostic = providerDiagnosticAtStage(error, "background_response_retrieve");
     throw new ResearchGenerationError(
