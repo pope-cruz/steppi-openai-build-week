@@ -5,11 +5,14 @@ import {
   IntakeRequestSchema,
   PathGenerationSchema,
   ProfilePatchSchema,
+  ResearchGenerationSchema,
+  ResearchRequestSchema,
   StudentProfileSchema,
 } from "./schemas";
 import { VALID_PROFILE_FIXTURE } from "../test/profile-fixture";
 import { VALID_PROFILE_PATCH_FIXTURE } from "../test/profile-patch-fixture";
 import { DEMO_PATH_BRANCHES } from "./demo-paths";
+import { DEMO_RESEARCH_NODES, DEMO_RESEARCH_QUESTION } from "./demo-research";
 
 describe("Steppi schemas", () => {
   it("accepts the representative intake fixture", () => {
@@ -83,5 +86,57 @@ describe("Steppi schemas", () => {
     expect(PathGenerationSchema.safeParse({ branches: malformed }).success).toBe(
       false,
     );
+  });
+
+  it("accepts strict research requests and one-to-five sourced nodes", () => {
+    expect(
+      ResearchRequestSchema.safeParse({
+        profile: VALID_PROFILE_FIXTURE,
+        branch: DEMO_PATH_BRANCHES[0],
+        question: DEMO_RESEARCH_QUESTION,
+      }).success,
+    ).toBe(true);
+    expect(
+      ResearchGenerationSchema.safeParse({
+        status: "success",
+        nodes: DEMO_RESEARCH_NODES,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects empty success, unsupported source protocols, and excess nodes", () => {
+    const insecure = structuredClone(DEMO_RESEARCH_NODES);
+    insecure[0].sources[0].url = "http://example.com/source";
+
+    expect(
+      ResearchGenerationSchema.safeParse({ status: "success", nodes: [] }).success,
+    ).toBe(false);
+    expect(
+      ResearchGenerationSchema.safeParse({ status: "success", nodes: insecure }).success,
+    ).toBe(false);
+    expect(
+      ResearchGenerationSchema.safeParse({
+        status: "success",
+        nodes: Array.from({ length: 6 }, (_, index) => ({
+          ...DEMO_RESEARCH_NODES[0],
+          id: `research-${index}`,
+        })),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts only an empty no-useful-source result", () => {
+    expect(
+      ResearchGenerationSchema.safeParse({
+        status: "no_useful_sources",
+        nodes: [],
+      }).success,
+    ).toBe(true);
+    expect(
+      ResearchGenerationSchema.safeParse({
+        status: "no_useful_sources",
+        nodes: DEMO_RESEARCH_NODES,
+      }).success,
+    ).toBe(false);
   });
 });

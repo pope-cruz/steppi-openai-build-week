@@ -1,4 +1,5 @@
 import { CornerUpLeft } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { PathBranch, StudentProfile } from "@/lib/schemas";
@@ -67,10 +68,12 @@ export function PathDetailPanel({
   branch,
   evidence,
   onClear,
+  research,
 }: {
   branch: PathBranch;
   evidence: Map<string, ProfileEvidence>;
   onClear: () => void;
+  research?: ReactNode;
 }) {
   const relatedDirections = branch.relatedOptions.filter(
     (option) => option.type === "career" || option.type === "major",
@@ -179,6 +182,7 @@ export function PathDetailPanel({
           </div>
         </div>
       </div>
+      {research}
     </section>
   );
 }

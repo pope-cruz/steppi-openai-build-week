@@ -8,15 +8,18 @@ The product must help students explore possibilities. It must not claim to predi
 
 ## Sources of truth
 
-Before making significant changes, read:
+At normal session startup, read `docs/TASKS.md` for the current operational
+handoff. Before making significant changes, also read:
 
 1. `docs/VISION.md` — product purpose, principles, scope, and demo story.
     
 2. `docs/SPEC.md` — current implementation requirements and acceptance criteria.
     
-3. `docs/TASKS.md` — current progress, active milestone, blockers, and next tasks.
-    
-4. Existing code and tests — current technical behavior.
+3. Existing code and tests — current technical behavior.
+
+Read `docs/BUILD_LOG.md` only when historical context, debugging evidence, an
+audit trail, deployment history, or submission documentation is needed. It is
+not required for normal session startup and does not override `docs/TASKS.md`.
     
 
 When these conflict:
@@ -30,7 +33,9 @@ When these conflict:
 4. `docs/TASKS.md` describes progress but does not override the specification.
     
 
-Do not silently change product scope. Record meaningful scope or architecture decisions in `docs/TASKS.md` under `Decision log`.
+Do not silently change product scope. Record active scope or architecture
+decisions in `docs/TASKS.md` under `Important Active Decisions`; preserve detailed
+historical rationale and verification evidence in `docs/BUILD_LOG.md`.
 
 ## Build priority
 
@@ -182,17 +187,10 @@ For each task:
     
 7. Review the resulting diff for unrelated or risky changes.
     
-8. Update `docs/TASKS.md` with:
-    
-    - What was completed
-        
-    - What remains
-        
-    - Any decision made
-        
-    - Any known limitation
-        
-    - The exact next recommended task
+8. Keep `docs/TASKS.md` current with the operational state, in-progress work,
+   blockers, active decisions, unverified behavior, and next recommended task.
+   Append detailed completed-work history, command results, deployment records,
+   and verification evidence to `docs/BUILD_LOG.md` when relevant.
         
 
 Do not mark a user-facing feature complete until its normal flow, loading state, failure state, and malformed-output behavior have been checked.

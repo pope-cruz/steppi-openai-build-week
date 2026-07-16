@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 
-import { InitialPathMap } from "@/app/intake/path-branch-preview";
+import {
+  InitialPathMap,
+  type DevelopmentResearchFixture,
+} from "@/app/intake/path-branch-preview";
 import { Button } from "@/components/ui/button";
 import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
 import { PathApiResponseSchema } from "@/lib/path-api";
@@ -84,10 +87,12 @@ function constraintIdFor(profile: StudentProfile) {
 
 export function ProfileConfirmation({
   developmentPathFixture,
+  developmentResearchFixture,
   onRestart,
   profile: originalProfile,
 }: {
   developmentPathFixture?: DevelopmentPathFixture;
+  developmentResearchFixture?: DevelopmentResearchFixture;
   onRestart: () => void;
   profile: StudentProfile;
 }) {
@@ -346,6 +351,7 @@ export function ProfileConfirmation({
       >
         <InitialPathMap
           branches={pathRequestState.branches}
+          developmentResearchFixture={developmentResearchFixture}
           profile={confirmedProfile}
         />
         <div className="mt-8 flex justify-end border-t border-border pt-6">

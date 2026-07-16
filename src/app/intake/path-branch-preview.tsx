@@ -1,17 +1,29 @@
 "use client";
 
 import { Check, UserRound } from "lucide-react";
-import { useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 
 import {
   PathDetailPanel,
   profileEvidence,
 } from "@/app/intake/path-detail-panel";
+import { ResearchComposer } from "@/app/intake/path-research";
+import { ResearchExpansion } from "@/app/intake/research-expansion";
+import { DEMO_RESEARCH_NODES } from "@/lib/demo-research";
 import {
   createPathMapState,
   pathMapReducer,
 } from "@/lib/path-map-state";
-import type { PathBranch, StudentProfile } from "@/lib/schemas";
+import { ResearchApiResponseSchema } from "@/lib/research-api";
+import {
+  createResearchFlowState,
+  researchFlowReducer,
+} from "@/lib/research-flow";
+import {
+  ResearchQuestionSchema,
+  type PathBranch,
+  type StudentProfile,
+} from "@/lib/schemas";
 
 const BRANCH_PRESENTATION = {
   "strongest-fit": {
@@ -37,11 +49,20 @@ const EDGE_PATHS = {
   underexplored: "M 500 270 C 500 335, 500 385, 500 455",
 } as const;
 
+export type DevelopmentResearchFixture =
+  | "success"
+  | "no_useful_sources"
+  | "retrieval_failure"
+  | "api_failure"
+  | "malformed_model_output";
+
 export function InitialPathMap({
   branches,
+  developmentResearchFixture,
   profile,
 }: {
   branches: PathBranch[];
+  developmentResearchFixture?: DevelopmentResearchFixture;
   profile: StudentProfile;
 }) {
   const [state, dispatch] = useReducer(
@@ -49,10 +70,189 @@ export function InitialPathMap({
     createPathMapState(profile, branches),
   );
   const branchButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const [researchFlow, dispatchResearch] = useReducer(
+    researchFlowReducer,
+    createResearchFlowState(profile, branches),
+  );
+  const [researchQuestion, setResearchQuestion] = useState("");
+  const [researchQuestionError, setResearchQuestionError] = useState<string | null>(null);
+  const researchController = useRef<AbortController | null>(null);
   const evidence = profileEvidence(state.profile);
   const selectedBranch = state.branches.find(
     (branch) => branch.id === state.selectedBranchId,
   );
+  const visibleResearch =
+    selectedBranch &&
+    researchFlow.request.status === "success" &&
+    researchFlow.request.branchId === selectedBranch.id
+      ? researchFlow.request
+      : null;
+
+  useEffect(
+    () => () => {
+      researchController.current?.abort();
+    },
+    [],
+  );
+
+  async function researchSelectedBranch(questionOverride?: string) {
+    if (!selectedBranch) {
+      return;
+    }
+
+    const candidate = questionOverride ?? researchQuestion;
+    const parsedQuestion = ResearchQuestionSchema.safeParse(candidate);
+    if (!parsedQuestion.success) {
+      setResearchQuestionError(
+        candidate.trim()
+          ? "Use at least 6 characters and keep the question under 300."
+          : "Enter or choose one focused question first.",
+      );
+      return;
+    }
+
+    const question = parsedQuestion.data;
+    const branch = selectedBranch;
+    setResearchQuestion(question);
+    setResearchQuestionError(null);
+    researchController.current?.abort();
+    const controller = new AbortController();
+    researchController.current = controller;
+    dispatchResearch({ type: "start", branchId: branch.id, question });
+
+    try {
+      let responseBody: unknown;
+
+      if (process.env.NODE_ENV === "development" && developmentResearchFixture) {
+        await new Promise((resolve) => window.setTimeout(resolve, 350));
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        if (developmentResearchFixture === "success") {
+          responseBody = {
+            ok: true,
+            status: "success",
+            question,
+            nodes: DEMO_RESEARCH_NODES.map((node) => ({
+              ...node,
+              parentBranchId: branch.id,
+            })),
+          };
+        } else if (developmentResearchFixture === "no_useful_sources") {
+          responseBody = { ok: true, status: "no_useful_sources", question, nodes: [] };
+        } else if (developmentResearchFixture === "malformed_model_output") {
+          responseBody = {
+            ok: true,
+            status: "success",
+            question,
+            nodes: [{ ...DEMO_RESEARCH_NODES[0], sources: [] }],
+          };
+        } else {
+          responseBody = {
+            ok: false,
+            error: {
+              code: developmentResearchFixture,
+              message:
+                developmentResearchFixture === "retrieval_failure"
+                  ? "Steppi could not reach useful sources right now. Your map and question are safe; please try again."
+                  : "Steppi could not finish this research right now. Your map and question are safe; please try again.",
+              retryable: true,
+            },
+          };
+        }
+      } else {
+        const response = await fetch("/api/research", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profile: state.profile, branch, question }),
+          signal: controller.signal,
+        });
+        responseBody = await response.json();
+      }
+
+      const parsedResponse = ResearchApiResponseSchema.safeParse(responseBody);
+      if (!parsedResponse.success) {
+        dispatchResearch({
+          type: "fail",
+          branchId: branch.id,
+          question,
+          code: "malformed_model_output",
+          message: "Steppi received research it could not safely verify. Nothing new was added; please try again.",
+          retryable: true,
+        });
+        return;
+      }
+
+      if (!parsedResponse.data.ok) {
+        dispatchResearch({
+          type: "fail",
+          branchId: branch.id,
+          question,
+          code: parsedResponse.data.error.code,
+          message: parsedResponse.data.error.message,
+          retryable: parsedResponse.data.error.retryable,
+        });
+        return;
+      }
+
+      if (parsedResponse.data.question !== question) {
+        dispatchResearch({
+          type: "fail",
+          branchId: branch.id,
+          question,
+          code: "malformed_model_output",
+          message: "Steppi received research for a different question. Nothing new was added; please try again.",
+          retryable: true,
+        });
+        return;
+      }
+
+      if (parsedResponse.data.status === "no_useful_sources") {
+        dispatchResearch({ type: "no_useful_sources", branchId: branch.id, question });
+        return;
+      }
+
+      if (
+        parsedResponse.data.nodes.some(
+          (node) => node.parentBranchId !== branch.id,
+        )
+      ) {
+        dispatchResearch({
+          type: "fail",
+          branchId: branch.id,
+          question,
+          code: "malformed_model_output",
+          message: "Steppi received research attached to a different path. Nothing new was added; please try again.",
+          retryable: true,
+        });
+        return;
+      }
+
+      dispatchResearch({
+        type: "succeed",
+        branchId: branch.id,
+        question,
+        nodes: parsedResponse.data.nodes,
+      });
+    } catch {
+      if (controller.signal.aborted) {
+        return;
+      }
+      dispatchResearch({
+        type: "fail",
+        branchId: branch.id,
+        question,
+        code: "api_failure",
+        message: "Steppi could not reach the research service. Your map and question are safe; please try again.",
+        retryable: true,
+      });
+    } finally {
+      if (researchController.current === controller) {
+        researchController.current = null;
+      }
+    }
+  }
 
   function clearSelection() {
     const branchId = state.selectedBranchId;
@@ -189,11 +389,37 @@ export function InitialPathMap({
         Select a path with a pointer, or focus a path and press Enter or Space. The graph does not require dragging.
       </p>
 
+      {selectedBranch && visibleResearch ? (
+        <ResearchExpansion
+          branch={selectedBranch}
+          nodes={visibleResearch.nodes}
+          question={visibleResearch.question}
+        />
+      ) : null}
+
       {selectedBranch ? (
         <PathDetailPanel
           branch={selectedBranch}
           evidence={evidence}
           onClear={clearSelection}
+          research={
+            <ResearchComposer
+              branch={selectedBranch}
+              fieldError={researchQuestionError}
+              onQuestionChange={(question) => {
+                setResearchQuestion(question);
+                setResearchQuestionError(null);
+              }}
+              onRetry={() => {
+                if (researchFlow.request.status !== "idle") {
+                  void researchSelectedBranch(researchFlow.request.question);
+                }
+              }}
+              onSubmit={() => void researchSelectedBranch()}
+              question={researchQuestion}
+              request={researchFlow.request}
+            />
+          }
         />
       ) : (
         <p

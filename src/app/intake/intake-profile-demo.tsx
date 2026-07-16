@@ -16,6 +16,7 @@ import {
   ProfileConfirmation,
   type DevelopmentPathFixture,
 } from "@/app/intake/profile-confirmation";
+import type { DevelopmentResearchFixture } from "@/app/intake/path-branch-preview";
 import { DEMO_PROFILE_FIXTURE } from "@/lib/demo-profile";
 import {
   applyQuickResponse,
@@ -47,7 +48,13 @@ type DevelopmentFixtureMode =
   | "profile-live-paths"
   | "paths-api-failure"
   | "paths-timeout"
-  | "paths-malformed";
+  | "paths-malformed"
+  | "research-live"
+  | "research-success"
+  | "research-no-sources"
+  | "research-retrieval-failure"
+  | "research-api-failure"
+  | "research-malformed";
 
 function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
   if (process.env.NODE_ENV !== "development") {
@@ -59,7 +66,13 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
     fixture === "profile-live-paths" ||
     fixture === "paths-api-failure" ||
     fixture === "paths-timeout" ||
-    fixture === "paths-malformed"
+    fixture === "paths-malformed" ||
+    fixture === "research-live" ||
+    fixture === "research-success" ||
+    fixture === "research-no-sources" ||
+    fixture === "research-retrieval-failure" ||
+    fixture === "research-api-failure" ||
+    fixture === "research-malformed"
     ? fixture
     : null;
 }
@@ -81,6 +94,27 @@ function pathFixtureFor(
   }
 
   return "success";
+}
+
+function researchFixtureFor(
+  fixture: DevelopmentFixtureMode,
+): DevelopmentResearchFixture | undefined {
+  if (fixture === "research-success") {
+    return "success";
+  }
+  if (fixture === "research-no-sources") {
+    return "no_useful_sources";
+  }
+  if (fixture === "research-retrieval-failure") {
+    return "retrieval_failure";
+  }
+  if (fixture === "research-api-failure") {
+    return "api_failure";
+  }
+  if (fixture === "research-malformed") {
+    return "malformed_model_output";
+  }
+  return undefined;
 }
 
 function ProgressIndicator({ index }: { index: number }) {
@@ -462,6 +496,7 @@ export function IntakeProfileDemo() {
       <div className="mx-auto w-full max-w-[64rem]">
         <ProfileConfirmation
           developmentPathFixture={pathFixtureFor(developmentFixtureMode)}
+          developmentResearchFixture={researchFixtureFor(developmentFixtureMode)}
           onRestart={() => {
             setFixtureDismissed(true);
             restart();

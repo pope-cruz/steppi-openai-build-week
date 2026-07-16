@@ -162,9 +162,76 @@ export const PathGenerationSchema = z
     }
   });
 
+export const ResearchQuestionSchema = z.string().trim().min(6).max(300);
+
+export const SourceEvidenceSchema = z
+  .object({
+    title: z.string().trim().min(1).max(180),
+    publisher: z.string().trim().min(1).max(120).optional(),
+    url: z
+      .string()
+      .url()
+      .refine((value) => new URL(value).protocol === "https:", {
+        message: "Research sources must use HTTPS.",
+      }),
+    dateChecked: z.string().date(),
+    supports: z.string().trim().min(1).max(400),
+  })
+  .strict();
+
+export const ResearchNodeSchema = z
+  .object({
+    id: identifierSchema,
+    parentBranchId: identifierSchema,
+    type: z.enum(["career", "major", "college", "program", "resource", "cost"]),
+    title: z.string().trim().min(1).max(140),
+    summary: z.string().trim().min(1).max(500),
+    relevanceToStudent: z.string().trim().min(1).max(400),
+    caveats: z.array(statementSchema).min(1).max(3),
+    confidence: z.enum(["low", "medium", "high"]),
+    sources: z.array(SourceEvidenceSchema).min(1).max(4),
+  })
+  .strict();
+
+export const ResearchRequestSchema = z
+  .object({
+    profile: StudentProfileSchema,
+    branch: PathBranchSchema,
+    question: ResearchQuestionSchema,
+  })
+  .strict();
+
+export const ResearchGenerationSchema = z
+  .object({
+    status: z.enum(["success", "no_useful_sources"]),
+    nodes: z.array(ResearchNodeSchema).max(5),
+  })
+  .strict()
+  .superRefine(({ nodes, status }, context) => {
+    if (status === "success" && nodes.length === 0) {
+      context.addIssue({
+        code: "custom",
+        message: "Successful research requires at least one node.",
+        path: ["nodes"],
+      });
+    }
+    if (status === "no_useful_sources" && nodes.length !== 0) {
+      context.addIssue({
+        code: "custom",
+        message: "No-useful-source results cannot contain research nodes.",
+        path: ["nodes"],
+      });
+    }
+  });
+
 export type IntakeAnswer = z.infer<typeof IntakeAnswerSchema>;
 export type IntakeRequest = z.infer<typeof IntakeRequestSchema>;
 export type StudentProfile = z.infer<typeof StudentProfileSchema>;
 export type ProfilePatch = z.infer<typeof ProfilePatchSchema>;
 export type PathBranch = z.infer<typeof PathBranchSchema>;
 export type PathGeneration = z.infer<typeof PathGenerationSchema>;
+export type ResearchQuestion = z.infer<typeof ResearchQuestionSchema>;
+export type SourceEvidence = z.infer<typeof SourceEvidenceSchema>;
+export type ResearchNode = z.infer<typeof ResearchNodeSchema>;
+export type ResearchRequest = z.infer<typeof ResearchRequestSchema>;
+export type ResearchGeneration = z.infer<typeof ResearchGenerationSchema>;
