@@ -1,9 +1,12 @@
 "use client";
 
-import { LoaderCircle, RotateCcw, Search } from "lucide-react";
+import { LoaderCircle, RotateCcw, Search, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { ResearchRequestState } from "@/lib/research-flow";
+import {
+  isResearchRequestActive,
+  type ResearchRequestState,
+} from "@/lib/research-flow";
 import type { PathBranch } from "@/lib/schemas";
 
 export function suggestedResearchQuestions(branch: PathBranch) {
@@ -18,6 +21,7 @@ export function ResearchComposer({
   branch,
   fieldError,
   onQuestionChange,
+  onCancel,
   onRetry,
   onSubmit,
   question,
@@ -26,6 +30,7 @@ export function ResearchComposer({
   branch: PathBranch;
   fieldError: string | null;
   onQuestionChange: (question: string) => void;
+  onCancel: () => void;
   onRetry: () => void;
   onSubmit: () => void;
   question: string;
@@ -33,12 +38,13 @@ export function ResearchComposer({
 }) {
   const isActiveRequest =
     request.status !== "idle" && request.branchId === branch.id;
-  const isLoading = isActiveRequest && request.status === "loading";
+  const isLoading = isActiveRequest && isResearchRequestActive(request);
   const isSuccess = isActiveRequest && request.status === "success";
   const activeError =
     isActiveRequest && request.status === "error" ? request : null;
   const noSources =
     isActiveRequest && request.status === "no_useful_sources";
+  const wasCancelled = isActiveRequest && request.status === "cancelled";
   const helpId = `research-question-help-${branch.id}`;
   const errorId = `research-question-error-${branch.id}`;
 
@@ -110,6 +116,19 @@ export function ResearchComposer({
         </div>
       ) : null}
 
+      {wasCancelled ? (
+        <div className="mt-5 border-s-2 border-border-strong bg-surface px-4 py-3" role="status">
+          <p className="text-sm font-semibold text-ink">Research cancelled</p>
+          <p className="mt-1 text-sm leading-6 text-muted">
+            Nothing was added to the map. Your branch and question are still here.
+          </p>
+          <Button className="mt-3" onClick={onRetry} type="button" variant="secondary">
+            <RotateCcw aria-hidden="true" />
+            Try this question again
+          </Button>
+        </div>
+      ) : null}
+
       <label className="mt-5 block text-sm font-semibold text-graphite" htmlFor={`research-question-${branch.id}`}>
         Question about {branch.title}
       </label>
@@ -140,9 +159,26 @@ export function ResearchComposer({
           )}
           {isLoading ? `Researching ${branch.title}…` : "Research this question"}
         </Button>
+        {isLoading ? (
+          <Button
+            disabled={request.status === "cancelling"}
+            onClick={onCancel}
+            type="button"
+            variant="secondary"
+          >
+            <X aria-hidden="true" />
+            {request.status === "cancelling" ? "Cancelling…" : "Cancel research"}
+          </Button>
+        ) : null}
         <p aria-live="polite" className="text-xs leading-5 text-muted" role="status">
           {isLoading
-            ? "Searching current sources and checking a concise expansion."
+            ? request.status === "starting"
+              ? "Starting one secure background research job."
+              : request.status === "queued"
+                ? "Your research is queued. You can keep this page open or cancel."
+                : request.status === "cancelling"
+                  ? "Stopping this research job without changing your map."
+                  : "Checking current sources and validating a concise expansion."
             : "One source-backed expansion will be added beneath this branch."}
         </p>
       </div>

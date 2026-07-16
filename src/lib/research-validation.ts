@@ -6,11 +6,23 @@ import {
   type ResearchNode,
   type StudentProfile,
 } from "@/lib/schemas";
+import type {
+  ResearchDiagnosticCategory,
+} from "@/lib/research-diagnostics";
 
 export class ResearchValidationError extends Error {
-  constructor(message: string) {
+  readonly category: ResearchDiagnosticCategory;
+  readonly reason: string;
+
+  constructor(
+    message: string,
+    category: ResearchDiagnosticCategory,
+    reason: string,
+  ) {
     super(message);
     this.name = "ResearchValidationError";
+    this.category = category;
+    this.reason = reason;
   }
 }
 
@@ -40,13 +52,19 @@ export function validateResearchContext(
 ) {
   const parsed = ResearchRequestSchema.safeParse({ profile, branch, question });
   if (!parsed.success) {
-    throw new ResearchValidationError("Research request is invalid.");
+    throw new ResearchValidationError(
+      "Research request is invalid.",
+      "schema_validation",
+      "request_schema",
+    );
   }
 
   const validProfileIds = profileIds(profile);
   if (branch.supportingProfileIds.some((id) => !validProfileIds.has(id))) {
     throw new ResearchValidationError(
       "Selected branch references profile evidence that does not exist.",
+      "schema_validation",
+      "profile_evidence_reference",
     );
   }
 
@@ -61,27 +79,50 @@ export function validateResearchGeneration(
 ): ResearchGeneration {
   const parsed = ResearchGenerationSchema.safeParse(output);
   if (!parsed.success) {
-    throw new ResearchValidationError("Research output does not match its schema.");
+    throw new ResearchValidationError(
+      "Research output does not match its schema.",
+      "schema_validation",
+      "output_schema",
+    );
   }
 
   if (parsed.data.status === "no_useful_sources") {
     return parsed.data;
   }
 
-  const retrieved = new Set(retrievedSourceUrls.map(normalizedUrl));
+  let retrieved: Set<string>;
+  try {
+    retrieved = new Set(retrievedSourceUrls.map(normalizedUrl));
+  } catch {
+    throw new ResearchValidationError(
+      "Retrieved source metadata contains an invalid URL.",
+      "source_processing",
+      "retrieved_url_invalid",
+    );
+  }
   if (retrieved.size === 0) {
-    throw new ResearchValidationError("Research output has no retrieved source evidence.");
+    throw new ResearchValidationError(
+      "Research output has no retrieved source evidence.",
+      "source_processing",
+      "retrieved_sources_missing",
+    );
   }
 
   const nodeIds = parsed.data.nodes.map((node) => node.id);
   if (new Set(nodeIds).size !== nodeIds.length) {
-    throw new ResearchValidationError("Research nodes must have unique IDs.");
+    throw new ResearchValidationError(
+      "Research nodes must have unique IDs.",
+      "schema_validation",
+      "duplicate_node_ids",
+    );
   }
 
   for (const node of parsed.data.nodes) {
     if (node.parentBranchId !== branch.id) {
       throw new ResearchValidationError(
         "Research node is attached to the wrong branch.",
+        "schema_validation",
+        "parent_branch_mismatch",
       );
     }
 
@@ -89,11 +130,25 @@ export function validateResearchGeneration(
       if (source.dateChecked !== dateChecked) {
         throw new ResearchValidationError(
           "Research source freshness does not match the server check date.",
+          "schema_validation",
+          "date_checked_mismatch",
         );
       }
-      if (!retrieved.has(normalizedUrl(source.url))) {
+      let citedUrl: string;
+      try {
+        citedUrl = normalizedUrl(source.url);
+      } catch {
+        throw new ResearchValidationError(
+          "Research output cites an invalid URL.",
+          "source_processing",
+          "cited_url_invalid",
+        );
+      }
+      if (!retrieved.has(citedUrl)) {
         throw new ResearchValidationError(
           "Research output cites a URL that was not retrieved.",
+          "source_processing",
+          "citation_not_retrieved",
         );
       }
     }

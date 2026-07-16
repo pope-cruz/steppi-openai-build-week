@@ -69,11 +69,13 @@ export function PathDetailPanel({
   evidence,
   onClear,
   research,
+  selectionLocked = false,
 }: {
   branch: PathBranch;
   evidence: Map<string, ProfileEvidence>;
   onClear: () => void;
   research?: ReactNode;
+  selectionLocked?: boolean;
 }) {
   const relatedDirections = branch.relatedOptions.filter(
     (option) => option.type === "career" || option.type === "major",
@@ -98,7 +100,7 @@ export function PathDetailPanel({
             {branch.title}
           </h3>
         </div>
-        <Button onClick={onClear} variant="secondary">
+        <Button disabled={selectionLocked} onClick={onClear} variant="secondary">
           <CornerUpLeft aria-hidden="true" />
           Back to all paths
         </Button>

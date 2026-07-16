@@ -71,6 +71,7 @@ describe("initial path map markup", () => {
       <ResearchComposer
         branch={DEMO_PATH_BRANCHES[0]}
         fieldError={null}
+        onCancel={() => undefined}
         onQuestionChange={() => undefined}
         onRetry={() => undefined}
         onSubmit={() => undefined}

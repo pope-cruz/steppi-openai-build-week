@@ -167,11 +167,24 @@ export const ResearchQuestionSchema = z.string().trim().min(6).max(300);
 export const SourceEvidenceSchema = z
   .object({
     title: z.string().trim().min(1).max(180),
-    publisher: z.string().trim().min(1).max(120).optional(),
+    // Structured Outputs requires every field to be present. Use null when the
+    // retrieved source does not expose a reliable publisher name.
+    publisher: z.string().trim().min(1).max(120).nullable(),
     url: z
       .string()
-      .url()
-      .refine((value) => new URL(value).protocol === "https:", {
+      .trim()
+      .min(1)
+      .max(2_048)
+      // `format: uri` is outside OpenAI Structured Outputs' supported string
+      // formats. Keep the model schema a bounded string and enforce URL safety
+      // again in runtime validation after parsing.
+      .refine((value) => {
+        try {
+          return new URL(value).protocol === "https:";
+        } catch {
+          return false;
+        }
+      }, {
         message: "Research sources must use HTTPS.",
       }),
     dateChecked: z.string().date(),

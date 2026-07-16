@@ -54,7 +54,9 @@ type DevelopmentFixtureMode =
   | "research-no-sources"
   | "research-retrieval-failure"
   | "research-api-failure"
-  | "research-malformed";
+  | "research-malformed"
+  | "research-cancel"
+  | "research-timeout";
 
 function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
   if (process.env.NODE_ENV !== "development") {
@@ -72,7 +74,9 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
     fixture === "research-no-sources" ||
     fixture === "research-retrieval-failure" ||
     fixture === "research-api-failure" ||
-    fixture === "research-malformed"
+    fixture === "research-malformed" ||
+    fixture === "research-cancel" ||
+    fixture === "research-timeout"
     ? fixture
     : null;
 }
@@ -113,6 +117,12 @@ function researchFixtureFor(
   }
   if (fixture === "research-malformed") {
     return "malformed_model_output";
+  }
+  if (fixture === "research-timeout") {
+    return "polling_timeout";
+  }
+  if (fixture === "research-cancel") {
+    return "polling_cancel";
   }
   return undefined;
 }

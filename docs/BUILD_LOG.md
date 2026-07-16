@@ -29,6 +29,134 @@ it is historical evidence, not a second specification.
 
 ## Completed
 
+### 2026-07-16 — Completed-response source extraction fix
+
+- Made no live OpenAI request and did not change the model, Structured Outputs
+  schema, research parser, source normalization rules, or public errors.
+- Confirmed the existing creation parameters already set
+  `include: ["web_search_call.action.sources"]` and `tool_choice: "required"`.
+- Found one bounded extractor gap: completed web-search action sources were read,
+  but provider-backed output-text `url_citation` annotations were ignored. The
+  extractor now collects and deduplicates both documented locations using the
+  installed SDK response types.
+- Preserved the retrieved-source allow-list: model-authored URLs pass only when
+  their normalized URL matches provider-backed evidence. Missing provider
+  evidence still fails as `retrieved_sources_missing`.
+- Added deterministic SDK-shaped mocks proving extraction from both locations,
+  successful validation of matching model sources, rejection without provider
+  evidence, and no background response creation during retrieval/validation.
+  No raw response, URL, prompt, student data, or model output was logged.
+- Verification passed: `npm run typecheck`; focused
+  `npx vitest run src/server/research-generation.test.ts src/lib/research-validation.test.ts`
+  (2 files, 27 tests); conditional full `npm run test` because shared server code
+  changed (21 files, 120 tests); and `git diff --check`.
+- One separately authorized final live `/api/research` verification is now
+  justified. Milestone 4 remains incomplete until a live result renders and its
+  displayed claims pass the source audit.
+
+### 2026-07-16 — Background Responses API reliability boundary
+
+- Replaced the previous synchronous 45-second `/api/research` wait with a bounded
+  start/status/cancel workflow. Start validates the existing request and creates
+  exactly one `background: true` Response; `PUT` status retrieves that same
+  response; `DELETE` cancellation calls the provider at most once. The client
+  polls every 2.5 seconds only while queued or in progress and cancels once at an
+  overall 120-second budget without automatic retry.
+- Added an encrypted HttpOnly, same-site job cookie. Its plaintext payload is
+  limited to the provider response ID, a SHA-256 context digest, server check
+  date, creation time, and cancellation flag. The browser never receives the raw
+  provider ID, profile, question, prompt, model output, source URLs, or provider
+  body. The handle expires after three minutes and does not make the workflow
+  resumable after a reload.
+- Preserved GPT-5.6, required hosted web search, zero SDK retries, the existing
+  Structured Outputs schema, the installed SDK's local structured parser, the
+  validated research parser, output meaning, and source normalization rules.
+  Parsing and source validation run only after provider status is `completed`.
+- Added safe classification at background creation, retrieval, provider terminal
+  failure/cancellation/incomplete states, structured parsing, schema validation,
+  source processing, provider cancellation, and client polling timeout. Public
+  responses remain generic and contain no provider IDs or sensitive diagnostics.
+- Added deterministic route, SDK-boundary, encrypted-handle, polling, reducer,
+  and UI tests. Coverage proves one create per action, no create during status,
+  repeated retrieval of the same response, queued/in-progress handling,
+  completion through the existing parser and validators, malformed completion,
+  terminal provider states, single cancel, polling abort/unmount, no automatic
+  retry at budget expiry, duplicate-submit prevention, and selected-branch-only
+  graph application. Existing fixture-backed behavior remains covered.
+- Real-browser fixture verification at 1440×1000 and 390×844 covered queued,
+  in-progress, completion, explicit cancellation, provider failure, malformed
+  output, overall timeout, manual retry, disabled duplicate controls, selected-
+  branch-only expansion, stable student/profile/three branches, visible source
+  metadata, no horizontal overflow, and no warning/error console entries in a
+  clean tab.
+- Validation passed: `npm run lint`; `npm run typecheck`;
+  `npx vitest run src/app/api/research/route.test.ts src/server/research-generation.test.ts src/server/research-job-token.test.ts src/lib/research-polling.test.ts src/lib/research-flow.test.ts src/app/intake/path-branch-preview.test.tsx`
+  (6 files, 45 tests); `npm run test` (21 files, 119 tests); network-enabled
+  `npm run build`; and `git diff --check`. The first sandboxed build attempt was
+  blocked only by existing Google Fonts network access; the authorized build
+  passed.
+- Performed exactly one live research action through the real application. It
+  created one OpenAI background Response; 24 status requests retrieved that same
+  response and none called create. The provider completed, after which the
+  unchanged source validator rejected the result with safe category
+  `source_processing`, stage `model_output_validation`, reason
+  `retrieved_sources_missing`, public HTTP 502, and no available upstream code or
+  request ID. No retry occurred and no follow-up fix was applied.
+- No live research node or factual claim rendered, so source audit was not
+  applicable. Browser inspection confirmed zero research expansions, the same
+  student node, all three unchanged original branches, and the same selected
+  branch, with no console warnings/errors or horizontal overflow.
+- Milestone 4 remains incomplete. Exact next task: decide whether to use the
+  validated fixture-backed research flow for the demo and proceed to branch-local
+  refinement, or explicitly authorize one narrowly justified fix based on new
+  evidence.
+
+### 2026-07-16 — Final authorized live research verification
+
+- Preserved all existing uncommitted research work and used `fixture=research-live` so only `/api/research` crossed the live boundary. Submitted Digital product design question “How can I try this before committing?” exactly once through the real application; Retry was never activated.
+- The corrected classifier reported category `timeout`, stage `openai_request`, reason `request_timeout`. The local public route returned HTTP 504 after 45 seconds; upstream HTTP status, upstream code, and request ID were unavailable. No prompt, raw error, model output, student data, key, URL, header, request body, or provider body was logged or preserved.
+- No model output or source evidence reached the application, so source audit was not applicable. Live research remains unverified and Milestone 4 remains incomplete.
+- Browser verification confirmed one unchanged student node, all three unchanged original branches, one stable Digital product design selection, the exact retained question, zero research expansions/nodes, one unused retry control, no horizontal overflow, and no console warnings or errors.
+- Required checks: `npm run lint` passed; `npm run typecheck` passed; `npm run test` passed with 19 files and 105 tests; the sandboxed `npm run build` failed only because existing Google Fonts were unreachable, then the network-enabled `npm run build` passed with `/api/research` present; `git diff --check` passed after documentation and generated-file cleanup.
+- No implementation, schema, model, timeout, retry, refinement, or reliability change was made. Automatic research debugging is closed for Build Week pending a scope decision.
+- Exact next task: decide whether to use the validated fixture-backed research flow for the demo and proceed to branch-local refinement, or explicitly authorize one narrowly justified fix based on the new timeout evidence.
+
+### 2026-07-16 — Deterministic SDK timeout-classifier diagnosis
+
+- Made no live OpenAI request and did not change the model, timeout, retries, public error payloads, research architecture, or Structured Outputs schema.
+- Inspected OpenAI SDK 6.47.0 source and typings. Its client starts an `AbortController` timer for the configured request timeout; an abort or timeout-shaped fetch rejection is wrapped as `APIConnectionTimeoutError`, while other fetch failures become `APIConnectionError`. Both inherit from `APIError` and have no HTTP status or request ID.
+- Reconstructed only the minimum safe runtime shape locally: `{ name: "Error", constructorName: "APIConnectionTimeoutError", isTimeout: true, isConnection: true, isApiError: true, status: undefined, code: undefined, requestId: undefined, hasCause: false }`. No raw error message, stack, prompt, body, header, student data, URL, model output, or secret was inspected or persisted.
+- Proven classifier gap: the prior implementation checked `error.name === "APIConnectionTimeoutError"`, but an actual SDK timeout instance has the generic name `Error`. It then fell through the broad `instanceof OpenAI.APIError` branch, where undefined status produced the exact captured `upstream_api/openai_request/connection_failed` diagnostic.
+- Minimal fix: recognize `OpenAI.APIConnectionTimeoutError` by class identity; accept only bounded safe timeout names/codes, including one nested `cause`; and explicitly retain unqualified `OpenAI.APIConnectionError` as `connection_failed`. No message inspection or hosted-search-specific category was added.
+- Added five focused cases covering the real SDK timeout shape, a generic SDK connection error, a nested `ETIMEDOUT` cause, safe `AbortError` name, and safe `UND_ERR_CONNECT_TIMEOUT` code. `npx vitest run src/server/research-generation.test.ts` passed with 13 tests; the full suite passed with 19 files and 105 tests.
+- Diagnosis: a missed SDK timeout class is proven as the classification defect and the exactly 45-second duration strongly indicates the observed request hit the configured local timeout. A lower-level transport failure or upstream hosted-search stall could still be the event that consumed that interval; without a provider response or tool-call item they remain indistinguishable and are not labeled more specifically.
+- Verification: `npm run lint`, `npm run typecheck`, and `npm run test` passed. The sandboxed `npm run build` failed only because existing Google Fonts could not be fetched; the network-enabled `npm run build` passed with `/api/research` present. `git diff --check` passed after documentation and generated-file cleanup.
+- Exact next task: perform one separately authorized live `/api/research` re-verification with no automatic or repeated retries; source-audit the rendered result if it succeeds. Milestone 4 remains open.
+
+### 2026-07-16 — Corrected-schema live research verification attempt
+
+- Preserved the existing uncommitted research implementation and used `fixture=research-live` so the confirmed profile and exactly three path branches remained deterministic while only `/api/research` crossed the live boundary.
+- Prepared Digital product design and submitted “How can I try this before committing?” exactly once through the real browser application. No Retry action or second API request was made.
+- The request ran for the configured 45-second provider limit and returned the public generic retryable 502 state. The only safe server diagnostic was category `upstream_api`, stage `openai_request`, reason `connection_failed`; OpenAI supplied no HTTP status, upstream code, or request ID.
+- Browser rendering preserved one student node, all three original branch nodes, the selected branch, and the exact question. It rendered zero research expansions/nodes, one retry control, no horizontal overflow, and no browser console warnings or errors.
+- Because no model output or source evidence reached the application, no factual claim was rendered and no source audit or correction was possible. Milestone 4 remains open; refinement remains blocked behind live research verification.
+- Validation results: `npm run lint` passed; `npm run typecheck` passed; `npm run test` passed with 19 files and 100 tests; the sandboxed `npm run build` failed only because Google Fonts were unreachable, then the network-enabled `npm run build` passed with `/api/research` present; `git diff --check` passed after documentation and generated-file cleanup.
+- Exact next task: deterministically inspect the OpenAI SDK error shape produced at the 45-second boundary and establish whether the remaining failure is timeout classification, transport connectivity, or hosted-search connectivity. Do not make another paid request or implement refinement during that diagnostic task.
+
+### 2026-07-16 — `/api/research` boundary diagnosis and schema repair
+
+- Preserved the uncommitted Milestone 4 implementation and traced the full client → route → SDK request → structured parse → source validation → API response → rendering path before editing.
+- Reproduced the original failure without API traffic by calling `zodTextFormat` on the research schema. It failed synchronously because `SourceEvidence.publisher` was optional, while Structured Outputs requires every property to be required; nullable is the supported representation for an unavailable value.
+- Changed `publisher` to required-and-nullable and added a deterministic request-construction test. This removed the synchronous exception that the old broad catch had mislabeled as generic `api_failure`.
+- Added bounded diagnostics for `configuration`, `upstream_api`, `parsing`, `schema_validation`, `source_processing`, `timeout`, and `rendering`. Records include only fixed stage/reason tokens plus optional HTTP status, sanitized upstream code, and OpenAI request ID; they exclude prompts, answers, raw errors, model output, keys, and URLs.
+- Split request construction and hosted-tool response extraction into testable helpers. Deterministic coverage now checks required web search, included search sources, strict schema creation, captured search-call URL extraction, upstream rejection, timeout, malformed/schema output, missing citations, invalid URLs, route input, and safe client-boundary classification.
+- Browser-verified the fixture success flow end to end with one student, three preserved branches, one selection, three branch-local research nodes, three HTTPS source links, no overflow, and a clean console. The live failure state preserved all three branches, the selection, the exact question, and retry control without rendering any research node; the browser console remained clean.
+- Made exactly one diagnostic live GPT-5.6 research request after the first repair. OpenAI returned HTTP 400 with code `invalid_json_schema`; the server safely recorded `upstream_api/openai_request/request_rejected` plus the request ID and returned the existing generic 502 response. No model output, sources, or current claims were produced, and the request was not retried.
+- Inspection of the locally generated schema identified the next unsupported keyword: Zod `.url()` emitted `format: uri`, while OpenAI's supported string formats do not include `uri`. Replaced it with a bounded string plus post-parse HTTPS/URL refinement, preserving runtime safety without emitting the unsupported format.
+- After the second repair, the generated schema builds with required `publisher` and no `format: uri`; lint, typecheck, 19 test files/100 tests, the network-enabled production build, and `git diff --check` pass. Because the one paid attempt was already used, the corrected schema is not yet live-verified and Milestone 4 remains open.
+- Ruled out client request construction, route input validation, missing configuration, authentication rejection, timeout, tool-choice syntax, client rendering, and source processing as the boundary reached by the live attempt. The request stopped at OpenAI schema acceptance before search, generation, parsing, or source validation.
+- Exact next action: make one deliberate live request with the corrected schema; if successful, render it and audit each factual claim, resolving link, freshness label, caveat, and confidence before marking Milestone 4 complete. Do not begin refinement first.
+
 ### 2026-07-16 — Smallest Milestone 4 source-backed research loop
 
 - Added strict `ResearchRequest`, `SourceEvidence`, `ResearchNode`, and research-generation schemas plus deterministic validation for unique node IDs, the selected parent branch, server-controlled check dates, and citations restricted to URLs actually returned by web search.
@@ -41,7 +169,7 @@ it is historical evidence, not a second specification.
 - `npm run lint`, `npm run typecheck`, and `npm run test` passed; the suite contains 18 files and 93 tests. The first sandboxed build failed only because Google Fonts required network access; the approved network-enabled `npm run build` passed with `/api/research` included. `git diff --check` passed.
 - Confirmed `.env.local` remains ignored and untracked. Repository and `.next/static` scans found no OpenAI token signature or server environment variable name in client assets.
 - Performed exactly one local live request through `/api/research` using representative profile, branch, and question data. The route returned HTTP 502 with its safe `api_failure` payload in under a second; no live sources or research nodes were accepted or rendered, and the paid request was not retried. Current factual research therefore remains unverified live.
-- No deployment, authentication, persistence, database, global search, research history, or refinement was added. The next task is one branch-local refinement using the researched branch; second-persona and native Enter/Space checks remain reliability debt.
+- No deployment, authentication, persistence, database, global search, research history, or refinement was added. The later boundary-diagnosis pass superseded the earlier refinement recommendation; live research must be verified first. Second-persona and native Enter/Space checks remain reliability debt.
 
 ### 2026-07-16 — Smallest graph-first Milestone 3 interface
 

@@ -14,11 +14,17 @@ import {
   createPathMapState,
   pathMapReducer,
 } from "@/lib/path-map-state";
-import { ResearchApiResponseSchema } from "@/lib/research-api";
+import {
+  ResearchApiResponseSchema,
+  type ResearchApiResponse,
+} from "@/lib/research-api";
+import { recordClientResearchDiagnostic } from "@/lib/research-diagnostics";
 import {
   createResearchFlowState,
+  isResearchRequestActive,
   researchFlowReducer,
 } from "@/lib/research-flow";
+import { pollResearchJob } from "@/lib/research-polling";
 import {
   ResearchQuestionSchema,
   type PathBranch,
@@ -54,7 +60,9 @@ export type DevelopmentResearchFixture =
   | "no_useful_sources"
   | "retrieval_failure"
   | "api_failure"
-  | "malformed_model_output";
+  | "malformed_model_output"
+  | "polling_cancel"
+  | "polling_timeout";
 
 export function InitialPathMap({
   branches,
@@ -77,6 +85,9 @@ export function InitialPathMap({
   const [researchQuestion, setResearchQuestion] = useState("");
   const [researchQuestionError, setResearchQuestionError] = useState<string | null>(null);
   const researchController = useRef<AbortController | null>(null);
+  const researchActive = useRef(false);
+  const cancellationRequested = useRef(false);
+  const fixturePollCount = useRef(0);
   const evidence = profileEvidence(state.profile);
   const selectedBranch = state.branches.find(
     (branch) => branch.id === state.selectedBranchId,
@@ -95,8 +106,150 @@ export function InitialPathMap({
     [],
   );
 
+  async function fixtureResponse(
+    method: "POST" | "PUT",
+    branch: PathBranch,
+    question: string,
+  ): Promise<unknown> {
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    if (method === "POST") {
+      fixturePollCount.current = 0;
+      return { ok: true, status: "queued" };
+    }
+
+    fixturePollCount.current += 1;
+    if (
+      (developmentResearchFixture === "polling_timeout" ||
+        developmentResearchFixture === "polling_cancel") ||
+      fixturePollCount.current === 1
+    ) {
+      return { ok: true, status: "in_progress" };
+    }
+    if (developmentResearchFixture === "success") {
+      return {
+        ok: true,
+        status: "completed",
+        outcome: "success",
+        question,
+        nodes: DEMO_RESEARCH_NODES.map((node) => ({
+          ...node,
+          parentBranchId: branch.id,
+        })),
+      };
+    }
+    if (developmentResearchFixture === "no_useful_sources") {
+      return {
+        ok: true,
+        status: "completed",
+        outcome: "no_useful_sources",
+        question,
+        nodes: [],
+      };
+    }
+    if (developmentResearchFixture === "malformed_model_output") {
+      return {
+        ok: true,
+        status: "completed",
+        outcome: "success",
+        question,
+        nodes: [{ ...DEMO_RESEARCH_NODES[0], parentBranchId: branch.id, sources: [] }],
+      };
+    }
+    return {
+      ok: false,
+      status: "failed",
+      error: {
+        code: developmentResearchFixture ?? "api_failure",
+        message:
+          developmentResearchFixture === "retrieval_failure"
+            ? "Steppi could not reach useful sources right now. Your map and question are safe; please try again."
+            : "Steppi could not finish this research right now. Your map and question are safe; please try again.",
+        retryable: true,
+      },
+    };
+  }
+
+  async function cancelResearchJob(reason: "user" | "timeout") {
+    if (cancellationRequested.current) return;
+    cancellationRequested.current = true;
+    if (process.env.NODE_ENV === "development" && developmentResearchFixture) {
+      return;
+    }
+    await fetch("/api/research", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  function applyTerminalResponse(
+    response: ResearchApiResponse,
+    branch: PathBranch,
+    question: string,
+  ) {
+    if (!response.ok) {
+      dispatchResearch({
+        type: "fail",
+        branchId: branch.id,
+        question,
+        code: response.error.code,
+        message: response.error.message,
+        retryable: response.error.retryable,
+      });
+      return;
+    }
+    if (response.status === "cancelled") {
+      dispatchResearch({ type: "cancelled", branchId: branch.id, question });
+      return;
+    }
+    if (response.status !== "completed") return;
+
+    if (response.question !== question) {
+      recordClientResearchDiagnostic({
+        category: "rendering",
+        stage: "client_response_validation",
+        reason: "question_mismatch",
+      });
+      dispatchResearch({
+        type: "fail",
+        branchId: branch.id,
+        question,
+        code: "malformed_model_output",
+        message: "Steppi received research for a different question. Nothing new was added; please try again.",
+        retryable: true,
+      });
+      return;
+    }
+    if (response.outcome === "no_useful_sources") {
+      dispatchResearch({ type: "no_useful_sources", branchId: branch.id, question });
+      return;
+    }
+    if (response.nodes.some((node) => node.parentBranchId !== branch.id)) {
+      recordClientResearchDiagnostic({
+        category: "rendering",
+        stage: "client_response_validation",
+        reason: "parent_branch_mismatch",
+      });
+      dispatchResearch({
+        type: "fail",
+        branchId: branch.id,
+        question,
+        code: "malformed_model_output",
+        message: "Steppi received research attached to a different path. Nothing new was added; please try again.",
+        retryable: true,
+      });
+      return;
+    }
+    dispatchResearch({
+      type: "succeed",
+      branchId: branch.id,
+      question,
+      nodes: response.nodes,
+    });
+  }
+
   async function researchSelectedBranch(questionOverride?: string) {
-    if (!selectedBranch) {
+    if (!selectedBranch || researchActive.current) {
       return;
     }
 
@@ -115,64 +268,31 @@ export function InitialPathMap({
     const branch = selectedBranch;
     setResearchQuestion(question);
     setResearchQuestionError(null);
-    researchController.current?.abort();
     const controller = new AbortController();
     researchController.current = controller;
+    researchActive.current = true;
+    cancellationRequested.current = false;
     dispatchResearch({ type: "start", branchId: branch.id, question });
 
     try {
-      let responseBody: unknown;
-
-      if (process.env.NODE_ENV === "development" && developmentResearchFixture) {
-        await new Promise((resolve) => window.setTimeout(resolve, 350));
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        if (developmentResearchFixture === "success") {
-          responseBody = {
-            ok: true,
-            status: "success",
-            question,
-            nodes: DEMO_RESEARCH_NODES.map((node) => ({
-              ...node,
-              parentBranchId: branch.id,
-            })),
-          };
-        } else if (developmentResearchFixture === "no_useful_sources") {
-          responseBody = { ok: true, status: "no_useful_sources", question, nodes: [] };
-        } else if (developmentResearchFixture === "malformed_model_output") {
-          responseBody = {
-            ok: true,
-            status: "success",
-            question,
-            nodes: [{ ...DEMO_RESEARCH_NODES[0], sources: [] }],
-          };
-        } else {
-          responseBody = {
-            ok: false,
-            error: {
-              code: developmentResearchFixture,
-              message:
-                developmentResearchFixture === "retrieval_failure"
-                  ? "Steppi could not reach useful sources right now. Your map and question are safe; please try again."
-                  : "Steppi could not finish this research right now. Your map and question are safe; please try again.",
-              retryable: true,
-            },
-          };
-        }
-      } else {
-        const response = await fetch("/api/research", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profile: state.profile, branch, question }),
-          signal: controller.signal,
-        });
-        responseBody = await response.json();
-      }
-
+      const requestBody = { profile: state.profile, branch, question };
+      const responseBody =
+        process.env.NODE_ENV === "development" && developmentResearchFixture
+          ? await fixtureResponse("POST", branch, question)
+          : await fetch("/api/research", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(requestBody),
+              signal: controller.signal,
+            }).then((response) => response.json());
+      if (controller.signal.aborted) return;
       const parsedResponse = ResearchApiResponseSchema.safeParse(responseBody);
       if (!parsedResponse.success) {
+        recordClientResearchDiagnostic({
+          category: "rendering",
+          stage: "client_response_validation",
+          reason: "api_response_schema",
+        });
         dispatchResearch({
           type: "fail",
           branchId: branch.id,
@@ -183,58 +303,76 @@ export function InitialPathMap({
         });
         return;
       }
-
-      if (!parsedResponse.data.ok) {
-        dispatchResearch({
-          type: "fail",
-          branchId: branch.id,
-          question,
-          code: parsedResponse.data.error.code,
-          message: parsedResponse.data.error.message,
-          retryable: parsedResponse.data.error.retryable,
-        });
-        return;
-      }
-
-      if (parsedResponse.data.question !== question) {
-        dispatchResearch({
-          type: "fail",
-          branchId: branch.id,
-          question,
-          code: "malformed_model_output",
-          message: "Steppi received research for a different question. Nothing new was added; please try again.",
-          retryable: true,
-        });
-        return;
-      }
-
-      if (parsedResponse.data.status === "no_useful_sources") {
-        dispatchResearch({ type: "no_useful_sources", branchId: branch.id, question });
-        return;
-      }
-
       if (
-        parsedResponse.data.nodes.some(
-          (node) => node.parentBranchId !== branch.id,
-        )
+        !parsedResponse.data.ok ||
+        (parsedResponse.data.status !== "queued" &&
+          parsedResponse.data.status !== "in_progress")
       ) {
-        dispatchResearch({
-          type: "fail",
-          branchId: branch.id,
-          question,
-          code: "malformed_model_output",
-          message: "Steppi received research attached to a different path. Nothing new was added; please try again.",
-          retryable: true,
-        });
+        applyTerminalResponse(parsedResponse.data, branch, question);
         return;
       }
-
       dispatchResearch({
-        type: "succeed",
+        type: "pending",
         branchId: branch.id,
         question,
-        nodes: parsedResponse.data.nodes,
+        status: parsedResponse.data.status,
       });
+
+      const polling = await pollResearchJob({
+        signal: controller.signal,
+        intervalMs: developmentResearchFixture ? 350 : undefined,
+        budgetMs:
+          developmentResearchFixture === "polling_timeout" ? 1_200 : undefined,
+        retrieve: async () => {
+          const body =
+            process.env.NODE_ENV === "development" && developmentResearchFixture
+              ? await fixtureResponse("PUT", branch, question)
+              : await fetch("/api/research", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(requestBody),
+                  signal: controller.signal,
+                }).then((response) => response.json());
+          const parsed = ResearchApiResponseSchema.safeParse(body);
+          if (!parsed.success) {
+            recordClientResearchDiagnostic({
+              category: "rendering",
+              stage: "client_response_validation",
+              reason: "api_response_schema",
+            });
+            return {
+              ok: false,
+              status: "failed",
+              error: {
+                code: "malformed_model_output",
+                message: "Steppi received research it could not safely verify. Nothing new was added; please try again.",
+                retryable: true,
+              },
+            };
+          }
+          return parsed.data;
+        },
+        cancel: async () => cancelResearchJob("timeout"),
+        onPending: (status) =>
+          dispatchResearch({
+            type: "pending",
+            branchId: branch.id,
+            question,
+            status,
+          }),
+      });
+      if (polling.kind === "terminal") {
+        applyTerminalResponse(polling.response, branch, question);
+      } else if (polling.kind === "timed_out") {
+        dispatchResearch({
+          type: "fail",
+          branchId: branch.id,
+          question,
+          code: "timeout",
+          message: "Steppi reached the research time limit. Nothing was added, and your map and question are safe.",
+          retryable: true,
+        });
+      }
     } catch {
       if (controller.signal.aborted) {
         return;
@@ -248,9 +386,31 @@ export function InitialPathMap({
         retryable: true,
       });
     } finally {
+      researchActive.current = false;
       if (researchController.current === controller) {
         researchController.current = null;
       }
+    }
+  }
+
+  async function cancelSelectedResearch() {
+    const request = researchFlow.request;
+    if (!isResearchRequestActive(request) || cancellationRequested.current) return;
+    dispatchResearch({
+      type: "cancelling",
+      branchId: request.branchId,
+      question: request.question,
+    });
+    researchController.current?.abort();
+    try {
+      await cancelResearchJob("user");
+    } finally {
+      researchActive.current = false;
+      dispatchResearch({
+        type: "cancelled",
+        branchId: request.branchId,
+        question: request.question,
+      });
     }
   }
 
@@ -351,6 +511,7 @@ export function InitialPathMap({
                 }`}
                 data-path-node="branch"
                 data-path-role={branch.kind}
+                disabled={isResearchRequestActive(researchFlow.request)}
                 key={branch.id}
                 onClick={() => dispatch({ type: "select", branchId: branch.id })}
                 ref={(node) => {
@@ -402,11 +563,13 @@ export function InitialPathMap({
           branch={selectedBranch}
           evidence={evidence}
           onClear={clearSelection}
+          selectionLocked={isResearchRequestActive(researchFlow.request)}
           research={
-            <ResearchComposer
-              branch={selectedBranch}
-              fieldError={researchQuestionError}
-              onQuestionChange={(question) => {
+              <ResearchComposer
+                branch={selectedBranch}
+                fieldError={researchQuestionError}
+                onCancel={() => void cancelSelectedResearch()}
+                onQuestionChange={(question) => {
                 setResearchQuestion(question);
                 setResearchQuestionError(null);
               }}

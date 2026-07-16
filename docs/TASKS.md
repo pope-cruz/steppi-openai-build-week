@@ -21,12 +21,29 @@ deployment records, and audit evidence.
 - A selected branch now offers three suggestions and free text, preserves the
   confirmed profile and all original branches, and renders at most five concise,
   validated research nodes beneath only that branch.
-- Research uses one server-only Responses API attempt with required hosted web
-  search. Every rendered source must be among the URLs retrieved during that
-  request and includes title, URL, date checked, relevance, caveat, and confidence.
-- Fixture-backed success, no-source, retrieval, API, malformed-output, and retry
-  states are covered. Current factual research is **not yet verified live**: the
-  single permitted local attempt returned the safe `api_failure` response.
+- Research now starts exactly one server-only background Responses API job,
+  keeps its provider ID inside an encrypted HttpOnly same-site cookie, and polls
+  that same response every 2.5 seconds for up to 120 seconds. Status and cancel
+  never create another response; cancel is provider-idempotent per local handle.
+- Completed output still passes through the unchanged Structured Outputs parser,
+  research schema, and retrieved-URL allow-list before rendering. The model,
+  output meaning, and Structured Outputs schema are unchanged.
+- Fixture-backed queued, in-progress, success, no-source, provider-failure,
+  malformed-output, cancel, timeout, retry, and duplicate-prevention states are
+  covered. Current factual research is **not yet verified live**.
+- Diagnostics now distinguish configuration, upstream API, parsing, schema,
+  source processing, timeout, and client-rendering boundaries without recording
+  prompts, raw output, API keys, or student data.
+- One final authorized background request completed at the provider, but source
+  normalization rejected it safely as
+  `source_processing/model_output_validation/retrieved_sources_missing`; the
+  public route returned HTTP 502. No upstream code or request ID was available,
+  no result rendered, and no retry occurred.
+- Deterministic inspection confirmed creation already includes
+  `web_search_call.action.sources` and requires web search. The completed-response
+  extractor now allow-lists provider-backed URLs from both search-call sources
+  and output-text `url_citation` annotations; model-authored URLs still cannot
+  pass without matching provider evidence.
 - Active student, map, and research state remain intentionally in memory.
 
 ## Active Milestone
@@ -37,31 +54,29 @@ success remains open. See [SPEC.md](./SPEC.md).
 
 ## Immediate Objective
 
-Implement one branch-local refinement using the validated researched branch,
-without rebuilding the graph or changing unaffected branches. Keep the live
-research failure visible as reliability debt; do not add persistence, auth, or
-a database.
+Perform one separately authorized final live `/api/research` verification with
+no automatic or repeated retries; audit the rendered sources if it succeeds.
 
 ## In Progress
 
-- No implementation is currently in progress.
-- Live research verification is pending a reliability pass on the upstream
-  `api_failure`; do not consume repeated paid attempts while diagnosing it.
+- No implementation is currently in progress; the source-extraction fix has
+  passed deterministic verification only.
 
 ## Next Recommended Tasks
 
-1. Implement one fixture-first branch-local refinement using the researched
-   branch. Preserve the profile, source evidence, original branches, and all
-   unaffected nodes; validate the patch before applying it.
-2. During the reliability pass, diagnose the live research `api_failure` without
-   exposing credentials, then perform one deliberate end-to-end re-verification.
-3. Complete the deferred second-persona and native Enter/Space graph checks.
+1. Perform one separately authorized final live `/api/research` verification
+   with no automatic or repeated retries. If it succeeds, render and source-audit
+   the exact result before deciding Milestone 4 status.
+2. Complete the deferred second-persona and native Enter/Space graph checks in
+   the reliability pass.
 
 ## Current Blockers
 
-- The single local live `/api/research` attempt returned HTTP 502 with the safe
-  `api_failure` code. No live current-factual research result has therefore been
-  accepted or rendered.
+- Live research still has no renderable result. The single background response
+  completed before the extractor handled output-text `url_citation` annotations,
+  so the source allow-list received no provider URLs and rejected the output as
+  `source_processing/model_output_validation/retrieved_sources_missing` with
+  public HTTP 502. The corrected extractor is not yet live-verified.
 - Vercel Authentication blocks anonymous Preview access; the research changes
   have not been deployed.
 
@@ -85,8 +100,22 @@ a database.
 - The graph is primary: one student, exactly three equal initial branches,
   progressive disclosure, secondary context panels, and branch-local updates.
 - Milestone 4 uses the official OpenAI SDK, one stateless server-only Responses
-  API call, required hosted web search, GPT-5.6 structured output, zero automatic
-  retries, strict Zod validation, and a retrieved-URL allow-list.
+  API background response, required hosted web search, GPT-5.6 structured output,
+  zero automatic retries, strict Zod validation, and a retrieved-URL allow-list.
+- The background job handle is an encrypted HttpOnly same-site cookie containing
+  only the provider response ID, a context hash, check date, creation time, and
+  cancellation flag. It expires quickly, does not make jobs resumable after a
+  reload, and does not expose the provider ID.
+- OpenAI-facing schemas use only the documented Structured Outputs subset. URL
+  protocol and syntax remain strict runtime checks after parsing instead of
+  emitting the unsupported JSON Schema `format: uri` keyword.
+- Timeout classification uses the installed SDK timeout class identity first,
+  then bounded safe name/code signals with at most one nested cause. Generic SDK
+  connection errors remain `connection_failed`; there is no speculative
+  hosted-search diagnostic without a returned tool-call signal.
+- Provider source evidence may come from completed web-search call sources or
+  output-text URL-citation annotations. Both are allow-list inputs; model-authored
+  source URLs remain untrusted unless they match that provider evidence.
 - Research adds no more than five nodes to one selected branch. Insufficient
   evidence and all failures render honest, retryable states without changing the map.
 - No authentication, persistence, database, comprehensive dataset, global search,
@@ -96,8 +125,13 @@ a database.
 
 ## Unverified Behavior
 
-- A live GPT-5.6 web-search response has not succeeded for `/api/research`; the
-  one allowed attempt failed safely and was not retried.
+- The corrected dual-location provider-source extractor has not been exercised
+  against a live completed GPT-5.6 response. No live request was made in this pass.
+- Live background creation, polling, and provider completion are verified.
+  Live source normalization and research rendering remain unverified at the
+  `retrieved_sources_missing` boundary.
+- No live factual claim was rendered, so there was nothing to source-audit or
+  correct in this pass.
 - The research loop is not deployed or verified in Vercel.
 - A materially different map persona and native Enter/Space activation remain
   verification debt for the reliability pass; do not block refinement on them.

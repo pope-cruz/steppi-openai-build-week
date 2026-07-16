@@ -2,7 +2,12 @@ import type { PathBranch, ResearchNode, StudentProfile } from "@/lib/schemas";
 
 export type ResearchRequestState =
   | { status: "idle" }
-  | { status: "loading"; branchId: string; question: string }
+  | {
+      status: "starting" | "queued" | "in_progress" | "cancelling";
+      branchId: string;
+      question: string;
+    }
+  | { status: "cancelled"; branchId: string; question: string }
   | { status: "success"; branchId: string; question: string; nodes: ResearchNode[] }
   | { status: "no_useful_sources"; branchId: string; question: string }
   | {
@@ -22,6 +27,14 @@ export type ResearchFlowState = {
 
 export type ResearchFlowAction =
   | { type: "start"; branchId: string; question: string }
+  | {
+      type: "pending";
+      branchId: string;
+      question: string;
+      status: "queued" | "in_progress";
+    }
+  | { type: "cancelling"; branchId: string; question: string }
+  | { type: "cancelled"; branchId: string; question: string }
   | { type: "succeed"; branchId: string; question: string; nodes: ResearchNode[] }
   | { type: "no_useful_sources"; branchId: string; question: string }
   | {
@@ -40,6 +53,22 @@ export function createResearchFlowState(
   return { profile, branches, request: { status: "idle" } };
 }
 
+type ActiveResearchRequest = Extract<
+  ResearchRequestState,
+  { status: "starting" | "queued" | "in_progress" | "cancelling" }
+>;
+
+export function isResearchRequestActive(
+  request: ResearchRequestState,
+): request is ActiveResearchRequest {
+  return (
+    request.status === "starting" ||
+    request.status === "queued" ||
+    request.status === "in_progress" ||
+    request.status === "cancelling"
+  );
+}
+
 export function researchFlowReducer(
   state: ResearchFlowState,
   action: ResearchFlowAction,
@@ -52,7 +81,29 @@ export function researchFlowReducer(
     return {
       ...state,
       request: {
-        status: "loading",
+        status: "starting",
+        branchId: action.branchId,
+        question: action.question,
+      },
+    };
+  }
+
+  if (action.type === "pending") {
+    return {
+      ...state,
+      request: {
+        status: action.status,
+        branchId: action.branchId,
+        question: action.question,
+      },
+    };
+  }
+
+  if (action.type === "cancelling" || action.type === "cancelled") {
+    return {
+      ...state,
+      request: {
+        status: action.type,
         branchId: action.branchId,
         question: action.question,
       },

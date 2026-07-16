@@ -33,14 +33,45 @@ describe("research validation", () => {
   });
 
   it("rejects a source that was not retrieved", () => {
-    expect(() =>
+    try {
       validateResearchGeneration(
         DEMO_PATH_BRANCHES[0],
         { status: "success", nodes: DEMO_RESEARCH_NODES },
         DEMO_RETRIEVED_SOURCE_URLS.slice(1),
         "2026-07-16",
+      );
+      throw new Error("Expected source validation to fail.");
+    } catch (error) {
+      expect(error).toMatchObject({
+        category: "source_processing",
+        reason: "citation_not_retrieved",
+      });
+    }
+  });
+
+  it("classifies invalid retrieved URLs as source processing failures", () => {
+    expect(() =>
+      validateResearchGeneration(
+        DEMO_PATH_BRANCHES[0],
+        { status: "success", nodes: DEMO_RESEARCH_NODES },
+        ["not a url"],
+        "2026-07-16",
       ),
-    ).toThrow("not retrieved");
+    ).toThrow("invalid URL");
+
+    try {
+      validateResearchGeneration(
+        DEMO_PATH_BRANCHES[0],
+        { status: "success", nodes: DEMO_RESEARCH_NODES },
+        ["not a url"],
+        "2026-07-16",
+      );
+    } catch (error) {
+      expect(error).toMatchObject({
+        category: "source_processing",
+        reason: "retrieved_url_invalid",
+      });
+    }
   });
 
   it("rejects the wrong branch, stale check date, and duplicate node IDs", () => {

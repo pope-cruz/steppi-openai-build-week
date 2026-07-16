@@ -102,6 +102,15 @@ describe("Steppi schemas", () => {
         nodes: DEMO_RESEARCH_NODES,
       }).success,
     ).toBe(true);
+
+    const withoutPublisher = structuredClone(DEMO_RESEARCH_NODES);
+    withoutPublisher[0].sources[0].publisher = null;
+    expect(
+      ResearchGenerationSchema.safeParse({
+        status: "success",
+        nodes: withoutPublisher,
+      }).success,
+    ).toBe(true);
   });
 
   it("rejects empty success, unsupported source protocols, and excess nodes", () => {
