@@ -112,6 +112,30 @@ Steppi creates an interactive 2D map centered on the student, with three initial
 
 Each direction shows why it appeared, supporting evidence, possible drawbacks, unresolved questions, and connected careers or majors.
 
+### The graph is the product
+
+Steppi's primary exploration interface is a living personal path graph, not a
+dashboard or a report with a decorative diagram .
+
+The student begins as the central node, connected to exactly three initial
+directions. As the student explores, selected branches expand into connected
+careers, majors, questions, constraints, resources, programs, and researched
+findings.
+
+New information should visibly extend the existing graph rather than replace it
+with a separate results page. Corrections and refinements should visibly change
+the relevant nodes or relationships while preserving unaffected parts of the
+map.
+
+The graph should resemble a focused local knowledge graph rather than an
+unrestricted global graph. Only the currently relevant neighborhood should be
+prominent. Progressive disclosure, restrained node counts, readable labels,
+and branch-local expansion should prevent the map from becoming an
+indecipherable network.
+
+A contextual panel may explain the selected node, but the graph remains the
+primary mental model and main navigation surface.
+
 ### 4. Explore any node
 
 The student can click a career, major, college, resource, constraint, or question and ask Steppi to:
@@ -278,6 +302,11 @@ The map should feel like a space for discovery rather than a technical graph.
 Use readable labels, restrained motion, progressive disclosure, clear relationships, and short contextual summaries.
 
 Avoid corporate dashboards, excessive cards, generic AI gradients, childish visuals, raw agent chatter, dense reports, and too many visible nodes.
+
+The visual reference is a calm, curated knowledge graph: connected nodes,
+branch-local clusters, and visible relationships that gradually form a personal
+map of possibilities. Avoid reducing the graph to three static cards or using
+graph visuals merely as decoration.
 
 ## Safety and trust
 

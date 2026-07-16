@@ -176,6 +176,25 @@ Never expose secrets to the client or commit real credentials.
 
 The MVP should be organized around four product stages.
 
+### Graph-first interaction model
+
+The graph is Steppi's primary interface, navigation model, and product mental model. It is not a decorative summary placed above, beside, or inside a conventional card-based report.
+
+The graph must behave as a focused personal path graph:
+
+- the student is the central node;
+- exactly three equal initial directions form the first visible layer;
+- selecting a node focuses or expands its local neighborhood inside the graph;
+- careers, majors, questions, constraints, resources, programs, and researched findings can become connected nodes as exploration continues;
+- only the currently relevant neighborhood should be prominent;
+- contextual details may explain the selected node, but the detail panel is secondary to the graph and must not become the main navigation surface;
+- new research extends the selected branch instead of replacing the graph with a full-page results report;
+- corrections and refinements update only relevant nodes or relationships while preserving unaffected graph areas.
+
+Use progressive disclosure and curated node counts so the graph remains understandable. Do not add an unrestricted graph editor, infinite-canvas controls, or unnecessary graph complexity. Do not add a graph library unless the existing stack cannot support this narrow interaction cleanly.
+
+The Build Week graph remains deliberately small: one central student node, exactly three initial branch nodes, no more than two expansion levels, one researched branch, and one branch-local refinement.
+
 ### Stage A: Intake
 
 Collect a small but useful set of student context:
@@ -228,10 +247,10 @@ Generate exactly three distinct branches:
 2. adjacent possibility;
 3. underexplored possibility.
 
-Each branch must include:
+Each validated `PathBranch` must include:
 
 - title;
-- category;
+- kind: `strongest-fit`, `adjacent`, or `underexplored`;
 - concise summary;
 - why it appeared;
 - supporting profile evidence;
@@ -240,18 +259,38 @@ Each branch must include:
 - related majors or careers;
 - confidence expressed qualitatively, not as false precision.
 
-The map initially contains:
+The initial visible graph contains only:
 
 - one central student node;
-- three path nodes;
-- optional first-level supporting nodes;
+- exactly three equal first-level path nodes, one for each required branch kind;
+- visible, understandable relationships between the student and each branch;
 - no more visible information than the student can reasonably understand.
+
+Before selection, each branch node shows only:
+
+- a concise branch name;
+- its role or direction label;
+- a one-sentence summary;
+- qualitative confidence only where it is useful to interpretation.
+
+After selection, the graph gives that branch visual emphasis and the contextual detail panel reveals:
+
+- why the branch appeared;
+- supporting student facts and constraints;
+- Steppi's supporting inferences, clearly distinguished from student-provided facts;
+- the main tradeoff;
+- an unresolved question;
+- related careers or majors.
+
+Branch details must not all render simultaneously. Profile evidence should appear once at the student level or be referenced contextually for the selected branch; it must not be reproduced as a long repeated report beneath every branch.
+
+The initial interaction must support click selection and keyboard selection, have a visible selected state, and remain understandable without dragging. On mobile, provide a focused branch navigator or hierarchical node list that preserves the same relationships rather than requiring precise graph manipulation.
 
 ### Stage D: Research and Refinement
 
 The student chooses one branch and asks one focused question.
 
-Steppi performs focused research and adds source-backed nodes such as:
+Steppi performs focused research and adds source-backed child nodes under the selected branch, such as:
 
 - relevant majors;
 - academic pathways;
@@ -259,7 +298,9 @@ Steppi performs focused research and adds source-backed nodes such as:
 - example colleges or programs;
 - costs or geographic considerations.
 
-The student then supplies one new constraint. Steppi updates only the relevant branch and preserves unaffected nodes.
+Expansion is branch-local: opening or expanding one branch adds its connected child nodes while the other branches remain stable. Research findings become validated, source-backed nodes rather than a replacement full-page report.
+
+The student then supplies one new constraint. Steppi updates only the relevant graph area and preserves unaffected branches, nodes, and relationships.
 
 ---
 
@@ -525,15 +566,20 @@ The student must be able to correct an inference before generating paths.
 Must include:
 
 - one central student node;
-- exactly three initial branch nodes;
-- readable labels;
-- obvious selection behavior;
-- progressive disclosure;
-- a details panel or equivalent;
+- exactly three equal first-level branch nodes;
+- visible and understandable relationships from the student to each branch;
+- concise default branch content: name, role or direction label, one-sentence summary, and qualitative confidence only where useful;
+- click and keyboard selection without depending on dragging;
+- obvious selected-node emphasis that is not communicated by color alone;
+- a contextual detail panel for only the selected node;
+- selected details covering rationale, supporting facts and constraints, clearly labeled Steppi inferences, the main tradeoff, one unresolved question, and related careers or majors;
+- progressive disclosure and branch-local focus or expansion;
 - restrained motion;
-- a mobile fallback that does not require precise graph dragging.
+- a usable mobile fallback, such as a focused branch navigator or hierarchical node list, that preserves the graph relationships without precise dragging.
 
-Avoid presenting a raw technical graph-editor interface.
+Do not render every branch's full evidence and rationale at the same time. Deduplicate shared profile evidence at the student level or reference it contextually from the selected branch.
+
+The graph must remain the primary interaction surface. The contextual panel supports it but must not turn the experience into a report or dashboard with a decorative graph. Avoid presenting a raw technical graph-editor interface.
 
 ## 9.5 Research Details
 
@@ -690,8 +736,14 @@ Complete when:
 
 - the confirmed profile produces exactly three validated branches;
 - the branches are meaningfully distinct;
-- the student can open branch details;
-- the map is understandable on desktop and usable on mobile.
+- the graph is the primary interaction surface;
+- one central student node connects visibly to exactly three equal first-level branch nodes;
+- each branch is concise before selection;
+- click and keyboard selection visibly emphasize one branch;
+- only the selected branch's contextual details are revealed;
+- shared profile evidence is not repeated as three full reports;
+- the interaction supports progressive disclosure and a clear path to branch-local expansion;
+- the map is understandable on desktop and has a usable non-drag mobile fallback.
 
 ## Milestone 4 — Research Expansion
 
@@ -736,8 +788,11 @@ Complete when:
 - No comprehensive database
 - Exactly three initial path branches
 - One central student node
+- The graph is the primary product interface and mental model
+- Contextual details support the selected graph node rather than replacing graph navigation
 - One researched branch is sufficient
 - Two expansion levels are sufficient
+- Expansion and refinement are branch-local and preserve unaffected graph areas
 - Profile corrections should patch the profile
 - Refinement should update only the relevant branch
 - Qualitative confidence only

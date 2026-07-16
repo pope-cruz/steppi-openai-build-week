@@ -3,16 +3,20 @@
 import {
   AlertCircle,
   ArrowLeft,
-  Check,
   ChevronRight,
   LoaderCircle,
   Pencil,
   RotateCcw,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  ProfileConfirmation,
+  type DevelopmentPathFixture,
+} from "@/app/intake/profile-confirmation";
+import { DEMO_PROFILE_FIXTURE } from "@/lib/demo-profile";
 import {
   applyQuickResponse,
   buildIntakeAnswers,
@@ -33,6 +37,51 @@ type RequestState =
   | { status: "loading" }
   | { status: "error"; message: string; retryable: boolean }
   | { status: "success"; profile: StudentProfile };
+
+function subscribeToFixtureLocation() {
+  return () => undefined;
+}
+
+type DevelopmentFixtureMode =
+  | "profile"
+  | "profile-live-paths"
+  | "paths-api-failure"
+  | "paths-timeout"
+  | "paths-malformed";
+
+function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
+  if (process.env.NODE_ENV !== "development") {
+    return null;
+  }
+
+  const fixture = new URLSearchParams(window.location.search).get("fixture");
+  return fixture === "profile" ||
+    fixture === "profile-live-paths" ||
+    fixture === "paths-api-failure" ||
+    fixture === "paths-timeout" ||
+    fixture === "paths-malformed"
+    ? fixture
+    : null;
+}
+
+function pathFixtureFor(
+  fixture: DevelopmentFixtureMode,
+): DevelopmentPathFixture | undefined {
+  if (fixture === "profile-live-paths") {
+    return undefined;
+  }
+  if (fixture === "paths-api-failure") {
+    return "api_failure";
+  }
+  if (fixture === "paths-timeout") {
+    return "timeout";
+  }
+  if (fixture === "paths-malformed") {
+    return "malformed_model_output";
+  }
+
+  return "success";
+}
 
 function ProgressIndicator({ index }: { index: number }) {
   const phase = intakePhase(index);
@@ -335,120 +384,19 @@ function ReviewStep({
   );
 }
 
-function ProfileList({
-  items,
-  label,
-  title,
-}: {
-  items: string[];
-  label: string;
-  title: string;
-}) {
-  return (
-    <section>
-      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
-        {label}
-      </p>
-      <h3 className="mt-1 text-lg font-semibold text-ink">{title}</h3>
-      {items.length > 0 ? (
-        <ul className="mt-3 space-y-2.5 text-sm leading-6 text-graphite">
-          {items.map((item, index) => (
-            <li className="border-s border-border-strong ps-3" key={`${index}-${item}`}>
-              {item}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm text-muted">Nothing surfaced in this group.</p>
-      )}
-    </section>
-  );
-}
-
-function ProfileResult({
-  onRestart,
-  profile,
-}: {
-  onRestart: () => void;
-  profile: StudentProfile;
-}) {
-  return (
-    <section aria-labelledby="profile-title" className="mx-auto max-w-[54rem]">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-          <Check aria-hidden="true" className="size-4" />
-        </span>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-primary">
-            Validated profile
-          </p>
-          <h1 className="font-display mt-1 text-balance text-[clamp(2.35rem,6vw,3.75rem)] leading-tight text-ink" id="profile-title">
-            Here is what Steppi understood.
-          </h1>
-          <p className="mt-3 max-w-[42rem] text-sm leading-6 text-muted sm:text-base">
-            This is a working hypothesis for correction—not a prediction or final recommendation.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-10 grid gap-x-10 gap-y-9 border-y border-border py-9 md:grid-cols-2">
-        <ProfileList
-          items={profile.facts.map((item) => item.statement)}
-          label="Based on your answers"
-          title="What you shared"
-        />
-        <ProfileList
-          items={profile.inferences.map(
-            (item) =>
-              `${item.statement} — ${item.rationale} (${item.confidence} confidence)`,
-          )}
-          label="Steppi inference"
-          title="Working hypotheses"
-        />
-        <ProfileList
-          items={profile.constraints.map((item) => item.statement)}
-          label="Constraints that matter"
-          title="Practical context"
-        />
-        <ProfileList
-          items={profile.uncertainties.map(
-            (item) => `${item.question} ${item.whyItMatters}`,
-          )}
-          label="Still uncertain"
-          title="Useful questions"
-        />
-      </div>
-
-      {profile.tensions.length > 0 ? (
-        <div className="mt-9 border-b border-border pb-9">
-          <ProfileList
-            items={profile.tensions.map((item) => item.description)}
-            label="Worth checking"
-            title="Tensions in the answers"
-          />
-        </div>
-      ) : null}
-
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-        <p className="max-w-[32rem] text-sm leading-6 text-muted">
-          Profile correction and path generation are the next product step.
-        </p>
-        <Button onClick={onRestart} variant="secondary">
-          <RotateCcw />
-          Restart intake
-        </Button>
-      </div>
-    </section>
-  );
-}
-
 export function IntakeProfileDemo() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [draft, setDraft] = useState<IntakeDraft>({});
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [requestState, setRequestState] = useState<RequestState>({ status: "idle" });
   const [stage, setStage] = useState<FlowStage>("questions");
+  const [fixtureDismissed, setFixtureDismissed] = useState(false);
   const requestController = useRef<AbortController | null>(null);
+  const developmentFixtureMode = useSyncExternalStore(
+    subscribeToFixtureLocation,
+    getDevelopmentFixtureSnapshot,
+    () => null,
+  );
   const questions = getIntakeQuestions(draft);
   const currentQuestion = questions[currentIndex];
   const hasProgress = stage !== "questions" || Object.values(draft).some(Boolean);
@@ -507,6 +455,21 @@ export function IntakeProfileDemo() {
     setFieldError(null);
     setRequestState({ status: "idle" });
     setStage("questions");
+  }
+
+  if (developmentFixtureMode && !fixtureDismissed) {
+    return (
+      <div className="mx-auto w-full max-w-[64rem]">
+        <ProfileConfirmation
+          developmentPathFixture={pathFixtureFor(developmentFixtureMode)}
+          onRestart={() => {
+            setFixtureDismissed(true);
+            restart();
+          }}
+          profile={DEMO_PROFILE_FIXTURE}
+        />
+      </div>
+    );
   }
 
   async function generateProfile() {
@@ -628,7 +591,7 @@ export function IntakeProfileDemo() {
       ) : null}
 
       {stage === "profile" && requestState.status === "success" ? (
-        <ProfileResult onRestart={restart} profile={requestState.profile} />
+        <ProfileConfirmation onRestart={restart} profile={requestState.profile} />
       ) : null}
     </div>
   );

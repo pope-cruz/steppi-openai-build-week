@@ -11,23 +11,23 @@ last_updated: 2026-07-16
 
 ## Current State
 
-**Project stage:** Adaptive intake and live structured-profile flow deployed and verified
+**Project stage:** Milestone 3 graph-first interface implemented; native Enter/Space activation still needs browser re-verification
 
-**Current milestone:** Milestone 2 — Intake and Structured Profile
+**Current milestone:** Milestone 3 — Initial Path Generation and Map
 
-**Primary objective:** Add the minimum profile-correction interaction so a student can reject or replace one inference before path generation.
+**Primary objective:** Close the remaining Milestone 3 keyboard-verification and second-persona gaps before source-backed expansion.
 
-**Primary Codex thread:** Active — adaptive intake and live integration work block completed 2026-07-16
+**Primary Codex thread:** Active — smallest graph-first Milestone 3 slice completed 2026-07-16
 
-**Deployment:** Preview is `Ready` at [steppi-openai-build-week-2ibzu4h54-pgc9002-3129s-projects.vercel.app](https://steppi-openai-build-week-2ibzu4h54-pgc9002-3129s-projects.vercel.app). Vercel Authentication is enabled, both required Preview variables are present, and one real deployed GPT-5.6 response validated and rendered.
+**Deployment:** Latest Preview is `Ready` at [steppi-openai-build-week-gsfxhz2da-pgc9002-3129s-projects.vercel.app](https://steppi-openai-build-week-gsfxhz2da-pgc9002-3129s-projects.vercel.app). Vercel Authentication is enabled, both required Preview variables are present, and one real deployed GPT-5.6 path response passed the complete validator.
 
-**Known implementation:** Next.js App Router shell, responsive landing page, eight-question in-memory intake, phase progress, back navigation, preserved answers, one deterministic adaptive follow-up, client validation, review/reset behavior, strict intake and `StudentProfile` schemas, server-only OpenAI Responses API call, structured-output parsing on both server and client, public-safe route errors, separated profile rendering, loading/retry UI, and deterministic failure-path tests.
+**Known implementation:** Next.js App Router shell, responsive landing page, eight-question in-memory intake, validated GPT-5.6 profile generation, reversible local profile correction, strict exact-three `PathBranch` generation, safe path API states, and a responsive graph-first map with one student node, three equal branch nodes, selected-only details, and a non-drag mobile hierarchy.
 
 ---
 
 ## Immediate Next Task
 
-Implement `ProfilePatchSchema` and the smallest correction interaction on the validated profile: allow one inference to be removed or replaced, keep the correction reversible until confirmation, preserve every unrelated profile field, and expose one clear continuation action for the future path-generation step. Use fixtures and deterministic tests; do not add map generation, persistence, authentication, or another live model call unless the correction changes the existing server interaction.
+Complete Milestone 3 verification with a materially different deterministic persona and a browser surface that reliably dispatches native Enter and Space activation. Change the interface only if those checks reveal a defect; do not begin research or refinement yet.
 
 ---
 
@@ -102,8 +102,8 @@ Milestone 0 is complete only when:
 
 - [x] Implement schemas for `IntakeAnswer`
 - [x] Implement schema for `StudentProfile`
-- [ ] Implement schema for `ProfilePatch`
-- [ ] Implement schema for `PathBranch`
+- [x] Implement schema for `ProfilePatch`
+- [x] Implement schema for `PathBranch`
 - [ ] Implement schema for `ResearchNode`
 - [ ] Implement schema for `MapState`
 - [x] Add valid demo fixtures for the intake/profile smoke test
@@ -116,12 +116,12 @@ Milestone 0 is complete only when:
 - [x] Intake progress and back navigation
 - [x] Preserve previous answers in local state
 - [x] At least one visibly adaptive follow-up
-- [ ] Intake → profile confirmation
+- [x] Intake → profile confirmation
 - [x] Visually separate facts and inferences in the profile smoke test
-- [ ] Allow one inference correction
+- [x] Allow one inference correction
 - [ ] Confirmation → map
 - [ ] Render one central student node
-- [ ] Render exactly three initial path branches
+- [x] Render exactly three initial path branches in temporary editorial output
 - [ ] Open branch details
 - [ ] Show a static researched branch fixture
 - [ ] Submit one refinement fixture
@@ -182,10 +182,10 @@ Milestone 0 is complete only when:
 - [x] Display facts separately from inferences in the smoke-test result
 - [x] Display constraints in the smoke-test result
 - [x] Display uncertainty in the smoke-test result
-- [ ] Allow an inference to be removed or replaced
-- [ ] Allow a missing constraint to be added
-- [ ] Apply a structured `ProfilePatch`
-- [ ] Preserve unrelated profile data
+- [x] Allow an inference to be removed or replaced
+- [x] Allow a missing constraint to be added
+- [x] Apply a structured `ProfilePatch`
+- [x] Preserve unrelated profile data
 
 ### Tests and verification
 
@@ -199,55 +199,61 @@ Milestone 0 is complete only when:
 ### Milestone 2 completion gate
 
 - [x] A real GPT-5.6 call produces a validated profile locally and in Vercel Preview
-- [ ] The student can correct Steppi before path generation
+- [x] The student can correct Steppi before path generation
 - [x] Verified error classes do not crash the flow
 
 ---
 
 ## Milestone 3 — Initial Path Generation and Map
 
-**Goal:** Generate and display exactly three distinct path branches from the confirmed profile.
+**Goal:** Generate exactly three distinct path branches from the confirmed profile and make their graph the primary interaction surface.
 
 ### Path generation
 
-- [ ] Generate one `strongest-fit` branch
-- [ ] Generate one `adjacent` branch
-- [ ] Generate one `underexplored` branch
-- [ ] Validate exactly three results
-- [ ] Require evidence references to profile items
-- [ ] Include drawbacks
-- [ ] Include unresolved questions
-- [ ] Use qualitative confidence
-- [ ] Reject or retry duplicate or near-duplicate branches
+- [x] Generate one `strongest-fit` branch
+- [x] Generate one `adjacent` branch
+- [x] Generate one `underexplored` branch
+- [x] Validate exactly three results
+- [x] Require evidence references to profile items
+- [x] Include drawbacks
+- [x] Include unresolved questions
+- [x] Use qualitative confidence
+- [x] Reject or retry duplicate or near-duplicate branches
 
 ### Map interface
 
-- [ ] Render central student node
-- [ ] Render exactly three branch nodes
-- [ ] Show understandable relationships
-- [ ] Support click/select
-- [ ] Show a branch details panel
-- [ ] Use progressive disclosure
-- [ ] Avoid raw graph-editor controls
-- [ ] Provide a non-drag-dependent mobile fallback
-- [ ] Preserve confirmed profile state
+- [x] Make the graph the primary interaction surface
+- [x] Render one central student node
+- [x] Render exactly three equal first-level branch nodes
+- [x] Show understandable edges between the student and each branch
+- [x] Keep default branch-node content concise
+- [x] Support click and native-button keyboard selection semantics
+- [x] Visibly emphasize the selected branch
+- [x] Show one contextual detail panel for the selected branch
+- [x] Support branch-local focus behavior
+- [x] Use progressive disclosure
+- [x] Do not simultaneously render every branch's full evidence and rationale
+- [x] Avoid raw graph-editor controls
+- [x] Provide a non-drag-dependent mobile fallback
+- [x] Preserve confirmed profile state
 
 ### Verification
 
-- [ ] Test demo persona output
+- [x] Test demo persona output
 - [ ] Test a materially different persona
-- [ ] Test duplicate branch handling
-- [ ] Test malformed branch output
-- [ ] Browser-test desktop map
-- [ ] Browser-test mobile fallback
-- [ ] Check accessibility and console
-- [ ] Run baseline validation suite
+- [x] Test duplicate branch handling
+- [x] Test malformed branch output
+- [x] Browser-test desktop map
+- [x] Browser-test mobile fallback
+- [x] Check pointer accessibility, focus restoration, overflow, and console
+- [ ] Re-verify native Enter/Space activation in a browser tool that dispatches those keys reliably
+- [x] Run baseline validation suite
 
 ### Milestone 3 completion gate
 
-- [ ] Branches are meaningfully different
-- [ ] The user can understand why each path appeared
-- [ ] The map remains visually understandable
+- [x] Branches are meaningfully different
+- [x] The user can understand why each path appeared
+- [x] The map remains visually understandable
 
 ---
 
@@ -347,6 +353,14 @@ At least one must work reliably in the final demo.
 
 **Goal:** Freeze features and make the project safe, coherent, testable, and easy to judge.
 
+### Deferred intake UX refactor
+
+- [ ] Refactor the intake into one continuous scrolling conversational transcript.
+- [ ] Keep previous Steppi prompts and student responses visible.
+- [ ] Replace the segmented progress bar and Back/Continue questionnaire controls with a stable composer and transcript-based editing.
+- [ ] Make adaptive follow-ups visibly reference prior student answers.
+- [ ] Re-evaluate whether profile confirmation should remain a mandatory full-screen step or become an optional “Review what Steppi understood” panel.
+
 ### Reliability
 
 - [ ] Run the full golden path from a clean browser
@@ -420,6 +434,49 @@ At least one must work reliably in the final demo.
 
 ## Completed
 
+### 2026-07-16 — Smallest graph-first Milestone 3 interface
+
+- Replaced the temporary full editorial comparison with a dominant four-node graph using the existing validated profile and branches.
+- Added one central student node, exactly three equal branch buttons, three understandable SVG edges, and an equivalent connected mobile hierarchy without a graph library.
+- Added null initial selection, pointer selection, selected-node and edge emphasis, branch switching, clearing, and focus restoration while preserving profile and branch references.
+- Moved rationale, labeled profile evidence, the main tradeoff, one unresolved question, related careers or majors, and confidence into one selected-only contextual panel.
+- Added a fixture-only handoff that scrolls the completed map into view and makes no additional GPT-5.6 request.
+- Added focused reducer and server-rendered markup tests; 14 test files and 68 tests pass.
+- Browser-verified 1440×1000 and 390×844 layouts, pointer selection, switching, clearing, progressive disclosure, mobile relationship parity, no horizontal overflow or off-screen controls, and a clean console.
+- Lint, strict type checking, tests, the network-enabled production build, and `git diff --check` pass; native Enter/Space activation remains browser-unverified because the in-app browser focused but did not dispatch those keys.
+
+### 2026-07-16 — Milestone 3 exact-three path generation
+
+- Recorded the current multi-step questionnaire as explicit UX debt before implementation. Added a deferred Milestone 6 intake transcript/composer refactor and the decision that the questionnaire is temporary, not the intended final Steppi interaction.
+- Added `PathBranchSchema` exactly for the SPEC fields plus a strict `{ branches }` response schema fixed at three entries and exactly one `strongest-fit`, `adjacent`, and `underexplored` role.
+- Added deterministic post-schema validation for unique branch IDs, unique/resolvable profile evidence references, duplicate normalized names, high lexical direction overlap, three branches collapsing onto the same career/major label, and unsupported time-sensitive claims that require later sourced research.
+- Added a single-request server-only GPT-5.6 path service using `responses.parse`, Zod structured output, the existing GPT-5.6 model allow-list, zero SDK retries, a 45-second request timeout inside a 60-second route budget, and no logging of profile content, raw SDK errors, secrets, or environment values.
+- Added stateless, `no-store` `POST /api/paths` handling with validated confirmed-profile input and stable public-safe errors for missing configuration, invalid model configuration, timeout, upstream failure, and malformed output.
+- Added client-boundary validation and a reducer that preserves the exact confirmed-profile reference across loading, failure, retry, and success.
+- Replaced the placeholder handoff with one explicit request from `Confirm and explore paths`, a clear loading state, retryable failure states, and a restrained editorial comparison of exactly three equal path hypotheses.
+- Each branch preview renders its direction, why it appeared, resolved profile evidence, the distinction between student facts/constraints and Steppi inferences, the main tradeoff, an unresolved question, related general options, and qualitative confidence. It does not render a map or claim current program, cost, admissions, salary, or labor-market facts.
+- Added development-only success, timeout, API-failure, and malformed-output fixtures for deterministic browser verification. Normal production flow never fabricates branches.
+- Added schema, validator, state, client response, service, and route tests covering exact count/role enforcement, missing/duplicate/extra roles, malformed branches, invalid evidence, duplicate names, near-duplicates, collapsed directions, unsupported current claims, safe errors, timeout, retryability, confirmed-profile preservation, and successful preview transition.
+- Browser-verified fixture success, loading, timeout/retry, API failure, malformed output, confirmed-profile preservation, all three role labels, evidence/tradeoff/question/confidence rendering, 1440×1000 desktop, 390×844 mobile, no overflow/off-screen controls, and a clean console.
+- Completed exactly one live local GPT-5.6 path request. It returned three valid and meaningfully different directions in 28.7 seconds and rendered without browser warnings/errors or exposed environment/error labels.
+- Deployed Preview `dpl_GnQXrRhbQZeArZg5mxnQ5ynFYFwN`; Vercel restored the prior cache, compiled in 10.5 seconds, and reported `Ready`.
+- Completed exactly one authenticated live GPT-5.6 Preview path request. `POST /api/paths` returned HTTP 200 with exactly three validated roles and no extra profile-generation request.
+
+### 2026-07-16 — Milestone 2 profile correction and confirmation
+
+- Added the strict `ProfilePatchSchema` contract with supported operations for inference removal, statement replacement, added constraints, and added facts. Nested values reuse the validated `StudentProfile` field schemas, and unsupported keys or malformed statements are rejected.
+- Added a pure immutable patch applicator that validates the original profile and patch, rejects missing or conflicting inference targets and duplicate IDs, preserves all unrelated facts, inferences, constraints, uncertainties, and tensions, and validates the resulting `StudentProfile` before it can render.
+- Added a clearly labeled valid patch fixture and expanded the representative profile fixture to include a second inference so unrelated-inference preservation is deterministic.
+- Added focused tests for valid and malformed patches, removal, replacement, added constraints, whitespace-only input, invalid targets, conflicting operations, duplicate IDs, original-object immutability, unrelated-data preservation, change detection, cancel/undo, and reset semantics.
+- Replaced only the previous static profile result with a focused confirmation component. Facts are visibly read-only; a student can open one inference correction at a time, preview a replacement or removal, cancel without changing the profile, or discard the entire pending patch before confirmation.
+- Added one collapsed-by-default missing-constraint form with whitespace validation, a 600-character schema-aligned limit, inline errors, and a secondary visual position beneath practical context.
+- Clearly distinguishes `Original profile`, `Pending correction`, and `Confirmed profile`. The original validated object remains unchanged, and all correction work is local—no API or model request is made.
+- Added the dominant `Confirm and explore paths` handoff after profile confirmation. It reveals an honest “Three path branches come next” placeholder and does not generate paths or render a map.
+- Added a development-only `?fixture=profile` verification entry point so the complete correction state machine can be exercised locally without a paid GPT-5.6 request. Restart dismisses the fixture and returns to the first intake question.
+- Browser-verified cancellation, whitespace replacement validation, replacement preview/undo, removal preview/undo, empty constraint validation, combined replacement plus added constraint, confirmation, handoff, and restart. Facts, the unrelated inference, existing constraint, uncertainty, and tension remained present in the confirmed result.
+- Browser-verified 1440×1000 desktop and 390×844 mobile layouts with no horizontal overflow or off-screen buttons. The mobile open form measured within the viewport, and the browser console contained no warnings or errors.
+- Made zero GPT-5.6 requests and zero `/api/profile` requests during this work block.
+
 ### 2026-07-16 — Adaptive intake and live Vercel profile verification
 
 - Confirmed without displaying values that `OPENAI_API_KEY` and `OPENAI_MODEL=gpt-5.6` are present locally, `.env.local` is ignored, and both encrypted variables are configured for Vercel Preview and Production.
@@ -482,13 +539,14 @@ At least one must work reliably in the final demo.
 
 - `npm run lint` — passed
 - `npm run typecheck` — passed
-- `npm run test` — passed, 6 files and 28 tests
-- `npm run build` — passed on Next.js 16.2.10; `/`, `/_not-found`, and `/intake` are static and `/api/profile` is dynamic
-- Local browser verification — passed for the multi-step intake at desktop and mobile sizes without spending a new model request
+- `npm run test` — passed, 12 files and 62 tests
+- `npm run build` — passed on Next.js 16.2.10; `/`, `/_not-found`, and `/intake` are static while `/api/profile` and `/api/paths` are dynamic
+- Local browser verification — passed for confirmed-profile-to-three-paths success and controlled failures at 1440×1000 and 390×844
+- `git diff --check` — passed with no whitespace errors
+- Secret checks — `.env.local` is ignored and untracked; no tracked OpenAI token signature, client-prefixed OpenAI variable, or client-exposed key pattern was found
 - Direct local route checks — passed for invalid input (`400`) and missing configuration (`503`), both with `Cache-Control: no-store`
 - Source and `.next/static` scans — no real OpenAI token signature, non-placeholder key, or server environment name in the browser bundle
-- Vercel build — corrected Preview passed remotely in 17 seconds; deployment status `Ready`
-- Deployed browser verification — the complete intake-to-live-profile flow passed in an authenticated desktop/mobile browser with a clean console
+- Vercel path Preview — deployment `dpl_GnQXrRhbQZeArZg5mxnQ5ynFYFwN` is `Ready`; the authenticated live path API smoke test returned HTTP 200
 - `npm audit --omit=dev` — completed with two moderate findings caused by Next.js 16.2.10 pinning `postcss@8.4.31`; npm's suggested forced fix would incorrectly downgrade Next.js to 9.3.3 and was not applied
 
 ---
@@ -496,15 +554,15 @@ At least one must work reliably in the final demo.
 ## Known Issues
 
 - The Vercel preview remains protected by Vercel Authentication; anonymous judge access is not yet available.
-- The intake and returned profile exist only in React state and are lost on refresh. Persistence remains intentionally out of scope.
-- Profile correction is not implemented yet, so Milestone 2 is not complete even though the live generation criterion now passes.
+- The intake currently functions as a polished multi-step questionnaire rather than the intended continuous conversational interview. It still collects and validates the required student data, so this does not block Milestone 3, but it must be revisited before final feature freeze.
+- The intake, returned profile, pending patch, and confirmed profile exist only in React state and are lost on refresh. Persistence remains intentionally out of scope.
 - The intended 3–5 minute completion time has not been measured with representative students.
 - Two moderate `npm audit` findings remain in Next.js's pinned transitive PostCSS dependency. The available forced remediation is an unsafe framework downgrade and is not appropriate.
 - The landing page relies on `next/font/google`; a local production build needs network access the first time it fetches Fraunces and Geist.
 - The error boundary exists and passes lint, type checking, and production build, but an intentional runtime fault was not added solely to exercise it in the browser.
 - The root loading boundary is present, but the current static routes resolve too quickly to make its normal browser appearance reliably observable.
-- Exact graph library is undecided and remains intentionally deferred.
 - Exact retrieval implementation is undecided and remains intentionally deferred.
+- Duplicate detection is deliberately lexical and deterministic. It catches normalized-name equality, high direction overlap, and a shared underlying career/major across all branches, but it is not a semantic embedding model and may need calibration against more personas.
 
 ---
 
@@ -528,7 +586,7 @@ At least one must work reliably in the final demo.
 - Historical Milestone 0 scope was completed before the structured-profile work began; the current explicit request superseded the earlier sequencing assumption and intentionally implemented a narrow Milestone 2 slice before the full Milestone 1 golden path.
 - Use a restrained editorial field-guide direction; the product preview is functional communication, not decorative illustration.
 - Use a small source-owned shadcn-style primitive layer customized to Steppi tokens instead of adopting shadcn’s default product aesthetic.
-- Keep `/intake` honest about in-memory state and unfinished profile correction until the full Milestone 2 flow is implemented.
+- Keep `/intake` honest about in-memory intake, correction, and confirmation state until persistence is explicitly in scope.
 - Do not initialize a database, authentication, or hypothetical scale infrastructure. A narrowly scoped server-only model client is now authorized for the structured-profile smoke test.
 - Pin Vercel to the Next.js framework preset and `.next` output in repository configuration so a stale dashboard-level `public` override cannot break deployments.
 - Use the official OpenAI JavaScript SDK's Responses API with structured output and Zod validation for profile generation.
@@ -541,6 +599,17 @@ At least one must work reliably in the final demo.
 - Keep intake state in memory for now; back navigation and edit preserve answers within the active page, while refresh persistence remains deferred.
 - Validate the server response again at the client boundary before it enters rendered state.
 - Use one OpenAI attempt with a 45-second timeout inside a 60-second Vercel function budget. User-triggered retry remains available, but the SDK does not automatically repeat a paid request.
+- Keep profile correction local and deterministic: preserve the original validated profile, preview one `ProfilePatch`, and only render the patched profile as confirmed after explicit student confirmation.
+- Reuse the profile schema's 600-character statement limit for student-added constraints and inference replacements.
+- Before path generation was implemented, its confirmation handoff remained an honest controlled placeholder rather than invented branches or a decorative fake map.
+- The current questionnaire-style intake is accepted only as a temporary functional implementation to unblock the map. It is documented UX debt, not the intended final Steppi interaction.
+- Generate the complete three-branch set in one GPT-5.6 request; never make one paid request per branch or enable automatic SDK retries.
+- Enforce exact roles, count, evidence integrity, distinctness, and unsupported-current-claim rejection in deterministic server code after structured-output parsing.
+- The temporary editorial comparison was replaced by a source-owned React and SVG graph; this four-node interaction does not require a graph library.
+- Steppi is a focused personal path graph, not a dashboard with a decorative graph.
+- Contextual panels support the graph but do not replace it as the primary navigation experience.
+- The graph grows through branch-local exploration while preserving unaffected nodes and relationships.
+- Keep visual density curated and understandable through progressive disclosure and restrained node counts.
 
 ---
 
@@ -550,8 +619,9 @@ At least one must work reliably in the final demo.
 - Anonymous public access is not verified because Vercel Authentication protects this preview.
 - Production-domain settings were not viewed or changed.
 - Root error and loading UI were not deliberately forced in the browser; both are compile-verified foundations.
-- Profile correction, map interaction, research, refinement, and persistence remain unimplemented.
-- Keyboard focus traversal was observed with a visible focus ring; browser-tool key activation did not reliably dispatch Enter/Space, while all controls use native buttons, links, form submission, and textareas.
+- Branch research, retrieval, refinement, and persistence remain unimplemented.
+- Native Enter/Space branch activation is not browser-verified: the in-app browser focused the native branch buttons but did not dispatch either activation key. Native button semantics, selection state, and compiled focus-ring styles are covered by static and unit checks.
+- The full deployed browser journey was not repeated because it would require an additional live profile request before the permitted path request. The new authenticated Preview path API itself was live-tested once with representative validated profile data.
 
 ---
 
@@ -560,28 +630,22 @@ At least one must work reliably in the final demo.
 ```text
 Read AGENTS.md, docs/VISION.md, docs/SPEC.md, docs/DESIGN.md, and docs/TASKS.md.
 
-Do not redesign the landing page or expand product scope. Complete the remaining
-Milestone 2 profile-correction slice using fixtures and deterministic tests:
+Treat docs/VISION.md as authoritative for the graph-first product direction.
+Do not redesign the landing page or begin research, retrieval, refinement,
+persistence, authentication, or database work. Close Milestone 3 verification:
 
-1. Implement `ProfilePatchSchema` exactly for the `ProfilePatch` contract in
-   docs/SPEC.md.
-2. On the validated profile, let the student remove one inference or replace its
-   statement. Keep facts visibly read-only and keep the correction reversible
-   until the student confirms it.
-3. Allow one missing constraint to be added through a small validated form.
-4. Apply the patch locally and preserve every unrelated fact, inference,
-   constraint, uncertainty, and tension.
-5. Add one clear confirmation action labeled for the future map step, but do not
-   implement path generation or the map yet.
-6. Test valid patches, malformed patches, removal, replacement, added
-   constraints, unrelated-data preservation, empty input, and reset behavior.
-7. Browser-test desktop, mobile, keyboard focus, correction visibility, undo or
-   cancel behavior, and the console.
-8. Run lint, typecheck, tests, build, secret scans, and final diff review. Update
-   docs/TASKS.md with exact results and the next prompt.
+1. Add one materially different, clearly labeled deterministic profile and
+   three-branch fixture without changing schemas, prompts, routes, or services.
+2. Verify the graph still renders one student, exactly three required roles,
+   equal prominence, understandable relationships, selected-only details, and
+   stable profile/branch data for that persona.
+3. Use a real browser surface that reliably dispatches keyboard events to test
+   Tab focus, visible focus, Enter selection, Space selection, switching, and
+   clearing on desktop and mobile.
+4. Recheck pointer selection, overflow, control bounds, and the console. Fix only
+   defects revealed by these checks.
+5. Run lint, typecheck, tests, production build, and `git diff --check`. Mark
+   Milestone 3 complete only if every remaining acceptance criterion is verified.
 
-Do not make another GPT-5.6 request unless the correction work changes the
-existing server model integration and a live request provides new verification
-value. Do not add authentication, persistence, map generation, research, or
-production-domain changes.
+Use fixtures only. Do not make a live GPT-5.6 request or deploy.
 ```
