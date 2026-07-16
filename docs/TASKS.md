@@ -11,35 +11,23 @@ last_updated: 2026-07-16
 
 ## Current State
 
-**Project stage:** Pre-implementation / repository initialization
+**Project stage:** Foundation shell implemented locally; preview deployment pending
 
 **Current milestone:** Milestone 0 — Foundation
 
-**Primary objective:** Establish a clean repository, verified local development setup, durable project documentation, and the first visible product shell.
+**Primary objective:** Authorize Vercel, deploy the verified product shell, and complete the Milestone 0 deployment gate.
 
-**Primary Codex thread:** Not started
+**Primary Codex thread:** Active — foundation shell work block started 2026-07-16
 
-**Deployment:** Not started
+**Deployment:** Blocked on Vercel device authorization. Local production build passes.
 
-**Known implementation:** None assumed. Codex must inspect the repository before treating any item as complete.
+**Known implementation:** Next.js App Router shell, responsive landing page, future-intake handoff route, shared Steppi tokens, customized shadcn-style Button primitive, loading/error/not-found foundations, and baseline quality scripts.
 
 ---
 
 ## Immediate Next Task
 
-Initialize the repository and complete Milestone 0.
-
-Codex should:
-
-1. Read `AGENTS.md`, `docs/VISION.md`, `docs/SPEC.md`, and this file.
-2. Inspect the repository and recent commits.
-3. Report whether the repository is empty, partially scaffolded, or already functional.
-4. Confirm the proposed stack or explain why the existing stack should be preserved.
-5. Scaffold or repair the application as needed.
-6. Establish the baseline quality scripts.
-7. Create a minimal Steppi landing shell.
-8. Verify the project locally in a real browser.
-9. Update this file with the actual project state and exact next task.
+Complete Vercel authorization, create a preview deployment, inspect its build result, and browser-test the public preview at desktop and mobile viewport sizes. Then record the preview URL in `README.md` and here. Do not change production-domain settings.
 
 ---
 
@@ -47,42 +35,42 @@ Codex should:
 
 ### Repository and tooling
 
-- [ ] Inspect current repository state
-- [ ] Confirm or preserve the application stack
-- [ ] Scaffold Next.js App Router + TypeScript if the repository is empty
-- [ ] Enable strict TypeScript
-- [ ] Configure Tailwind CSS
-- [ ] Add or verify lint script
-- [ ] Add or verify typecheck script
-- [ ] Add or verify test script
-- [ ] Add or verify production build script
-- [ ] Add `.env.example`
-- [ ] Ensure `.env*` secrets are ignored appropriately
-- [ ] Add a minimal test setup
-- [ ] Confirm the development server starts
-- [ ] Confirm the production build succeeds
+- [x] Inspect current repository state
+- [x] Confirm or preserve the application stack
+- [x] Scaffold Next.js App Router + TypeScript if the repository is empty
+- [x] Enable strict TypeScript
+- [x] Configure Tailwind CSS
+- [x] Add or verify lint script
+- [x] Add or verify typecheck script
+- [x] Add or verify test script
+- [x] Add or verify production build script
+- [x] Add `.env.example`
+- [x] Ensure `.env*` secrets are ignored appropriately
+- [x] Add a minimal test setup
+- [x] Confirm the development server starts
+- [x] Confirm the production build succeeds
 
 ### Durable context
 
-- [ ] Add `AGENTS.md`
-- [ ] Add `docs/VISION.md`
-- [ ] Add `docs/SPEC.md`
-- [ ] Add `docs/TASKS.md`
-- [ ] Confirm the source-of-truth hierarchy is consistent
-- [ ] Ensure no duplicate or conflicting project-document versions remain in the repository
+- [x] Add `AGENTS.md`
+- [x] Add `docs/VISION.md`
+- [x] Add `docs/SPEC.md`
+- [x] Add `docs/TASKS.md`
+- [x] Confirm the source-of-truth hierarchy is consistent
+- [x] Ensure no duplicate or conflicting project-document versions remain in the repository
 
 ### Product shell
 
-- [ ] Add page metadata
-- [ ] Create a minimal Steppi landing screen
-- [ ] Communicate the target user and core promise
-- [ ] Add a clear start action
-- [ ] Add a short trust statement: exploration, not prediction
-- [ ] Establish initial spacing, typography, and responsive layout
-- [ ] Verify desktop layout
-- [ ] Verify mobile fallback
-- [ ] Verify keyboard focus
-- [ ] Check browser console
+- [x] Add page metadata
+- [x] Create a minimal Steppi landing screen
+- [x] Communicate the target user and core promise
+- [x] Add a clear start action
+- [x] Add a short trust statement: exploration, not prediction
+- [x] Establish initial spacing, typography, and responsive layout
+- [x] Verify desktop layout
+- [x] Verify mobile fallback
+- [x] Verify keyboard focus
+- [x] Check browser console
 
 ### Deployment
 
@@ -95,14 +83,14 @@ Codex should:
 
 Milestone 0 is complete only when:
 
-- [ ] Local development works
-- [ ] Lint passes
-- [ ] Type checking passes
-- [ ] Tests pass
-- [ ] Production build passes
-- [ ] Landing shell works in a browser
+- [x] Local development works
+- [x] Lint passes
+- [x] Type checking passes
+- [x] Tests pass
+- [x] Production build passes
+- [x] Landing shell works in a browser
 - [ ] Initial deployment works
-- [ ] This file reflects the real repository state
+- [x] This file reflects the real repository state
 
 ---
 
@@ -432,18 +420,46 @@ At least one must work reliably in the final demo.
 
 ## Completed
 
-Nothing is marked complete until Codex inspects and verifies the repository.
+### 2026-07-16 — Foundation product shell
+
+- Inspected the documentation-only initial commit (`b7a67b6`) and confirmed no application scaffold existed.
+- Added Next.js 16 App Router, React 19, strict TypeScript, Tailwind CSS 4, ESLint, Vitest, and the pinned npm lockfile.
+- Added `lint`, `typecheck`, `test`, `build`, `dev`, and `start` scripts.
+- Added a safe `.env.example` and ignore rules for local secrets, framework output, dependencies, and Vercel linkage.
+- Established Steppi’s light editorial design system from `docs/DESIGN.md`: parchment canvas, Fraunces display type, Geist interface type, restrained blue interaction color, equal branch tints, spacing, radius, focus, and motion tokens.
+- Added a source-owned, customized shadcn-style Button primitive and `components.json`; the optional shadcn CLI audit was not run because execution of newly downloaded CLI code was rejected by the safety reviewer.
+- Built the responsive landing page, purposeful static three-branch product preview, one dominant CTA, and explicit exploration-not-prediction trust copy.
+- Added `/intake` as an honest foundation handoff that clearly says the intake flow is not implemented yet.
+- Added root loading, recoverable error, and not-found foundations.
+- Added a minimal product-constant test covering the intake route and exactly three branch labels.
+- Browser-verified the landing page at 1440×1000 and 390×844, CTA navigation, visible keyboard focus, no horizontal overflow, CTA visibility above the fold, the 404 state, and a clean browser console after fixing the Next.js smooth-scroll warning.
+- Reviewed the resulting file list, untracked application scope, and secret scan; no unrelated source changes or exposed token patterns were found.
+
+### Files added
+
+- Project tooling: `package.json`, `package-lock.json`, `tsconfig.json`, `next.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `components.json`, `.gitignore`, `.env.example`
+- Application: `src/app/**`, `src/components/landing/**`, `src/components/shell/**`, `src/components/ui/button.tsx`, `src/lib/**`
+- Documentation: `README.md`, this status update
+
+### Checks run
+
+- `npm run lint` — passed
+- `npm run typecheck` — passed
+- `npm run test` — passed, 1 file and 2 tests
+- `npm run build` — passed; `/`, `/_not-found`, and `/intake` prerendered as static routes
+- Local browser verification — passed at desktop and mobile sizes with no final console warnings or errors
 
 ---
 
 ## Known Issues
 
-- Repository state has not yet been inspected.
-- Application stack has not yet been verified.
-- No local or deployed build has been verified.
-- No primary Codex build thread has been started.
-- Exact graph library is undecided.
-- Exact retrieval implementation is undecided.
+- Preview deployment is blocked until the Vercel device authorization flow is approved; no preview URL or remote build log has been verified yet.
+- The landing page relies on `next/font/google`; a local production build needs network access the first time it fetches Fraunces and Geist.
+- The intake route is a transparent placeholder, not an intake implementation.
+- The error boundary exists and passes lint, type checking, and production build, but an intentional runtime fault was not added solely to exercise it in the browser.
+- The root loading boundary is present, but the current static routes resolve too quickly to make its normal browser appearance reliably observable.
+- Exact graph library is undecided and remains intentionally deferred.
+- Exact retrieval implementation is undecided and remains intentionally deferred.
 - Exact current GPT-5.6 model identifier must be configured during implementation.
 
 ---
@@ -465,55 +481,43 @@ Nothing is marked complete until Codex inspects and verifies the repository.
 - Desktop is presentation-first
 - Mobile must remain usable
 - One polished exploration loop takes priority over feature breadth
+- Treat this work block as Milestone 0 foundation scope because the requested deliverables conflict with `SPEC.md`/`TASKS.md` Milestone 1, which is the full static golden path.
+- Use a restrained editorial field-guide direction; the product preview is functional communication, not decorative illustration.
+- Use a small source-owned shadcn-style primitive layer customized to Steppi tokens instead of adopting shadcn’s default product aesthetic.
+- Keep `/intake` honest and noninteractive until the static intake flow is implemented.
+- Do not initialize a database, authentication, model client, or hypothetical scale infrastructure.
 
 ---
 
 ## Unverified
 
-Everything is currently unverified.
-
-The first Codex session must replace this section with specific verified and unverified behavior.
+- Vercel preview deployment, remote build logs, and public-page browser behavior are not verified because Vercel authentication is pending.
+- Production-domain settings were not viewed or changed.
+- Root error and loading UI were not deliberately forced in the browser; both are compile-verified foundations.
+- No GPT-5.6 behavior, intake state, profile schemas, map interaction, research, refinement, or persistence exists in this milestone.
 
 ---
 
 ## Next Recommended Prompt
 
 ```text
-Read AGENTS.md, docs/VISION.md, docs/SPEC.md, and docs/TASKS.md.
+Read AGENTS.md, docs/VISION.md, docs/SPEC.md, docs/DESIGN.md, and docs/TASKS.md.
 
-Inspect the current repository state and relevant recent commits.
+Resume the existing Vercel device authorization flow if it is still active, or
+start a new `npx vercel@50.28.0 login` device flow. After authentication:
 
-Before editing, summarize:
+1. Re-run `npm run build` and do not continue unless it passes.
+2. Create a Vercel preview deployment only; do not change production domains.
+3. Inspect the deployment result and remote build details.
+4. Browser-test the public preview at desktop and mobile viewport sizes.
+5. Check the deployed page for console errors, horizontal overflow, CTA
+   navigation to `/intake`, and the not-found foundation.
+6. Record the verified preview URL in README.md and docs/TASKS.md.
+7. Update the deployment checklist, known limitations, and unverified section.
 
-1. What Steppi is
-2. The target user
-3. The Build Week MVP
-4. Whether the repository is empty, partially scaffolded, or already functional
-5. What is already implemented and verified
-6. Known issues or blockers
-7. Your proposed Milestone 0 implementation approach
-
-Then complete Milestone 0 — Foundation.
-
-Preserve any suitable existing stack. If the repository is empty, scaffold
-a Next.js App Router application with strict TypeScript and Tailwind CSS.
-
-Establish the baseline lint, typecheck, test, and build commands. Add a safe
-`.env.example`. Build a minimal responsive Steppi landing shell that clearly
-communicates the target user, core promise, and that Steppi supports exploration
-rather than prediction.
-
-Verify the result in a real browser on desktop and a mobile viewport, check the
-browser console, run all applicable checks, review the diff for unrelated
-changes, and update docs/TASKS.md with:
-
-- what was completed;
-- files changed;
-- checks run and exact results;
-- known limitations;
-- unverified behavior;
-- decisions made;
-- the exact next recommended task.
-
-Do not claim anything passed unless it was actually verified.
+If the preview is verified, mark Milestone 0 complete and make the exact next
+recommended implementation task Milestone 1: add the typed Zod domain schemas,
+representative demo fixtures, and the static landing-to-intake flow without any
+GPT-5.6 calls yet. Preserve the established design direction and existing
+component primitives. Run lint, typecheck, test, and build again after edits.
 ```
