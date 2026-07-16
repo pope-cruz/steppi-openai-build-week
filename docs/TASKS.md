@@ -19,7 +19,7 @@ last_updated: 2026-07-16
 
 **Primary Codex thread:** Active — foundation shell work block started 2026-07-16
 
-**Deployment:** Blocked on Vercel device authorization. Local production build passes.
+**Deployment:** Preview deployment is pending a redeploy after correcting Vercel's stale `public` output-directory configuration. Local production build passes.
 
 **Known implementation:** Next.js App Router shell, responsive landing page, future-intake handoff route, shared Steppi tokens, customized shadcn-style Button primitive, loading/error/not-found foundations, and baseline quality scripts.
 
@@ -27,7 +27,7 @@ last_updated: 2026-07-16
 
 ## Immediate Next Task
 
-Complete Vercel authorization, create a preview deployment, inspect its build result, and browser-test the public preview at desktop and mobile viewport sizes. Then record the preview URL in `README.md` and here. Do not change production-domain settings.
+Redeploy the preview with the repository's Next.js/`.next` Vercel configuration, inspect its build result, and browser-test the public preview at desktop and mobile viewport sizes. Then record the preview URL in `README.md` and here. Do not change production-domain settings.
 
 ---
 
@@ -420,6 +420,13 @@ At least one must work reliably in the final demo.
 
 ## Completed
 
+### 2026-07-16 — Vercel output-directory correction
+
+- Diagnosed the failed preview build: Vercel was looking for a static `public` build output even though this repository is a Next.js App Router project that emits `.next`.
+- Added `vercel.json` to pin the Vercel framework preset to Next.js and override the deployment output directory to `.next`.
+- Kept the application build command and Next.js configuration unchanged.
+- Verified lint, strict type checking, tests, and the production build; the build created `.next` successfully.
+
 ### 2026-07-16 — Foundation product shell
 
 - Inspected the documentation-only initial commit (`b7a67b6`) and confirmed no application scaffold existed.
@@ -453,7 +460,7 @@ At least one must work reliably in the final demo.
 
 ## Known Issues
 
-- Preview deployment is blocked until the Vercel device authorization flow is approved; no preview URL or remote build log has been verified yet.
+- Preview deployment must be retried after the output-directory correction; no successful preview URL has been verified yet.
 - The landing page relies on `next/font/google`; a local production build needs network access the first time it fetches Fraunces and Geist.
 - The intake route is a transparent placeholder, not an intake implementation.
 - The error boundary exists and passes lint, type checking, and production build, but an intentional runtime fault was not added solely to exercise it in the browser.
@@ -486,12 +493,13 @@ At least one must work reliably in the final demo.
 - Use a small source-owned shadcn-style primitive layer customized to Steppi tokens instead of adopting shadcn’s default product aesthetic.
 - Keep `/intake` honest and noninteractive until the static intake flow is implemented.
 - Do not initialize a database, authentication, model client, or hypothetical scale infrastructure.
+- Pin Vercel to the Next.js framework preset and `.next` output in repository configuration so a stale dashboard-level `public` override cannot break deployments.
 
 ---
 
 ## Unverified
 
-- Vercel preview deployment, remote build logs, and public-page browser behavior are not verified because Vercel authentication is pending.
+- A successful Vercel preview deployment and public-page browser behavior are not verified; the failed deployment must be retried with the corrected configuration.
 - Production-domain settings were not viewed or changed.
 - Root error and loading UI were not deliberately forced in the browser; both are compile-verified foundations.
 - No GPT-5.6 behavior, intake state, profile schemas, map interaction, research, refinement, or persistence exists in this milestone.
@@ -503,8 +511,9 @@ At least one must work reliably in the final demo.
 ```text
 Read AGENTS.md, docs/VISION.md, docs/SPEC.md, docs/DESIGN.md, and docs/TASKS.md.
 
-Resume the existing Vercel device authorization flow if it is still active, or
-start a new `npx vercel@50.28.0 login` device flow. After authentication:
+Redeploy the preview after the `vercel.json` output-directory correction. If
+authorization is required, resume the existing Vercel device flow or start a
+new `npx vercel@50.28.0 login` flow. Then:
 
 1. Re-run `npm run build` and do not continue unless it passes.
 2. Create a Vercel preview deployment only; do not change production domains.
