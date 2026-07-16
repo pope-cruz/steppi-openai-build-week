@@ -11,23 +11,23 @@ last_updated: 2026-07-16
 
 ## Current State
 
-**Project stage:** Foundation deployed; narrow structured-profile integration implemented and awaiting a real API key
+**Project stage:** Adaptive intake and live structured-profile flow deployed and verified
 
-**Current milestone:** Milestone 2 — Intake and Structured Profile (narrow smoke-test slice)
+**Current milestone:** Milestone 2 — Intake and Structured Profile
 
-**Primary objective:** Configure `OPENAI_API_KEY` locally and for Vercel Preview, then verify one real GPT-5.6 response end to end without expanding the intake scope.
+**Primary objective:** Add the minimum profile-correction interaction so a student can reject or replace one inference before path generation.
 
-**Primary Codex thread:** Active — foundation shell work block started 2026-07-16
+**Primary Codex thread:** Active — adaptive intake and live integration work block completed 2026-07-16
 
-**Deployment:** Preview is `Ready` at [steppi-openai-build-week-l8ek52p2e-pgc9002-3129s-projects.vercel.app](https://steppi-openai-build-week-l8ek52p2e-pgc9002-3129s-projects.vercel.app). Vercel Authentication is enabled and no Preview environment variables are configured.
+**Deployment:** Preview is `Ready` at [steppi-openai-build-week-2ibzu4h54-pgc9002-3129s-projects.vercel.app](https://steppi-openai-build-week-2ibzu4h54-pgc9002-3129s-projects.vercel.app). Vercel Authentication is enabled, both required Preview variables are present, and one real deployed GPT-5.6 response validated and rendered.
 
-**Known implementation:** Next.js App Router shell, responsive landing page, representative intake smoke test, strict intake and `StudentProfile` schemas, server-only OpenAI Responses API call, structured-output parsing, public-safe route errors, profile rendering, loading/retry UI, and automated failure-path tests.
+**Known implementation:** Next.js App Router shell, responsive landing page, eight-question in-memory intake, phase progress, back navigation, preserved answers, one deterministic adaptive follow-up, client validation, review/reset behavior, strict intake and `StudentProfile` schemas, server-only OpenAI Responses API call, structured-output parsing on both server and client, public-safe route errors, separated profile rendering, loading/retry UI, and deterministic failure-path tests.
 
 ---
 
 ## Immediate Next Task
 
-Add `OPENAI_API_KEY` to `.env.local` and add `OPENAI_API_KEY` plus `OPENAI_MODEL=gpt-5.6` to the Vercel project with **Preview** scope. Redeploy, run the representative intake request locally and in the authenticated preview, verify the returned profile and browser console, and record the exact live-test result. Do not paste or commit the key and do not change production-domain settings.
+Implement `ProfilePatchSchema` and the smallest correction interaction on the validated profile: allow one inference to be removed or replaced, keep the correction reversible until confirmation, preserve every unrelated profile field, and expose one clear continuation action for the future path-generation step. Use fixtures and deterministic tests; do not add map generation, persistence, authentication, or another live model call unless the correction changes the existing server interaction.
 
 ---
 
@@ -113,9 +113,9 @@ Milestone 0 is complete only when:
 ### User journey
 
 - [x] Landing → intake
-- [ ] Intake progress and back navigation
-- [ ] Preserve previous answers
-- [ ] At least one visibly adaptive follow-up
+- [x] Intake progress and back navigation
+- [x] Preserve previous answers in local state
+- [x] At least one visibly adaptive follow-up
 - [ ] Intake → profile confirmation
 - [x] Visually separate facts and inferences in the profile smoke test
 - [ ] Allow one inference correction
@@ -130,8 +130,8 @@ Milestone 0 is complete only when:
 ### Required UI states
 
 - [x] Loading for the profile-generation request
-- [ ] Empty input
-- [ ] Invalid local input
+- [x] Empty input
+- [x] Invalid local input
 - [x] Generic API error placeholder
 - [x] Malformed-output placeholder
 - [x] Retry action for retryable failures
@@ -159,12 +159,12 @@ Milestone 0 is complete only when:
 
 ### Intake behavior
 
-- [ ] Finalize the minimum intake question set
+- [x] Finalize the minimum intake question set
 - [ ] Keep completion time near 3–5 minutes
-- [ ] Implement one adaptive follow-up
-- [ ] Preserve answers during back navigation
-- [ ] Validate all inputs before submission
-- [ ] Provide restart/reset behavior
+- [x] Implement one adaptive follow-up
+- [x] Preserve answers during back navigation
+- [x] Validate all inputs before submission
+- [x] Provide restart/reset behavior
 
 ### Server-side model integration
 
@@ -193,12 +193,12 @@ Milestone 0 is complete only when:
 - [x] Test malformed model output
 - [x] Test API failure and timeout
 - [x] Test empty intake rejection
-- [ ] Browser-test the full profile flow
+- [x] Browser-test the full intake-to-profile flow locally and in Vercel Preview
 - [x] Run baseline validation suite
 
 ### Milestone 2 completion gate
 
-- [ ] A real GPT-5.6 call produces a validated profile
+- [x] A real GPT-5.6 call produces a validated profile locally and in Vercel Preview
 - [ ] The student can correct Steppi before path generation
 - [x] Verified error classes do not crash the flow
 
@@ -420,6 +420,22 @@ At least one must work reliably in the final demo.
 
 ## Completed
 
+### 2026-07-16 — Adaptive intake and live Vercel profile verification
+
+- Confirmed without displaying values that `OPENAI_API_KEY` and `OPENAI_MODEL=gpt-5.6` are present locally, `.env.local` is ignored, and both encrypted variables are configured for Vercel Preview and Production.
+- Accepted the already completed local live verification as durable project context: a real GPT-5.6 response had succeeded, passed `StudentProfileSchema`, and rendered correctly before this work block. No additional local model request was made.
+- Replaced the representative-answer smoke-test screen with an eight-question, one-at-a-time intake using phase-based progress, back navigation, in-memory answer preservation, visible previous context, client-side required/length validation, a review step, editable answers, and restart/reset behavior.
+- Added one deterministic adaptive follow-up that responds to technology, creative-work, or general signals without spending a model request for each question.
+- Kept free text available on every question and added optional quick responses only where they reduce effort.
+- Added strict client validation of the public profile response before rendering, in addition to the existing server-side schema validation.
+- Added intake-flow and API-response tests. The suite now contains 28 passing tests across six files, including deterministic timeout, API-failure, malformed-output, retryability, adaptation, input validation, and response-validation behavior.
+- Browser-verified empty input, adaptive copy, back-state preservation, review/edit structure, loading copy, visible keyboard focus, restart affordance, desktop layout, 390×844 mobile layout, no horizontal overflow, and a clean console.
+- The first Vercel live request exposed a real runtime-budget issue: the 30-second function limit expired while the SDK could attempt a 20-second request plus one automatic retry. The public UI failed safely and preserved all answers.
+- Fixed the deployment timeout by disabling automatic SDK retries, setting one 45-second SDK request budget, and increasing the route budget to 60 seconds so the route can return a controlled result instead of being killed by Vercel.
+- Deployed replacement Preview `dpl_G38ARBQfrbeRbsQShZosu44fbBJK`, remotely built in 17 seconds, and confirmed status `Ready`.
+- The permitted re-verification succeeded in the authenticated Preview. The live response rendered 8 facts, 3 inferences, 5 constraints, 5 uncertainty questions, and 1 tension under visibly separate headings, with no browser warnings/errors, environment names, secret-like values, or framework overlay.
+- Made exactly two live GPT-5.6 requests during this work block, both in Vercel Preview: the required initial deployed verification, then one necessary re-verification after fixing its runtime timeout. No load testing, prompt experimentation, or repeated local request was performed.
+
 ### 2026-07-16 — Secure structured-profile smoke test and preview
 
 - Audited the repository against `SPEC.md`: the foundation shell was complete, but no OpenAI SDK, model call, runtime schema validation, server endpoint, or model-backed UI existed.
@@ -466,22 +482,23 @@ At least one must work reliably in the final demo.
 
 - `npm run lint` — passed
 - `npm run typecheck` — passed
-- `npm run test` — passed, 4 files and 19 tests
+- `npm run test` — passed, 6 files and 28 tests
 - `npm run build` — passed on Next.js 16.2.10; `/`, `/_not-found`, and `/intake` are static and `/api/profile` is dynamic
-- Local browser verification — passed at desktop and mobile sizes; the request reached the expected safe missing-key state with no console errors
+- Local browser verification — passed for the multi-step intake at desktop and mobile sizes without spending a new model request
 - Direct local route checks — passed for invalid input (`400`) and missing configuration (`503`), both with `Cache-Control: no-store`
 - Source and `.next/static` scans — no real OpenAI token signature, non-placeholder key, or server environment name in the browser bundle
-- Vercel build — passed remotely in 27 seconds; deployment status `Ready`
-- Deployed browser verification — shell and missing-configuration flow passed in an authenticated desktop/mobile browser with a clean console
+- Vercel build — corrected Preview passed remotely in 17 seconds; deployment status `Ready`
+- Deployed browser verification — the complete intake-to-live-profile flow passed in an authenticated desktop/mobile browser with a clean console
 - `npm audit --omit=dev` — completed with two moderate findings caused by Next.js 16.2.10 pinning `postcss@8.4.31`; npm's suggested forced fix would incorrectly downgrade Next.js to 9.3.3 and was not applied
 
 ---
 
 ## Known Issues
 
-- No `OPENAI_API_KEY` is available locally or in Vercel Preview, so a real GPT-5.6 success and actual structured response have not been tested.
-- The Vercel preview is protected by Vercel Authentication. A signed-in fresh browser tab works, while unauthenticated `curl` receives Vercel's `401 Protected deployment` before reaching the app.
-- The current `/intake` page is a representative smoke test, not the final multi-step adaptive intake. It intentionally has no back navigation, correction flow, map handoff, or persistence.
+- The Vercel preview remains protected by Vercel Authentication; anonymous judge access is not yet available.
+- The intake and returned profile exist only in React state and are lost on refresh. Persistence remains intentionally out of scope.
+- Profile correction is not implemented yet, so Milestone 2 is not complete even though the live generation criterion now passes.
+- The intended 3–5 minute completion time has not been measured with representative students.
 - Two moderate `npm audit` findings remain in Next.js's pinned transitive PostCSS dependency. The available forced remediation is an unsafe framework downgrade and is not appropriate.
 - The landing page relies on `next/font/google`; a local production build needs network access the first time it fetches Fraunces and Geist.
 - The error boundary exists and passes lint, type checking, and production build, but an intentional runtime fault was not added solely to exercise it in the browser.
@@ -511,7 +528,7 @@ At least one must work reliably in the final demo.
 - Historical Milestone 0 scope was completed before the structured-profile work began; the current explicit request superseded the earlier sequencing assumption and intentionally implemented a narrow Milestone 2 slice before the full Milestone 1 golden path.
 - Use a restrained editorial field-guide direction; the product preview is functional communication, not decorative illustration.
 - Use a small source-owned shadcn-style primitive layer customized to Steppi tokens instead of adopting shadcn’s default product aesthetic.
-- Keep `/intake` honest about using representative data until the full static intake flow is implemented.
+- Keep `/intake` honest about in-memory state and unfinished profile correction until the full Milestone 2 flow is implemented.
 - Do not initialize a database, authentication, or hypothetical scale infrastructure. A narrowly scoped server-only model client is now authorized for the structured-profile smoke test.
 - Pin Vercel to the Next.js framework preset and `.next` output in repository configuration so a stale dashboard-level `public` override cannot break deployments.
 - Use the official OpenAI JavaScript SDK's Responses API with structured output and Zod validation for profile generation.
@@ -520,19 +537,21 @@ At least one must work reliably in the final demo.
 - Use representative demo intake data to smoke-test the integration until the full intake UI is implemented.
 - Treat a mocked valid SDK response as implementation verification, not evidence that a live GPT-5.6 request succeeded.
 - Upgrade to Next.js 16.2.10 for the available high-severity security fixes; document the residual transitive PostCSS advisory instead of applying npm's breaking forced downgrade.
+- Use deterministic branching for the MVP intake follow-up so adaptation is visible without paying for a model call on every question.
+- Keep intake state in memory for now; back navigation and edit preserve answers within the active page, while refresh persistence remains deferred.
+- Validate the server response again at the client boundary before it enters rendered state.
+- Use one OpenAI attempt with a 45-second timeout inside a 60-second Vercel function budget. User-triggered retry remains available, but the SDK does not automatically repeat a paid request.
 
 ---
 
 ## Unverified
 
-- A successful real GPT-5.6 request is unverified locally because no `OPENAI_API_KEY` exists in `.env.local` or the shell environment.
-- A successful real GPT-5.6 request is unverified on Vercel because the project has no Preview environment variables. The deployed app's safe missing-configuration behavior is verified.
 - Live upstream timeout, API-failure, and malformed-output responses were not induced against OpenAI; all were verified through deterministic injected-client tests and route tests.
-- The successful profile-rendering browser state was not verified against a live model response; rendering is covered by TypeScript/build and the generation success path by tests.
 - Anonymous public access is not verified because Vercel Authentication protects this preview.
 - Production-domain settings were not viewed or changed.
 - Root error and loading UI were not deliberately forced in the browser; both are compile-verified foundations.
-- Full adaptive intake state, profile correction, map interaction, research, refinement, and persistence remain unimplemented.
+- Profile correction, map interaction, research, refinement, and persistence remain unimplemented.
+- Keyboard focus traversal was observed with a visible focus ring; browser-tool key activation did not reliably dispatch Enter/Space, while all controls use native buttons, links, form submission, and textareas.
 
 ---
 
@@ -541,26 +560,28 @@ At least one must work reliably in the final demo.
 ```text
 Read AGENTS.md, docs/VISION.md, docs/SPEC.md, docs/DESIGN.md, and docs/TASKS.md.
 
-Do not redesign the landing page or expand product scope. Configure the existing
-structured-profile smoke test for one real GPT-5.6 verification:
+Do not redesign the landing page or expand product scope. Complete the remaining
+Milestone 2 profile-correction slice using fixtures and deterministic tests:
 
-1. Confirm the user has created `.env.local` from `.env.example` and placed a
-   real `OPENAI_API_KEY` there without printing, reading, or committing it.
-2. Run the local app and use `/intake` to perform one real request. Verify the
-   returned profile renders, facts remain separate from inferences, the browser
-   console is clean, and no secret appears in the response, bundle, page, logs,
-   or tracked files.
-3. Add `OPENAI_API_KEY` and `OPENAI_MODEL=gpt-5.6` to Vercel with Preview scope.
-   Do not change production-domain settings.
-4. Redeploy a preview, inspect build/runtime results, and perform the same real
-   request through the authenticated preview.
-5. Re-run lint, typecheck, tests, build, the token scans, and diff review.
-6. Update README.md and docs/TASKS.md with the exact observed live result and
-   any model-output or timeout limitation. Do not mark the Milestone 2 gate
-   complete unless the real GPT-5.6 call succeeds and validates.
+1. Implement `ProfilePatchSchema` exactly for the `ProfilePatch` contract in
+   docs/SPEC.md.
+2. On the validated profile, let the student remove one inference or replace its
+   statement. Keep facts visibly read-only and keep the correction reversible
+   until the student confirms it.
+3. Allow one missing constraint to be added through a small validated form.
+4. Apply the patch locally and preserve every unrelated fact, inference,
+   constraint, uncertainty, and tension.
+5. Add one clear confirmation action labeled for the future map step, but do not
+   implement path generation or the map yet.
+6. Test valid patches, malformed patches, removal, replacement, added
+   constraints, unrelated-data preservation, empty input, and reset behavior.
+7. Browser-test desktop, mobile, keyboard focus, correction visibility, undo or
+   cancel behavior, and the console.
+8. Run lint, typecheck, tests, build, secret scans, and final diff review. Update
+   docs/TASKS.md with exact results and the next prompt.
 
-After that live integration gate passes, the next implementation task is the
-minimum multi-step intake with progress, back navigation, preserved answers,
-one adaptive follow-up, and client-side validation. Do not add authentication,
-persistence, the map, or research in that work block.
+Do not make another GPT-5.6 request unless the correction work changes the
+existing server model integration and a live request provides new verification
+value. Do not add authentication, persistence, map generation, research, or
+production-domain changes.
 ```

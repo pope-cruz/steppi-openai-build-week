@@ -10,7 +10,7 @@ import {
 } from "@/lib/schemas";
 
 const DEFAULT_MODEL = "gpt-5.6";
-const REQUEST_TIMEOUT_MS = 20_000;
+const REQUEST_TIMEOUT_MS = 45_000;
 
 const PROFILE_INSTRUCTIONS = `You are Steppi, an educational exploration assistant for high-school students.
 Convert the supplied intake answers into a cautious student-profile hypothesis.
@@ -69,7 +69,7 @@ async function requestProfileFromOpenAI({
 }: Parameters<ProfileRequest>[0]) {
   const client = new OpenAI({
     apiKey,
-    maxRetries: 1,
+    maxRetries: 0,
     timeout: REQUEST_TIMEOUT_MS,
   });
 

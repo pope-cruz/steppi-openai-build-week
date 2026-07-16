@@ -11,7 +11,7 @@ import {
 } from "@/server/profile-generation";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 type GenerateProfile = typeof generateStudentProfile;
 
