@@ -197,71 +197,72 @@ The Build Week graph remains deliberately small: one central student node, exact
 
 ### Stage A: Intake
 
-Collect a small but useful set of student context:
+The normal intake contains exactly three ordered anchor questions, one or two
+adaptive follow-up questions, and one final consideration question.
 
-- grade level;
-- interests;
-- preferred subjects;
-- preferred activities;
-- prior experiences;
-- careers or majors already considered;
-- strengths;
-- dislikes;
-- financial constraints;
-- geographic constraints;
-- family constraints where relevant;
-- current certainty level.
+The anchor goals are:
 
-The intake is a persistent conversational transcript, not a restyled multi-step
-questionnaire. It begins with one broad free-text prompt, adds one Steppi message
-at a time, keeps previous prompts and answers visible, and uses a stable composer.
-Optional quick replies may reduce effort, but free text remains the primary input.
+1. **Existing possibilities.** Ask what college programs, majors, careers, or
+   fields the student has considered, what attracts them, and what causes
+   hesitation.
+2. **School experiences.** Ask which classes, projects, school activities, and
+   concrete kinds of work the student enjoys or dislikes. Ground the question in
+   observable activities such as researching, solving, writing, explaining,
+   presenting, designing, building, organizing, or helping.
+3. **Outside-school experiences.** Ask about clubs, hobbies, games, work, family
+   responsibilities, communities, volunteering, and personal projects, including
+   which parts the student actually enjoys or avoids.
 
-For the MVP, intake uses a constrained hybrid decision layer. The application
-maintains a validated structured conversation state containing supplied facts,
-tentative interpreted interests, experiences, preferences, dislikes, constraints,
-considered careers or majors, uncertainty, corrected or superseded information,
-unresolved dimensions, and an explicit enough-context decision.
+All three anchors appear once and in that order. An earlier detailed answer may
+satisfy several profile dimensions; later anchors should acknowledge and narrow
+around that supplied context rather than ask for it again.
 
-After each student turn, Steppi makes exactly one server-only GPT-5.6
-Structured Outputs request, with no automatic model retry. That request may:
+After the anchors, deterministic application code selects the purpose of one or
+two follow-ups. A follow-up is allowed only to:
 
-- interpret that latest answer in transcript context;
-- propose explicit or tentative structured updates with exact source-turn IDs;
-- identify active state items that a correction supersedes;
-- decide whether one concise, context-specific follow-up is useful; or
-- decide that enough useful context exists to form the initial profile.
+- fill a material evidence gap;
+- resolve a contradiction;
+- distinguish between plausible directions; or
+- clarify a practical constraint that could change the recommendations.
 
-The turn interpreter must not generate career, major, college, program, or path
-recommendations. Strict schema and reference validation run before its result can
-affect the interface. Deterministic application code—not the model—owns item
-identity checks, correction replacement, supersession history, transcript and
-checkpoint updates, request locking, and completion handoff. Model failure or
-malformed output preserves the student's words and exposes one safe fallback
-question. There are no automatic SDK retries.
+GPT-5.6 may word the controller-selected purpose conversationally and reference
+earlier answers, but it must not invent a different question goal or introduce
+arbitrary personality-test topics. Do not ask generic questions such as “What are
+your strengths?”, “Are you creative or analytical?”, “What is your ideal work
+environment?”, “Where do you see yourself in ten years?”, or “Do you prefer
+working alone or with others?”.
 
-Follow-up selection is based on usefulness and ambiguity, not a fixed dimension
-order or user-facing message count. A follow-up should connect to the latest answer,
-gather closely related high-value context in one natural question where useful, and
-never repeat a question or request information already present in the transcript or
-active state. Rich context may finish after one student answer; several shallow
-answers may still require another question. “Not sure,” mixed feelings, little
-career exposure, incomplete answers, and no known constraints are valid context.
+After the follow-ups, ask exactly once:
 
-Practical context may include affordability, location, family expectations,
-access, and transportation when it would materially affect viable paths. Steppi
-must not assume hardship, frame family influence negatively, or request exact
-household income. Completion depends on having enough context for useful,
-meaningfully different initial hypotheses with honest uncertainty; it does not
-require every tracked dimension to be filled.
+> Before I put together your profile, is there anything else Steppi should
+> consider? This could be a concern, practical limitation, family expectation,
+> personal goal, or something we did not ask about.
 
-The validated conversation boundary supports at most 12 genuine student answers.
-The twelfth answer still receives its one interpreter request. If the validated
-patch proposes another follow-up, deterministic code preserves its updates and
-unresolved context, changes the decision to completion, and begins profile
-generation without mentioning the technical boundary. If that final interpretation
-fails, the accumulated validated state and raw transcript are preserved and profile
-generation continues; no thirteenth answer is requested.
+“Nothing,” “no,” and “I don't know” are valid answers and move immediately to
+profile generation. Intake must not continue merely to populate every possible
+schema field.
+
+The intake is a persistent conversation, not a question card whose contents are
+replaced, a formal questionnaire, or a step wizard. It must:
+
+- keep every prior student and Steppi message visible during the session;
+- ask one clear question per assistant turn;
+- briefly acknowledge or connect to the previous response when useful, without
+  repeating the full answer or using generic filler;
+- let one answer satisfy several profile dimensions;
+- never request information already supplied;
+- accept uncertainty and incomplete answers;
+- support multiline input, keyboard submission, loading, failure, and retry; and
+- preserve the transcript across retry and profile generation.
+
+The constrained hybrid architecture remains: interpretation runs server-side
+with GPT-5.6 Structured Outputs and no automatic model retry, while deterministic
+code owns question-purpose sequencing, schema and source-reference validation,
+patch application, correction and supersession history, transcript checkpoints,
+duplicate prevention, request locking, and completion handoff. The interpreter
+must not recommend careers, majors, colleges, programs, or paths during intake.
+Failure or malformed output preserves the transcript and offers a safe retry or
+controller-approved fallback without changing the required sequence.
 
 Revising an earlier answer removes later conversational turns before the next
 question is recomputed. Profile-generation failures and retry preserve the full
@@ -269,45 +270,54 @@ transcript. Refresh may clear the in-memory conversation until persistence is
 explicitly in scope.
 
 The completed conversation is adapted into the existing validated `IntakeAnswer[]`
-request shape and sent to the unchanged `/api/profile` boundary. Until that
-existing contract's four-record minimum is revised as a separate decision, an
-early-completing transcript is padded only with compatibility copies of exact
-student wording; the adapter may not invent extracted facts or inferred answers.
-The subsequent server-side GPT-5.6 profile generation, profile, path, graph, and
-research contracts remain unchanged.
+request shape and sent to the server-side `/api/profile` boundary. The required
+sequence naturally supplies five or six genuine answers; compatibility copies
+used by the former early-completion policy are deprecated and must not appear in
+the new normal flow. No adapter may invent extracted facts or inferred answers.
 
 Target completion time: approximately 3–5 minutes.
 
 ### Stage B: Profile Hypothesis
 
-GPT-5.6 converts the intake into a validated student profile containing:
+GPT-5.6 converts the intake into a detailed validated internal profile. It must
+preserve:
 
-- user-provided facts;
-- model inferences;
-- constraints;
-- uncertainty;
-- contradictions or tensions;
-- follow-up questions still worth exploring.
+- directions already considered, with their appeals and concerns;
+- enjoyed and disliked school experiences;
+- outside-school activities and responsibilities;
+- concrete activities the student enjoys or avoids;
+- practical constraints and priorities;
+- unresolved uncertainty;
+- direct student statements;
+- model inferences; and
+- source transcript-turn references.
 
-After profile generation, the interface shows a concise student-facing summary
-headed “Here’s what Steppi understood.” It communicates:
+Direct statements and model inferences remain separate. No inference may be
+stored or displayed as though the student explicitly said it. The internal
+profile must not be reduced to the student-facing summary.
 
-- what the student is trying to decide;
-- relevant interests, experiences, and preferences;
-- important dislikes or constraints; and
-- meaningful uncertainty that can remain open.
+After profile generation, the interface shows exactly three concise,
+natural-language sentences:
 
-The underlying validated profile continues to distinguish student facts from
-Steppi inferences, but the summary must not expose schema labels, IDs, source
-references, confidence fields, or raw internal categories. It should be a short
-conversational synthesis rather than a dense editable report.
+1. the student's currently considered directions and interests;
+2. the most relevant evidence from school, activities, responsibilities, and
+   concrete experiences; and
+3. important preferences, constraints, tensions, or uncertainty Steppi should
+   respect.
 
-The summary offers two decisions:
+The summary must sound like a human understanding rather than a list of schema
+fields. Below it, display exactly:
 
-- **Build my map** is primary and immediately sends the current validated
-  `StudentProfile` through the existing exact-three path-generation boundary.
-- **Refine this first** is optional and opens a short adaptive conversation from
-  the current profile without restarting intake.
+> Is there anything we missed or misunderstood?
+
+Provide two clear actions: **Looks right** and **Make a correction**. **Looks
+right** sends the current validated `StudentProfile` through the existing
+exact-three path-generation boundary. **Make a correction** accepts a focused
+clarification without restarting intake.
+
+The public profile must not show a repeated-fact grid, every extracted item,
+evidence-strength labels, raw model reasoning, a long generic prompt, or language
+that implies diagnosis.
 
 Each genuine refinement answer makes at most one server-only GPT-5.6 Structured
 Outputs request with no automatic model retry. The model may propose a strict
@@ -317,12 +327,9 @@ server code validates and applies the complete patch atomically before returning
 an updated `StudentProfile`; raw or partially valid model patches never enter UI
 state.
 
-Refinement questions must begin from the current profile and latest clarification,
-avoid information already supplied or declined, allow uncertainty, and ask only
-when the answer could meaningfully change the generated paths. Direct corrections
-should usually complete with no follow-up. Zero to three follow-up questions is a
-soft product target, not a fixed count or visible progress measure, and the student
-must retain a clear **Build my map** path throughout refinement.
+Correction begins from the current profile and latest clarification, avoids
+requesting information already supplied or declined, and allows uncertainty.
+Direct corrections should complete without unnecessary follow-up.
 
 Refinement failure or malformed output preserves the last valid profile and the
 student's submitted wording. The student may explicitly retry or proceed with that
@@ -340,15 +347,21 @@ Generate exactly three distinct branches:
 
 Each validated `PathBranch` must include:
 
-- title;
-- kind: `strongest-fit`, `adjacent`, or `underexplored`;
-- concise summary;
-- why it appeared;
-- supporting profile evidence;
-- possible drawbacks;
-- unresolved questions;
-- related majors or careers;
-- confidence expressed qualitatively, not as false precision.
+- a focused title, one-sentence summary, core purpose, and common contexts;
+- three or four concrete common activities with short explanations;
+- a description of people interaction, technical depth, creativity, structure or
+  ambiguity, pace, and typical forms of responsibility;
+- honest benefits paired with realistic downsides;
+- possible educational routes, beginner experiences, and student projects or
+  activities for exploration;
+- nearby careers, majors, or directions with an explanation of how each differs;
+- one short “Why Steppi showed this” explanation; and
+- one possible mismatch or unanswered question.
+
+Each branch has one focused title and must not combine several different roles
+into a vague umbrella. Path detail should be approximately 70 percent explanation
+of the path, 20 percent connection to the student, and 10 percent uncertainty and
+refinement. It must not repeat the whole student profile.
 
 The initial visible graph contains only:
 
@@ -361,19 +374,38 @@ Before selection, each branch node shows only:
 
 - a concise branch name;
 - its role or direction label;
-- a one-sentence summary;
-- qualitative confidence only where it is useful to interpretation.
+- a one-sentence summary.
 
-After selection, the graph gives that branch visual emphasis and the contextual detail panel reveals:
+After selection, the graph gives that branch visual emphasis and the contextual
+detail panel reveals:
 
-- why the branch appeared;
-- supporting student facts and constraints;
-- Steppi's supporting inferences, clearly distinguished from student-provided facts;
-- the main tradeoff;
-- an unresolved question;
-- related careers or majors.
+- the plain-language snapshot;
+- common activities;
+- what the work tends to feel like;
+- honest tradeoffs;
+- ways to explore the direction;
+- nearby paths and their differences;
+- the concise personalization and possible mismatch; and
+- actions to research, ask a question, compare, or return to all paths.
 
-Branch details must not all render simultaneously. Profile evidence should appear once at the student level or be referenced contextually for the selected branch; it must not be reproduced as a long repeated report beneath every branch.
+Branch details must not all render simultaneously. Profile evidence should appear
+once at the student level or be referenced briefly for the selected branch; it
+must not be reproduced as a supporting-profile grid, repeated student-fact cards,
+generic skill pills, unexplained related-option tags, decorative confidence
+labels, or a long AI-generated justification.
+
+The initial hypothesis payload must not contain current factual claims about
+salary, degree prevalence, job demand, program availability, admissions
+requirements, costs, or locations unless those claims were retrieved from current
+sources. Those claims belong to the source-backed research layer. Exploration
+routes must not imply that one specific major is required unless current evidence
+supports that requirement.
+
+The previous requirements for dense supporting-profile grids, repeated student-
+fact cards, unexplained confidence labels, generic skill pills, long generated
+justifications, vague multi-role path titles, and unsupported salary or degree
+claims are deprecated. New implementation work must not preserve them merely for
+compatibility with the former path payload.
 
 The initial interaction must support click selection and keyboard selection, have a visible selected state, and remain understandable without dragging. On mobile, provide a focused branch navigator or hierarchical node list that preserves the same relationships rather than requiring precise graph manipulation.
 
@@ -402,31 +434,59 @@ The exact implementation may change, but rendered model output must conform to e
 ## 7.1 Intake Answer
 
 ```ts
+type IntakeTranscriptTurn = {
+  id: string;
+  role: "steppi" | "student";
+  content: string;
+  createdAt: string;
+};
+
 type IntakeAnswer = {
   questionId: string;
+  assistantTurnId: string;
+  studentTurnId: string;
   question: string;
   answer: string | string[];
   answeredAt: string;
 };
 ```
 
+The transcript retains both roles in order. Profile `sourceTurnIds` reference
+validated student-turn IDs rather than only a question category.
+
 ## 7.2 Student Profile
 
 ```ts
 type StudentProfile = {
-  facts: Array<{
+  consideredDirections: Array<{
     id: string;
-    statement: string;
-    sourceAnswerIds: string[];
+    label: string;
+    appeals: string[];
+    concerns: string[];
+    sourceTurnIds: string[];
   }>;
-  inferences: Array<{
+  schoolExperiences: Array<{
     id: string;
-    statement: string;
-    rationale: string;
-    confidence: "low" | "medium" | "high";
-    editable: true;
+    context: string;
+    concreteActivity: string;
+    response: "enjoys" | "dislikes" | "mixed" | "uncertain";
+    sourceTurnIds: string[];
   }>;
-  constraints: Array<{
+  outsideSchoolExperiences: Array<{
+    id: string;
+    context: string;
+    responsibilityOrActivity: string;
+    enjoyedParts: string[];
+    avoidedParts: string[];
+    sourceTurnIds: string[];
+  }>;
+  activityPreferences: Array<{
+    id: string;
+    activity: string;
+    response: "enjoys" | "avoids" | "mixed" | "uncertain";
+    sourceTurnIds: string[];
+  }>;
+  constraintsAndPriorities: Array<{
     id: string;
     type:
       | "financial"
@@ -438,33 +498,64 @@ type StudentProfile = {
       | "other";
     statement: string;
     priority: "low" | "medium" | "high";
+    sourceTurnIds: string[];
+  }>;
+  directStatements: Array<{
+    id: string;
+    statement: string;
+    sourceTurnIds: string[];
+  }>;
+  inferences: Array<{
+    id: string;
+    statement: string;
+    rationale: string;
+    confidence: "low" | "medium" | "high";
+    supportingDirectStatementIds: string[];
+    sourceTurnIds: string[];
   }>;
   uncertainties: Array<{
     id: string;
     question: string;
     whyItMatters: string;
+    sourceTurnIds: string[];
   }>;
   tensions: Array<{
     id: string;
     description: string;
-    relatedFactIds: string[];
+    relatedProfileItemIds: string[];
   }>;
 };
 ```
+
+Every `sourceTurnId` must resolve to a preserved transcript turn. Direct
+statements are never inferred, and an inference cannot be copied into a direct-
+statement or experience field without a supporting student turn.
 
 ## 7.3 Profile Patch
 
 ```ts
 type ProfilePatch = {
-  removeInferenceIds?: string[];
-  replaceStatements?: Array<{
+  removeProfileItemIds?: string[];
+  replaceDirectStatements?: Array<{
     targetId: string;
     newStatement: string;
+    sourceTurnIds: string[];
   }>;
-  addConstraints?: StudentProfile["constraints"];
-  addFacts?: StudentProfile["facts"];
+  upsertConsideredDirections?: StudentProfile["consideredDirections"];
+  upsertSchoolExperiences?: StudentProfile["schoolExperiences"];
+  upsertOutsideSchoolExperiences?: StudentProfile["outsideSchoolExperiences"];
+  upsertActivityPreferences?: StudentProfile["activityPreferences"];
+  upsertConstraintsAndPriorities?: StudentProfile["constraintsAndPriorities"];
+  upsertDirectStatements?: StudentProfile["directStatements"];
+  upsertInferences?: StudentProfile["inferences"];
+  upsertUncertainties?: StudentProfile["uncertainties"];
+  upsertTensions?: StudentProfile["tensions"];
 };
 ```
+
+The server validates patch targets, references, and the complete resulting
+profile, then applies the patch atomically. Information outside the correction's
+scope remains unchanged.
 
 ## 7.4 Initial Path Branch
 
@@ -474,16 +565,44 @@ type PathBranch = {
   kind: "strongest-fit" | "adjacent" | "underexplored";
   title: string;
   summary: string;
-  whyItAppeared: string[];
-  supportingProfileIds: string[];
-  drawbacks: string[];
-  unresolvedQuestions: string[];
-  relatedOptions: Array<{
-    id: string;
-    label: string;
-    type: "career" | "major" | "resource" | "question";
+  snapshot: {
+    corePurpose: string;
+    commonContexts: string[];
+  };
+  commonActivities: Array<{
+    activity: string;
+    explanation: string;
   }>;
-  confidence: "low" | "medium" | "high";
+  workCharacteristics: {
+    peopleInteraction: string;
+    technicalDepth: string;
+    creativity: string;
+    structureOrAmbiguity: string;
+    pace: string;
+    responsibilities: string[];
+  };
+  tradeoffs: Array<{
+    benefit: string;
+    downside: string;
+  }>;
+  explorationRoutes: {
+    educationRoutes: Array<{
+      route: string;
+      explanation: string;
+    }>;
+    beginnerExperiences: string[];
+    studentProjectsOrActivities: string[];
+  };
+  nearbyPaths: Array<{
+    title: string;
+    type: "career" | "major" | "direction";
+    difference: string;
+  }>;
+  personalization: {
+    whyShown: string;
+    possibleMismatchOrQuestion: string;
+    supportingProfileItemIds: string[];
+  };
 };
 ```
 
@@ -564,7 +683,11 @@ Output:
 Required behavior:
 
 - preserve the student's own wording where practical;
-- distinguish facts and inferences;
+- populate the detailed experience, activity, direction, constraint, and priority
+  fields needed for later reasoning;
+- keep direct statements and model inferences structurally separate;
+- attach valid transcript-turn references to both direct evidence and the evidence
+  used for inferences;
 - surface uncertainty honestly;
 - identify at most a few meaningful tensions;
 - avoid diagnosing aptitude or personality.
@@ -582,8 +705,16 @@ Output:
 Required behavior:
 
 - branches must be meaningfully different;
-- branches must reference profile evidence;
-- drawbacks and uncertainty must be included;
+- each branch must use one focused title;
+- each branch must explain its snapshot, concrete activities, work
+  characteristics, paired tradeoffs, exploration routes, and differentiated
+  nearby paths;
+- personalization must be concise, reference validated profile evidence, and
+  include one possible mismatch or unanswered question;
+- no path may use generic skill pills, unexplained tags, or long justification
+  paragraphs as a substitute for explanation;
+- current salary, demand, degree, program, admissions, cost, and location claims
+  must be omitted until retrieved through the research layer;
 - no branch may be framed as objectively correct;
 - avoid generic occupation-list behavior.
 
@@ -662,29 +793,33 @@ Include a clear primary action.
 
 Must include:
 
-- semantic orientation without a fixed progress denominator;
+- the three ordered anchor questions, one or two controller-selected follow-ups,
+  and the final consideration question exactly once;
+- a persistent visible transcript containing every prior student and Steppi turn;
 - revision of prior answers with predictable later-turn invalidation;
-- preserved prior answers;
 - clear validation;
-- concise, contextual, high-information questions;
-- adaptive follow-ups that do not repeat supplied context;
-- a stable composer with clear loading behavior;
+- one concise, contextual question per Steppi turn;
+- no repeated requests for supplied context or abstract personality-test prompts;
+- acceptance of uncertainty and incomplete answers;
+- a stable multiline composer with keyboard submission and clear loading behavior;
+- failure and retry behavior that preserves the transcript; and
 - keyboard-usable controls.
 
-## 9.3 Profile Summary and Optional Refinement
+## 9.3 Profile Confirmation and Correction
 
 Must include:
 
-- a concise “Here’s what Steppi understood” summary;
-- a visually primary **Build my map** action;
-- a clearly optional **Refine this first** action;
+- exactly three natural-language summary sentences in the required order;
+- the prompt **Is there anything we missed or misunderstood?**;
+- a clear **Looks right** action;
+- a clear **Make a correction** action;
 - no mandatory field-by-field review or confirmation step;
-- no internal schema labels, confidence labels, source IDs, or category names;
-- one-question-at-a-time adaptive refinement when requested;
+- no repeated-fact grid, extracted-item inventory, internal schema labels,
+  confidence labels, source IDs, category names, or raw model reasoning;
+- a focused correction flow that patches only relevant internal profile data;
 - an updated summary after refinement completes;
 - retry and proceed-with-last-valid-profile choices after failure; and
-- keyboard-usable controls, clear focus, restrained loading, and no fixed
-  refinement progress denominator.
+- keyboard-usable controls, clear focus, and restrained loading.
 
 ## 9.4 Map
 
@@ -693,16 +828,24 @@ Must include:
 - one central student node;
 - exactly three equal first-level branch nodes;
 - visible and understandable relationships from the student to each branch;
-- concise default branch content: name, role or direction label, one-sentence summary, and qualitative confidence only where useful;
+- concise default branch content: focused name, role or direction label, and
+  one-sentence summary;
 - click and keyboard selection without depending on dragging;
 - obvious selected-node emphasis that is not communicated by color alone;
 - a contextual detail panel for only the selected node;
-- selected details covering rationale, supporting facts and constraints, clearly labeled Steppi inferences, the main tradeoff, one unresolved question, and related careers or majors;
+- selected details covering the snapshot, common activities, work
+  characteristics, paired tradeoffs, exploration routes, differentiated nearby
+  paths, concise personalization, and one possible mismatch or unanswered
+  question;
+- actions to research the path, ask a question, compare, and return to all paths;
 - progressive disclosure and branch-local focus or expansion;
 - restrained motion;
 - a usable mobile fallback, such as a focused branch navigator or hierarchical node list, that preserves the graph relationships without precise dragging.
 
-Do not render every branch's full evidence and rationale at the same time. Deduplicate shared profile evidence at the student level or reference it contextually from the selected branch.
+Do not render every branch's full detail at the same time. Deduplicate shared
+profile evidence at the student level and keep the selected branch approximately
+70 percent path explanation, 20 percent student connection, and 10 percent
+uncertainty and refinement.
 
 The graph must remain the primary interaction surface. The contextual panel supports it but must not turn the experience into a report or dashboard with a decorative graph. Avoid presenting a raw technical graph-editor interface.
 
@@ -823,6 +966,46 @@ If a script does not exist, Codex should either add an appropriate script or rep
 
 ## 14. Milestone Acceptance Criteria
 
+The following product-contract criteria apply to the next implementation pass
+without changing the already working graph or research architecture.
+
+### Intake acceptance
+
+- The three anchor questions appear once and in the required order: existing
+  possibilities, school experiences, then outside-school experiences.
+- One or two follow-ups are selected from actual missing, contradictory,
+  differentiating, or recommendation-changing constraint data.
+- The final consideration question appears exactly once after the follow-ups.
+- A detailed answer can satisfy several dimensions without causing duplicate
+  questions.
+- Information already supplied is not requested again.
+- “Not sure,” “I don't know,” mixed, and incomplete answers do not block
+  completion.
+- The entire transcript remains visible and stable through loading, failure,
+  retry, and profile generation.
+
+### Profile acceptance
+
+- The public summary contains exactly three sentences in the specified order.
+- Direct student facts and model inferences remain separate in the validated
+  internal profile and retain transcript-turn references.
+- **Looks right** proceeds to exact-three path generation.
+- A correction patches only the relevant profile information and preserves valid,
+  unrelated profile data.
+- The prompt reads **Is there anything we missed or misunderstood?**
+
+### Initial-results acceptance
+
+- All three initial directions are meaningfully different and retain their
+  strongest-fit, adjacent, and underexplored roles.
+- Each direction has one focused title.
+- Path details explain common activities, work characteristics, honest tradeoffs,
+  exploration routes, and nearby paths with their differences.
+- Personalization is concise and does not repeat the full profile.
+- Unsupported current factual claims do not appear before source-backed research.
+- Existing graph interaction, selected-branch research, and branch-local updates
+  remain unchanged unless a later implementation task explicitly changes them.
+
 ## Milestone 0 — Foundation
 
 Complete when:
@@ -849,13 +1032,15 @@ Complete when:
 
 Complete when:
 
-- intake answers remain visible in a persistent transcript;
-- validated model-selected follow-ups skip information already supplied and visibly
-  respond to prior context;
+- the three ordered anchors, one or two deterministic-purpose follow-ups, and one
+  final consideration question follow the intake acceptance contract;
+- intake answers remain visible in a persistent transcript through profile
+  generation and retry;
 - revision invalidates affected later turns before sequencing continues;
 - GPT-5.6 creates a valid `StudentProfile`;
 - malformed output produces a retry state;
-- the student can correct an inference.
+- the student sees exactly three summary sentences and can accept or patch a
+  correction without regenerating the whole profile.
 
 ## Milestone 3 — Initial Map
 
@@ -867,8 +1052,12 @@ Complete when:
 - one central student node connects visibly to exactly three equal first-level branch nodes;
 - each branch is concise before selection;
 - click and keyboard selection visibly emphasize one branch;
-- only the selected branch's contextual details are revealed;
-- shared profile evidence is not repeated as three full reports;
+- only the selected branch's path-first contextual details are revealed;
+- common activities, work characteristics, paired tradeoffs, exploration routes,
+  and nearby-path differences are present;
+- personalization remains concise and shared profile evidence is not repeated as
+  three full reports;
+- unsupported current facts are absent before research;
 - the interaction supports progressive disclosure and a clear path to branch-local expansion;
 - the map is understandable on desktop and has a usable non-drag mobile fallback.
 
@@ -926,16 +1115,26 @@ Complete when:
 - MVP country emphasis: Philippines where location examples are needed
 - No authentication for the Build Week MVP
 - No comprehensive database
+- Intake uses exactly three ordered anchors, one or two deterministic-purpose
+  follow-ups, and one final consideration question
+- GPT-5.6 may conversationally word intake questions but does not choose arbitrary
+  question topics
+- The public profile is exactly three sentences with **Looks right** and **Make a
+  correction** actions
+- The detailed internal profile remains distinct from the public summary and keeps
+  direct statements separate from inferences with transcript-turn references
 - Exactly three initial path branches
 - One central student node
 - The graph is the primary product interface and mental model
-- Contextual details support the selected graph node rather than replacing graph navigation
+- Contextual details primarily explain the selected path rather than repeating the
+  student profile or replacing graph navigation
 - One researched branch is sufficient
 - Two expansion levels are sufficient
 - Expansion and refinement are branch-local and preserve unaffected graph areas
 - Profile corrections should patch the profile
 - Refinement should update only the relevant branch
-- Qualitative confidence only
+- Confidence language appears only where its evidence or uncertainty is explained;
+  initial paths do not use decorative confidence labels
 - Current claims require sources
 - One polished exploration loop is more valuable than broad feature coverage
 

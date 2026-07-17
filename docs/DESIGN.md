@@ -38,7 +38,8 @@ Avoid:
 The student should always be able to:
 
 - see what Steppi understood;
-- distinguish facts from inferences;
+- receive a summary that never presents a Steppi inference as a direct student
+  statement;
 - correct an assumption;
 - understand why the map changed;
 - preserve unaffected parts of the map;
@@ -286,15 +287,22 @@ Layout:
 
 - centered column around `680px`;
 - one primary question in focus;
-- previous context shown quietly;
+- every prior Steppi and student message retained in a quiet, readable transcript;
 - composer placed consistently;
-- lightweight progress;
+- lightweight orientation without presenting a step wizard;
 - optional quick-response chips;
 - back action that preserves answers.
 
 Rules:
 
 - Ask one primary question at a time.
+- Present the three anchors in order, then one or two adaptive follow-ups, then
+  the final consideration question once.
+- Let detailed answers satisfy several dimensions and do not request supplied
+  information again.
+- Acknowledge or connect to the previous answer only when useful; avoid repeating
+  it or adding generic filler.
+- Accept uncertainty and incomplete answers without blocking completion.
 - Always allow free text.
 - Use chips only when they reduce effort.
 - Explain why cost, location, or family constraints matter.
@@ -302,6 +310,8 @@ Rules:
 - Avoid alternating left/right chat bubbles.
 - Keep generated text concise.
 - Never show raw model reasoning.
+- Keep the transcript stable during loading, failure, retry, and profile
+  generation.
 
 Progress language may include:
 
@@ -313,20 +323,27 @@ Progress language may include:
 
 **Goal:** let the student verify Steppi’s understanding before paths are generated.
 
-Show four groups:
+Show exactly three concise natural-language sentences:
 
-1. **What you told Steppi**
-2. **What Steppi inferred**
-3. **Constraints that matter**
-4. **Still uncertain**
+1. considered directions and interests;
+2. relevant evidence from school, activities, responsibilities, and concrete
+   experiences; and
+3. preferences, constraints, tensions, or uncertainty Steppi should respect.
+
+Then show:
+
+> Is there anything we missed or misunderstood?
+
+Actions are **Looks right** and **Make a correction**.
 
 Rules:
 
-- Facts and inferences must have different labels.
-- Each inference can be edited or rejected.
-- Corrections are reversible.
-- Do not use one large generated paragraph.
-- Place one obvious “Create my map” action after confirmation.
+- The three sentences should read as a human understanding, not field labels.
+- Do not expose the internal profile, repeated fact cards, evidence-strength
+  labels, source IDs, or raw reasoning.
+- A correction patches the relevant internal information and preserves everything
+  unaffected.
+- **Looks right** is the obvious path to the map.
 
 ### Exploration Map
 
@@ -385,8 +402,7 @@ Show:
 
 - path name;
 - branch-type label;
-- one-sentence reason;
-- evidence indicator;
+- one-sentence path summary;
 - selected state.
 
 #### Major node
@@ -461,11 +477,12 @@ A path node contains only:
 
 1. Name
 2. Branch type
-3. Short reason
-4. Evidence state
-5. Selection affordance
+3. One-sentence path summary
+4. Selection affordance
 
-The detail panel contains longer explanations, drawbacks, questions, related majors, research, sources, and actions.
+The detail panel contains the path snapshot, common activities, work
+characteristics, paired tradeoffs, exploration routes, nearby-path differences,
+concise personalization, research, sources, and actions.
 
 ---
 
@@ -482,24 +499,28 @@ Selecting a node should:
 Panel order:
 
 1. Node title and type
-2. Why it appeared
-3. Supporting evidence
-4. Possible drawbacks
-5. Unresolved questions
-6. Related nodes
-7. Sources
-8. Contextual actions
+2. Plain-language snapshot and common contexts
+3. Three or four concrete common activities
+4. What the work tends to feel like
+5. Honest benefits paired with downsides
+6. Ways to explore the direction
+7. Nearby paths and how each differs
+8. Short “Why Steppi showed this” explanation
+9. One possible mismatch or unanswered question
+10. Sources, when research has occurred
+11. Contextual actions
 
 Possible actions:
 
-- Explore this
-- Compare
+- Research this path
 - Ask a question
-- Prioritize a constraint
-- Save
-- Remove from map
+- Compare
+- Return to all paths
 
-Show only the most relevant two or three actions at once.
+Keep the detail roughly 70 percent path explanation, 20 percent student
+connection, and 10 percent uncertainty and refinement. Do not repeat the full
+profile or use unexplained pills, decorative confidence labels, or unsupported
+salary and degree claims.
 
 ---
 
@@ -770,9 +791,11 @@ Never shame students for uncertainty, grades, cost constraints, family obligatio
 ### Do
 
 - Keep the parchment canvas and editorial warmth.
-- Separate facts, inferences, research, and uncertainty.
+- Keep facts, inferences, research, and uncertainty distinct in the underlying
+  experience without exposing a dense internal profile.
 - Show exactly three initial branches.
 - Keep branch prominence equal.
+- Make selected-path details primarily explain the path.
 - Preserve unaffected nodes after refinement.
 - Explain meaningful changes.
 - Keep sources and caveats accessible.
@@ -793,6 +816,8 @@ Never shame students for uncertainty, grades, cost constraints, family obligatio
 - Rebuild the full map after every correction.
 - Make mobile users manipulate a tiny desktop graph.
 - Hide current factual claims without sources.
+- Repeat the student profile inside every path detail.
+- Use generic skill pills or unexplained nearby-path tags.
 - Use unsupported rankings or admissions predictions.
 
 ---
@@ -805,8 +830,13 @@ These are fixed unless explicitly changed:
 - Desktop experience is primary, with a usable mobile fallback.
 - No authentication before the golden path works.
 - Landing page has one primary CTA.
-- Intake shows one primary question at a time.
-- Facts and inferences are visually separated.
+- Intake keeps a persistent transcript and shows one primary question per Steppi
+  turn.
+- Intake uses three ordered anchors, one or two deterministic-purpose follow-ups,
+  and one final consideration question.
+- The public profile is exactly three sentences with **Looks right** and **Make a
+  correction** actions; direct statements and inferences remain separate
+  internally.
 - Initial map contains exactly three branches.
 - Branches have equal visual prominence.
 - Map has one student node and no more than two visible expansion levels.
@@ -848,17 +878,21 @@ Move a question into **Current Build Week Decisions** once resolved.
 ### Intake
 
 - One question clearly has focus.
-- Previous answers remain available.
+- All previous Steppi and student messages remain visible and stable.
+- The three anchors, one or two allowed follow-ups, and final consideration
+  question appear in order.
+- Supplied information is not requested twice.
+- Uncertainty does not block completion.
 - Back preserves state.
 - Free text is always possible.
 - Loading and errors are understandable.
 
 ### Confirmation
 
-- Facts and inferences are visibly different.
-- Inferences can be corrected or rejected.
-- Uncertainty is shown honestly.
-- The next action is obvious.
+- Exactly three natural-language sentences are shown.
+- The prompt reads “Is there anything we missed or misunderstood?”
+- **Looks right** proceeds and **Make a correction** patches relevant information.
+- No dense internal-profile or evidence-strength presentation is visible.
 
 ### Map
 
@@ -867,6 +901,9 @@ Move a question into **Current Build Week Decisions** once resolved.
 - Branch type is not communicated only by color.
 - Selection clearly reveals relationships.
 - The detail panel preserves map context.
+- The selected detail explains activities, work characteristics, tradeoffs,
+  exploration routes, nearby-path differences, and concise personalization.
+- Unsupported current facts are absent before research.
 - The map remains understandable after expansion.
 
 ### Refinement

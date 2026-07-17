@@ -9,285 +9,128 @@ last_updated: 2026-07-17
 
 # Steppi Operational Handoff
 
-See [SPEC.md](./SPEC.md) for acceptance criteria and
-[BUILD_LOG.md](./BUILD_LOG.md) for implementation history, detailed checks,
-deployment records, and audit evidence.
+See [SPEC.md](./SPEC.md) for the current implementation contract and acceptance
+criteria, [VISION.md](./VISION.md) for product direction, [DESIGN.md](./DESIGN.md)
+for interaction guidance, and [BUILD_LOG.md](./BUILD_LOG.md) for historical
+implementation and verification evidence.
 
 ## Current State
 
-- Implemented: landing shell; in-memory conversational intake; server-only,
-  schema-validated GPT-5.6 profile and exact-three path generation; an optional
-  profile-summary/refinement fork; the graph-first map; and one branch-local
-  research expansion.
-- Intake now uses a constrained hybrid conversation: one broad opening, a
-  persistent transcript and stable composer, plus a server-only GPT-5.6 turn
-  interpreter that proposes a strictly validated state patch and either one
-  context-specific question or completion. Deterministic code applies patches,
-  resolves corrections, owns transcript checkpoints and request locks, and falls
-  back safely without losing the student's words.
-- Intake can complete from rich context before four student messages and can
-  continue after four shallow answers. Uncertainty is valid context. Revision
-  predictably removes later turns and restores the earlier structured checkpoint.
-- Intake-turn guidance now favors concise, contextual, high-information questions;
-  treats unresolved dimensions as planning context rather than a checklist; and
-  sensitively considers affordability, Manila/location, family expectations,
-  access, and transportation without assuming hardship or asking for income.
-- The twelfth genuine answer is a deterministic completion boundary. It still gets
-  one interpreter request, then preserves validated updates and unresolved context
-  while preventing a thirteenth prompt. A failed final interpretation preserves the
-  accumulated state and transcript and continues to the unchanged profile handoff.
-- The adapter still sends the existing validated `IntakeAnswer[]` body to
-  `/api/profile`; early completion uses exact-answer compatibility copies only to
-  satisfy that unchanged boundary's four-record minimum. Intake, profile, path,
-  graph, and research contracts remain unchanged.
-- The mandatory profile review is replaced by a concise “Here’s what Steppi
-  understood” summary. `Build my map` immediately uses the current validated
-  profile; `Refine this first` is optional and sends one answer at a time through
-  a new server-only GPT-5.6 Structured Outputs patch boundary with zero automatic
-  retries. Valid patches apply atomically; failure preserves the last valid profile
-  and student wording and permits retry or immediate map generation.
-- A selected branch now offers three suggestions and free text, preserves the
-  confirmed profile and all original branches, and renders at most five concise,
-  validated research nodes beneath only that branch.
-- The desktop map now pairs its dominant four-node graph with a synchronized
-  three-item path index. Both surfaces use the existing branch titles, roles,
-  and summaries; selecting either focuses the same graph node and reveals only
-  that branch's detail. Mobile uses the path index as its non-graph fallback.
-- Research now starts exactly one server-only background Responses API job,
-  keeps its provider ID inside an encrypted HttpOnly same-site cookie, and polls
-  that same response every 2.5 seconds for up to 120 seconds. Status and cancel
-  never create another response; cancel is provider-idempotent per local handle.
-- Completed output now uses atomic source-backed claims: every rendered title and
-  factual claim names one or more URLs attached to its node and present in the
-  provider-retrieved allow-list. Unsupported claims and invalid nodes are omitted,
-  unused source records are removed, and every retained node is reparsed through
-  the full strict render schema. The server check date, branch parent, and
-  five-node cap remain.
-- Fixture-backed queued, in-progress, success, no-source, provider-failure,
-  malformed-output, cancel, timeout, retry, and duplicate-prevention states are
-  covered by tests. The 2026-07-17 browser audit reconfirmed every listed state
-  except cancellation, which remained stuck in polling and is now a known defect.
-- Diagnostics now distinguish configuration, upstream API, parsing, schema,
-  source processing, timeout, and client-rendering boundaries without recording
-  prompts, raw output, API keys, or student data.
-- Creation and every background status retrieval now request
-  `web_search_call.action.sources`; creation still requires web search. The
-  completed-response extractor allow-lists provider-backed URLs from both
-  search-call sources and output-text `url_citation` annotations; model-authored
-  URLs still cannot pass without matching provider evidence.
-- A 2026-07-17 clean-browser audit completed one local live profile request, one
-  live path request, and one live research creation. All three succeeded without
-  retry. Research completed after 24 status polls and rendered five nodes with 13
-  displayed citations across 11 unique HTTPS destinations; every destination
-  resolved and the nodes remained attached only to the selected branch.
-- The audit's trust gap is corrected deterministically. The UI renders each atomic
-  claim beside its exact source references and labels profile-based relevance as a
-  Steppi connection, not a sourced fact. Affordability results require sourced
-  cost, eligibility, and conditional-aid claims together or show unavailable.
-- Audit regressions prevent unsupported UP Visual Communication curriculum claims
-  and require the CIIT PHP 135,000–165,000 annual estimate plus conditional-aid
-  caveat when that fixture appears in an affordability result.
-- The one authorized live atomic-claim request succeeded: one background creation
-  and 17 status polls rendered four nodes with 14 factual claims across seven
-  provider-backed source pages under only Digital product design. All links
-  resolved, the browser console was clean, and the original graph remained stable.
-- The live audit accepted 13 claims but rejected one compound Figma claim. The
-  cited education page supports interface mockups and interactive prototypes, not
-  the added qualifier “without writing code.” The unsupported qualifier remained
-  visible in a high-confidence node; the later grounding fix addressed this
-  specific trust-boundary defect.
-- The narrow grounding fix is now implemented. The Structured Outputs contract
-  defines each claim as one independently verifiable clause, the research prompt
-  requires separate claims and omission of unsupported qualifiers using the exact
-  Figma failure as its counterexample, and the UI labels confidence as source
-  confidence. Fixture-backed schema, service, and rendering regressions pass; no
-  live `/api/research` request was made during the fix.
-- The one fresh post-fix live verification made exactly one background creation
-  and 22 status polls, then failed safely at the source-provenance boundary. The
-  terminal route response was HTTP 502 with diagnostic category
-  `source_processing`, stage `model_output_validation`, and reason
-  `citation_not_retrieved`; no upstream error code or request ID was available.
-  No research node, claim, or source link rendered. The student node, three
-  original branches and relationships, Digital product design selection, and
-  unrelated map state were preserved, and the browser console was clean.
-- Milestone 4's completed boundary is resilient source-backed branch expansion
-  for the Build Week MVP. One invalid or unmatched citation no longer discards valid siblings:
-  claim-level failures remove the claim, node-level failures remove the node, and
-  zero retained nodes still produce the existing safe retry state.
-- Deterministic partial-result verification rendered two validated nodes while
-  omitting the invalid sibling. It preserved one student node, all three initial
-  branches, three relationships, the Digital product design selection, and the
-  exact research question; the browser console was clean and no `/api/research`
-  request occurred.
-- Milestone 4 is complete for the Build Week MVP. Live research has rendered
-  useful source-backed results, every retained claim and node crosses the strict
-  provider-source validation boundary, invalid content is omitted without losing
-  valid siblings, selected-branch locality and original graph state are preserved,
-  and deterministic tests cover success, partial success, no-source,
-  malformed-output, timeout, cancellation, retry, and duplicate prevention.
-- Safe individual provider or citation failures are acceptable MVP behavior when
-  valid results remain available or Steppi preserves the graph and shows an honest
-  retry state. No further paid `/api/research` request is required to close or
-  reconfirm Milestone 4.
-- Active student, map, and research state remain intentionally in memory.
+- The end-to-end exploration loop is implemented: landing, in-memory
+  conversational intake, server-only schema-validated GPT-5.6 profile generation,
+  profile correction, exact-three path generation, graph-first exploration,
+  selected-branch source-backed research, and branch-local refinement that
+  preserves unaffected map areas.
+- The existing intake has a persistent transcript, stable multiline composer,
+  keyboard submission, revision, loading, failure, malformed-output, retry, and
+  transcript-preservation behavior. Its hybrid interpreter and deterministic
+  patch/validation boundary are working foundations.
+- The existing public profile supports validated profile patches, retry, and
+  proceeding with the last valid profile.
+- The map preserves one student node, exactly three meaningfully different initial
+  branches, synchronized desktop/mobile exploration, selected-node detail,
+  source-backed research under one branch, and unaffected graph state.
+- Research validation, current-claim sourcing, item-scoped partial acceptance,
+  and safe no-result/failure behavior remain implemented and accepted for the MVP.
+- Active student, transcript, map, and research state remain intentionally in
+  memory.
 
-## Active Milestone
+## Product and UX Debt
 
-Milestone 5 — One Validated Branch-local Refinement. Milestone 4 is complete for
-the Build Week MVP; do not make another paid `/api/research` request or reopen it
-solely because an individual live request can fail safely.
-
-## Immediate Objective
-
-Implement the demo refinement, “Prioritize affordable options near Manila,” so
-only the selected researched branch changes while its valid sources and every
-unaffected graph area remain preserved.
-
-## In Progress
-
-- No implementation is currently in progress.
-
-## Next Recommended Tasks
-
-1. Implement the demo refinement, “Prioritize affordable options near Manila,” so
-   only the selected researched branch changes while its valid sources and every
-   unaffected graph area remain preserved.
-2. Browser-verify the full refinement flow, including loading, success, empty,
-   failure, malformed-output, retry, mobile, keyboard, and console states.
-3. After Milestone 5 passes, deploy and verify an anonymously accessible golden
-   path, then complete the remaining submission work.
-
-## Exact Next Recommended Prompt
-
-```text
-Read AGENTS.md, docs/VISION.md, docs/SPEC.md, docs/TASKS.md, and the latest
-Milestone 4 and Milestone 5 entries in docs/BUILD_LOG.md. Treat Milestone 4 as
-complete and do not perform another paid `/api/research` request. Implement the
-demo refinement, “Prioritize affordable options near Manila,” so only the selected
-researched branch changes while its valid sources and every unaffected graph area
-remain preserved. Validate the branch-local patch before rendering; cover normal,
-loading, empty, failure, malformed-output, retry, duplicate-prevention, and
-preservation behavior with deterministic tests; verify desktop, mobile, keyboard,
-and console behavior in a real browser; run lint, typecheck, tests, build, and
-`git diff --check`; then update TASKS.md and BUILD_LOG.md with verified results.
-```
-
-## Current Blockers
-
-- No known blocker prevents implementation of the Milestone 5 demo refinement.
-- Vercel Authentication blocks anonymous Preview access, and the audited research
-  flow is not deployed for judge verification.
-
-## Non-blocking Reliability Debt
-
-- The visible research cancel control did not transition out of polling in the
-  deterministic browser fixture after pointer or keyboard activation. The actual
-  live provider-cancel boundary was not retested to avoid another paid request.
-  This does not block Milestone 5 or reopen Milestone 4.
-- Profile and path timeout classification still checks `error.name`; the installed
-  OpenAI SDK's timeout class can retain the generic `Error` name. Those routes can
-  therefore report an actual timeout as generic `api_failure` and do not retain the
-  safe diagnostic detail available on the research route. This classification gap
-  does not block the validated refinement slice.
-
-## Known Issues
-
-- Research validation enforces explicit claim-to-source addressing and URL
-  provenance, but deterministic code cannot prove semantic entailment from URL
-  structure alone; readable source audits remain appropriate for future changes to
-  the research contract.
-- The concise profile summary deliberately selects a small set of signals and open
-  questions; representative-student testing has not yet established whether that
-  compression ever hides context students expect to see before building the map.
-- Refresh clears intake, profile, map, selection, and researched expansion state.
-- Early intake completion currently repeats exact student answer records only at
-  the internal `/api/profile` compatibility boundary because its existing schema
-  requires four entries. No inferred content is added, but removing that legacy
-  minimum would require a separately authorized downstream contract change.
-- The intended three-to-five-minute intake duration has not been measured.
-- Two moderate `npm audit` findings remain in Next.js's pinned PostCSS; the forced
-  remediation is an unsafe framework downgrade.
-- A first local build may need network access for Google-hosted fonts.
-- Duplicate path detection is lexical and may need multi-persona calibration.
+- **Intake question policy:** the current broad opener, freely selected follow-up
+  purposes, early completion, and 12-answer boundary do not match the required
+  sequence of three ordered anchors, one or two deterministic-purpose follow-ups,
+  and one final consideration question.
+- **Intake experience:** the transcript foundation works, but the implementation
+  must be audited against the locked requirements for one clear question per turn,
+  useful acknowledgements, no filler or repeated information, multi-dimension
+  answers, uncertainty, and transcript stability through profile generation.
+- **Profile data contract:** the current validated profile separates facts and
+  inferences, but it does not yet express every required direction, appeal,
+  concern, school/outside-school experience, concrete activity, priority, and
+  transcript-reference distinction in the new `StudentProfile` contract.
+- **Public profile:** the current presentation remains overly dense relative to
+  the locked confirmation contract, is not guaranteed to be exactly three
+  sentences, and still uses the old prompt and `Build my map` / `Refine this
+  first` actions instead of **Looks right** / **Make a correction**.
+- **Path data and detail:** current details remain too profile-focused and
+  insufficiently explanatory. The payload and panel do not yet guarantee path
+  snapshots, three or four explained activities, work characteristics, paired
+  tradeoffs, exploration routes, differentiated nearby paths, and concise
+  personalization.
+- Former supporting-profile grids, repeated fact cards, unexplained confidence or
+  skill labels, generic related-option pills, long justifications, vague multi-role
+  titles, and unsupported current claims are deprecated.
 
 ## Important Active Decisions
 
-- Steppi explores possibilities for Grade 11 students; it does not predict
-  outcomes. Philippine examples are useful where the student context calls for them.
-- The graph is primary: one student, exactly three equal initial branches,
-  progressive disclosure, secondary context panels, and branch-local updates.
-- Milestone 4 uses the official OpenAI SDK, one stateless server-only Responses
-  API background response, required hosted web search, GPT-5.6 structured output,
-  zero automatic retries, structurally strict candidate parsing, full strict Zod
-  validation for every retained node, and a retrieved-URL allow-list.
-- The background job handle is an encrypted HttpOnly same-site cookie containing
-  only the provider response ID, a context hash, check date, creation time, and
-  cancellation flag. It expires quickly, does not make jobs resumable after a
-  reload, and does not expose the provider ID.
-- OpenAI-facing schemas use only the documented Structured Outputs subset. URL
-  protocol and syntax remain strict runtime checks after parsing instead of
-  emitting the unsupported JSON Schema `format: uri` keyword.
-- Research timeout classification uses the installed SDK timeout class identity first,
-  then bounded safe name/code signals with at most one nested cause. Generic SDK
-  connection errors remain `connection_failed`; there is no speculative
-  hosted-search diagnostic without a returned tool-call signal.
-- Provider source evidence may come from completed web-search call sources or
-  output-text URL-citation annotations. Both are allow-list inputs; model-authored
-  source URLs remain untrusted unless they match that provider evidence.
-- Current research output separates atomic factual claims from the student-specific
-  relevance note. Every title and claim points to attached provider-backed URLs,
-  every attached source must be visibly used, and affordability output is rejected
-  unless cost, eligibility, and conditional-aid claims are all present.
-- Atomicity is semantic, not merely sentence-level: each independently verifiable
-  assertion is a separate claim, unsupported clauses are omitted, and source
-  confidence reflects evidence strength rather than general plausibility.
-- Research acceptance is item-scoped. Missing, unmatched, or unsupported claim
-  citations remove the claim; an invalid title, parent, freshness boundary,
-  affordability evidence set, or final strict parse removes the node. Valid sibling
-  nodes render, while zero valid nodes preserve the existing safe retry state.
-- Path discovery uses one synchronized state across the desktop graph and its
-  browseable path index. The index improves scanability but does not replace the
-  graph, add branches, or reveal multiple branches' evidence at once.
-- Research adds no more than five nodes to one selected branch. Insufficient
-  evidence and all failures render honest, retryable states without changing the map.
+- Intake asks exactly three anchor questions in this order: existing
+  possibilities, school experiences, outside-school experiences.
+- Deterministic code chooses the purpose of one or two follow-ups only for a
+  material gap, contradiction, plausible-direction distinction, or
+  recommendation-changing practical constraint. GPT-5.6 may make that purpose
+  conversational but may not invent arbitrary personality-test topics.
+- Intake then asks the specified final consideration question exactly once.
+  “Nothing,” “no,” and “I don't know” complete intake immediately.
+- The transcript remains visible and stable; answers may satisfy several profile
+  dimensions; supplied information is not requested again; uncertainty is valid.
+- The internal profile remains detailed. Direct student statements and model
+  inferences are separate and retain transcript-turn references.
+- The public confirmation contains exactly three natural-language sentences,
+  followed by “Is there anything we missed or misunderstood?” and **Looks right**
+  / **Make a correction**. Corrections patch the validated profile atomically.
+- Each initial path has one focused title and primarily explains the path:
+  snapshot, activities, work characteristics, tradeoffs, exploration routes, and
+  nearby-path differences. Personalization is brief and includes one possible
+  mismatch or open question.
+- Initial path details target approximately 70 percent path explanation, 20
+  percent student connection, and 10 percent uncertainty/refinement.
+- Salary, demand, degree prevalence, program availability, admissions, cost, and
+  location claims remain out of the initial hypothesis unless retrieved from
+  current sources.
+- Intentionally unchanged: exactly three initial directions and their roles; the
+  graph-first interaction; selected-branch research; current source validation;
+  and branch-local refinement that preserves unaffected graph areas.
 - No authentication, persistence, database, comprehensive dataset, or global
-  search is part of the MVP. The completed research slice did not include
-  refinement infrastructure; Milestone 5 now adds only the single validated demo
-  refinement.
-- Intake is a constrained hybrid conversation. GPT-5.6 controls contextual
-  interpretation, tentative-vs-explicit extraction, correction proposals,
-  whether a follow-up is useful, its concise wording, and the completion proposal.
-  Deterministic code controls schema/reference validation, patch application,
-  supersession, transcript checkpoints, duplicate prevention, exact repeated-question
-  rejection, safe fallback, the 12-answer completion boundary, and the unchanged
-  profile handoff. Intake does not generate path recommendations.
-- Profile review is an optional decision fork, not a mandatory administrative
-  screen. The model may interpret a refinement and propose a strict patch plus one
-  useful follow-up or completion; deterministic server code validates and applies
-  the patch, and the student can always proceed with the last valid profile.
+  search is part of this alignment work.
 
-## Unverified Behavior
+## Implementation Sequence
 
-- The public deployed golden path remains unverified; the audited flow ran locally.
-- The item-scoped partial-result path is verified deterministically but has not
-  been separately exercised by another paid live response; that additional call
-  is not required for the Build Week MVP and must not reopen Milestone 4.
-- Native Enter activation of the landing CTA could not be dispatched by the audit
-  browser surface; pointer navigation worked, branch Enter/Space activation worked,
-  and visible focus styling was verified.
-- Path browsing remains unverified with a materially different persona. The live
-  persona did exercise materially longer branch titles without overflow.
-- Real upstream no-source, timeout, malformed-output, and retrieval-failure
-  responses were not induced; deterministic service and route tests cover them.
-- Root error/loading foundations were not deliberately forced in-browser.
-- Intake timing has not been measured with representative students, and the new
-  transcript has not been tested with a screen reader. Desktop and 390×844 mobile
-  fixture checks covered one-answer completion, two distinct contextual follow-up
-  paths, practical constraints, correction, twelve shallow uncertainty turns,
-  keyboard submission, multiline input, stable loading, failure/retry, malformed
-  fallback, duplicate prevention, transcript scrolling, composer bounds, focus,
-  profile transition, and a clean console. The live GPT-5.6 turn interpreter was
-  deliberately not exercised.
-- Profile refinement is verified with deterministic fixtures only; no live or paid
-  refinement turn was made, and no screen-reader session or representative-student
-  comprehension study has been completed for the new summary.
+1. Conversational intake question-policy and transcript experience.
+2. Three-sentence profile confirmation and correction flow.
+3. Path data contract and path-detail refinement.
+4. Regression verification of graph and research.
+5. Final UX and submission polish.
+
+Do not mark working downstream features incomplete while their contracts or
+presentation are being refined. Verify and preserve them at the regression step.
+
+## Exact Next Recommended Task
+
+Overhaul the conversational intake to implement the three ordered anchors, one or
+two deterministically purposed adaptive follow-ups, and the exact final
+consideration question. Preserve the working hybrid server-side interpretation,
+validated state patches, persistent transcript, revision, multiline and keyboard
+input, loading, failure, malformed-output, retry, and downstream profile handoff.
+Add deterministic tests and real-browser verification for the intake acceptance
+criteria in `SPEC.md`; do not change the exact-three graph, research architecture,
+or branch-local behavior.
+
+## Current Blockers
+
+- No known blocker prevents the conversational intake overhaul.
+- Vercel Authentication still blocks anonymous Preview access; the audited flow
+  is not yet deployed for judge verification.
+
+## Non-blocking Reliability Debt
+
+- The visible research cancel control did not leave polling in one deterministic
+  browser fixture; the live provider-cancel boundary was not retested to avoid an
+  unnecessary paid request.
+- Profile and path timeout classification may report an SDK timeout as generic
+  `api_failure` because those routes still rely on `error.name`.
+- Refresh clears intake, profile, map, selection, and research state.
+- Intake duration and screen-reader behavior remain unmeasured.
+- Profile refinement has deterministic but not live GPT-5.6 verification.
+- Path browsing has not been calibrated with a materially different persona.
+- The public deployed golden path remains unverified.

@@ -63,30 +63,31 @@ Steppi should:
 
 ### 1. Conversational intake
 
-The student shares:
+The intake is a short, persistent conversation organized broad-to-specific around
+three goals:
 
-- grade level;
-    
-- interests;
-    
-- preferred subjects and activities;
-    
-- previous experiences;
-    
-- careers or majors already under consideration;
-    
-- strengths and dislikes;
-    
-- financial, geographic, or family constraints;
-    
-- current level of certainty.
-    
+1. understand the college programs, majors, careers, or fields the student has
+   already considered, including their attraction and hesitation;
+2. understand the classes, projects, school activities, and concrete kinds of
+   work the student enjoys or dislikes; and
+3. understand outside-school experiences such as hobbies, games, work, family
+   responsibilities, communities, volunteering, and personal projects, including
+   which parts the student enjoys or avoids.
 
-The intake should take only a few minutes and adapt to the student’s answers.
+After these anchors, Steppi asks only one or two adaptive follow-ups when they
+close a meaningful evidence gap, resolve a contradiction, distinguish plausible
+directions, or clarify a practical constraint that could change the paths. It
+then gives the student one final opportunity to add a concern, limitation, family
+expectation, goal, or omitted context. Uncertainty and incomplete answers are
+valid, and the interview should not continue merely to fill every profile field.
+
+The transcript remains visible throughout. Each Steppi turn asks one clear
+question, connects to prior context when useful, and avoids abstract personality-
+test prompts or repeated requests for information the student already supplied.
 
 ### 2. Path hypothesis
 
-GPT-5.6 summarizes:
+Internally, GPT-5.6 forms a detailed, validated profile that keeps separate:
 
 - facts provided by the student;
     
@@ -94,10 +95,16 @@ GPT-5.6 summarizes:
     
 - unresolved uncertainty;
     
-- constraints affecting recommendations.
+- constraints affecting recommendations; and
+- transcript evidence supporting each direct statement or inference.
     
 
-The student confirms or corrects this understanding before research begins.
+The student-facing confirmation is a natural-language summary of exactly three
+sentences: current directions and interests; the most relevant evidence from
+school and outside-school experience; and the preferences, constraints, tensions,
+or uncertainty Steppi should respect. The student can accept it or make a
+correction. A correction patches the validated internal profile instead of
+regenerating it from scratch.
 
 ### 3. Exploration map
 
@@ -110,7 +117,13 @@ Steppi creates an interactive 2D map centered on the student, with three initial
 - underexplored possibility.
     
 
-Each direction shows why it appeared, supporting evidence, possible drawbacks, unresolved questions, and connected careers or majors.
+Each direction primarily explains the path itself: its purpose and contexts,
+common activities, what the work tends to feel like, honest tradeoffs, ways a
+student can explore it, and nearby options with meaningful differences. A short
+personalized explanation and one possible mismatch connect the path to the
+student without repeating the full profile. Current claims about pay, demand,
+degrees, programs, admissions, costs, or locations appear only after retrieval
+from current sources.
 
 ### The graph is the product
 
