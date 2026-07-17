@@ -3,6 +3,10 @@ import { z } from "zod";
 const identifierSchema = z.string().trim().min(1).max(80);
 const contextTextSchema = z.string().trim().min(1).max(400);
 
+export const MAX_CONVERSATION_TURNS = 12;
+export const TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT =
+  "You’ve shared enough for Steppi to build a useful starting point, including what still feels uncertain.";
+
 export const IntakeDimensionSchema = z.enum([
   "grade",
   "interests",
@@ -106,7 +110,10 @@ export const ConversationTurnSchema = z
 export const IntakeTurnRequestSchema = z
   .object({
     state: ConversationStateSchema,
-    turns: z.array(ConversationTurnSchema).min(1).max(12),
+    turns: z
+      .array(ConversationTurnSchema)
+      .min(1)
+      .max(MAX_CONVERSATION_TURNS),
   })
   .strict();
 
@@ -183,21 +190,89 @@ export class ConversationPatchError extends Error {
   }
 }
 
+function normalizedQuestion(question: string) {
+  return question
+    .normalize("NFKC")
+    .toLocaleLowerCase("en")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * Apply only narrow pacing safeguards after Structured Outputs validation.
+ * The model still decides conversational direction and completion before the
+ * final-turn boundary; application code prevents exact repeated prompts and an
+ * unsupported thirteenth answer.
+ */
+export function prepareConversationPatchForPacing(
+  patchInput: ConversationTurnPatch,
+  turns: ConversationTurn[],
+): ConversationTurnPatch {
+  const patchResult = ConversationTurnPatchSchema.safeParse(patchInput);
+  const turnsResult = z
+    .array(ConversationTurnSchema)
+    .min(1)
+    .max(MAX_CONVERSATION_TURNS)
+    .safeParse(turns);
+
+  if (!patchResult.success || !turnsResult.success) {
+    throw new ConversationPatchError();
+  }
+
+  const patch = patchResult.data;
+
+  if (turnsResult.data.length === MAX_CONVERSATION_TURNS) {
+    return ConversationTurnPatchSchema.parse({
+      ...patch,
+      enoughContext: true,
+      acknowledgement: TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT,
+      nextQuestion: null,
+    });
+  }
+
+  if (patch.nextQuestion !== null) {
+    const candidate = normalizedQuestion(patch.nextQuestion);
+    if (
+      turnsResult.data.some(
+        (turn) => normalizedQuestion(turn.question) === candidate,
+      )
+    ) {
+      throw new ConversationPatchError();
+    }
+  }
+
+  return patch;
+}
+
+export function completeConversationStateAtTurnLimit(
+  state: ConversationState,
+  turnCount: number,
+): ConversationState | null {
+  if (turnCount < MAX_CONVERSATION_TURNS) {
+    return null;
+  }
+
+  return ConversationStateSchema.parse({ ...state, enoughContext: true });
+}
+
 export function applyConversationPatch(
   currentState: ConversationState,
   patchInput: ConversationTurnPatch,
   turns: ConversationTurn[],
 ) {
   const stateResult = ConversationStateSchema.safeParse(currentState);
-  const patchResult = ConversationTurnPatchSchema.safeParse(patchInput);
-  const turnsResult = z.array(ConversationTurnSchema).min(1).max(12).safeParse(turns);
+  const turnsResult = z
+    .array(ConversationTurnSchema)
+    .min(1)
+    .max(MAX_CONVERSATION_TURNS)
+    .safeParse(turns);
 
-  if (!stateResult.success || !patchResult.success || !turnsResult.success) {
+  if (!stateResult.success || !turnsResult.success) {
     throw new ConversationPatchError();
   }
 
   const state = stateResult.data;
-  const patch = patchResult.data;
+  const patch = prepareConversationPatchForPacing(patchInput, turnsResult.data);
   const validTurnIds = new Set(turnsResult.data.map((turn) => turn.id));
   const activeItems = ACTIVE_STATE_KEYS.flatMap((key) => state[key]);
   const activeById = new Map(activeItems.map((item) => [item.id, item]));
@@ -311,7 +386,11 @@ export function questionFromPatch(
   patch: ConversationTurnPatch,
   turnCount: number,
 ): ConversationQuestion | null {
-  if (patch.enoughContext || patch.nextQuestion === null) {
+  if (
+    turnCount >= MAX_CONVERSATION_TURNS ||
+    patch.enoughContext ||
+    patch.nextQuestion === null
+  ) {
     return null;
   }
 

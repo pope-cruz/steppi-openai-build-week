@@ -6,6 +6,7 @@ import {
   type ConversationTurnPatch,
 } from "@/lib/intake-conversation";
 import {
+  INTAKE_TURN_INSTRUCTIONS,
   IntakeTurnGenerationError,
   interpretIntakeTurn,
 } from "@/server/intake-turn";
@@ -44,6 +45,17 @@ const patch: ConversationTurnPatch = {
 };
 
 describe("server-side intake turn interpreter", () => {
+  it("instructs GPT-5.6 to use high-information pacing and practical context", () => {
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/high-information/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(
+      /affordability, location, family expectations, access.*transportation/i,
+    );
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/exact household income/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/not a checklist/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/little exposure/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/three meaningfully different/i);
+  });
+
   it("makes one injected model request and returns a validated patch", async () => {
     const requestTurn = vi.fn().mockResolvedValue(patch);
     await expect(
@@ -85,6 +97,32 @@ describe("server-side intake turn interpreter", () => {
         }),
       }),
     ).rejects.toMatchObject({ code: "malformed_model_output" });
+  });
+
+  it("normalizes an incomplete twelfth-turn result to completion after one request", async () => {
+    const turns = Array.from({ length: 12 }, (_, index) => ({
+      ...turn,
+      id: `turn-${index + 1}`,
+      question: `Question ${index + 1}?`,
+    }));
+    const requestTurn = vi.fn().mockResolvedValue({
+      ...patch,
+      updates: {
+        ...patch.updates,
+        experiences: [],
+      },
+      acknowledgement: "The student is still exploring.",
+      nextQuestion: "What else would help?",
+    });
+
+    const result = await interpretIntakeTurn(EMPTY_CONVERSATION_STATE, turns, {
+      apiKey: "test-only",
+      requestTurn,
+    });
+
+    expect(requestTurn).toHaveBeenCalledOnce();
+    expect(result.enoughContext).toBe(true);
+    expect(result.nextQuestion).toBeNull();
   });
 
   it("does not call the model without configuration", async () => {

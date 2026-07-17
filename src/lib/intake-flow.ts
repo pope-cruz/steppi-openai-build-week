@@ -1,4 +1,5 @@
 import {
+  MAX_CONVERSATION_TURNS,
   STARTING_CONVERSATION_QUESTION,
   type ConversationQuestion,
   type ConversationState,
@@ -64,7 +65,10 @@ export function appendConversationTurn(
   answer: string,
   answeredAt: string,
 ) {
-  if (turns.some((turn) => turn.id === question.id)) {
+  if (
+    turns.length >= MAX_CONVERSATION_TURNS ||
+    turns.some((turn) => turn.id === question.id)
+  ) {
     return turns;
   }
 

@@ -5,10 +5,9 @@ import {
   ArrowRight,
   Check,
   LoaderCircle,
-  Pencil,
-  Plus,
+  MessageCircle,
   RotateCcw,
-  Undo2,
+  Send,
 } from "lucide-react";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 
@@ -17,17 +16,26 @@ import {
   type DevelopmentResearchFixture,
 } from "@/app/intake/path-branch-preview";
 import { Button } from "@/components/ui/button";
+import {
+  developmentProfileRefinementPayload,
+  type DevelopmentProfileRefinementFixture,
+} from "@/lib/demo-profile-refinement";
 import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
 import { PathApiResponseSchema } from "@/lib/path-api";
 import { pathFlowReducer } from "@/lib/path-flow";
 import { validatePathGeneration } from "@/lib/path-validation";
+import { ProfileRefinementApiResponseSchema } from "@/lib/profile-refinement-api";
 import {
-  applyProfilePatch,
-  profilePatchHasChanges,
-} from "@/lib/profile-patch";
-import type { ProfilePatch, StudentProfile } from "@/lib/schemas";
+  PROFILE_REFINEMENT_OPENING_QUESTION,
+  ProfileRefinementRequestSchema,
+  appendProfileRefinementTurn,
+  buildProfileSummary,
+  type ProfileRefinementRequest,
+  type ProfileRefinementTurn,
+} from "@/lib/profile-refinement";
+import type { StudentProfile } from "@/lib/schemas";
 
-const CORRECTION_LIMIT = 600;
+const REFINEMENT_LIMIT = 800;
 
 export type DevelopmentPathFixture =
   | "success"
@@ -35,103 +43,179 @@ export type DevelopmentPathFixture =
   | "timeout"
   | "malformed_model_output";
 
-type InferenceEditor = {
-  targetId: string;
-  mode: "replace" | "remove";
-  statement: string;
-  error: string | null;
-};
+type RefinementRequestState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error"; message: string; retryable: boolean };
 
-function ProfileList({
+export function pathGenerationRequest(profile: StudentProfile) {
+  return { profile };
+}
+
+function SummaryList({
+  empty,
   items,
-  label,
   title,
 }: {
+  empty: string;
   items: string[];
-  label: string;
   title: string;
 }) {
   return (
     <section>
-      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
-        {label}
-      </p>
-      <h3 className="mt-1 text-lg font-semibold text-ink">{title}</h3>
+      <h2 className="text-sm font-semibold text-ink">{title}</h2>
       {items.length > 0 ? (
-        <ul className="mt-3 space-y-2.5 text-sm leading-6 text-graphite">
-          {items.map((item, index) => (
-            <li className="border-s border-border-strong ps-3" key={`${index}-${item}`}>
+        <ul className="mt-3 space-y-2 text-sm leading-6 text-graphite">
+          {items.map((item) => (
+            <li className="border-s border-border-strong ps-3" key={item}>
               {item}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-sm text-muted">Nothing surfaced in this group.</p>
+        <p className="mt-3 text-sm leading-6 text-muted">{empty}</p>
       )}
     </section>
   );
 }
 
-function constraintIdFor(profile: StudentProfile) {
-  const existingIds = new Set(profile.constraints.map((constraint) => constraint.id));
-  let index = profile.constraints.length + 1;
-  let candidate = `constraint-student-added-${index}`;
+export function ProfileSummary({ profile }: { profile: StudentProfile }) {
+  const summary = buildProfileSummary(profile);
 
-  while (existingIds.has(candidate)) {
-    index += 1;
-    candidate = `constraint-student-added-${index}`;
-  }
+  return (
+    <div className="mt-8 border-y border-border" data-profile-summary="">
+      <section className="py-6 sm:py-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-primary">
+          The choice in front of you
+        </p>
+        <p className="mt-2 max-w-[44rem] font-display text-xl leading-8 text-ink sm:text-2xl">
+          {summary.decision}
+        </p>
+      </section>
+      <div className="grid gap-7 border-t border-border py-7 md:grid-cols-3 md:gap-8">
+        <SummaryList
+          empty="Steppi is keeping this open rather than guessing."
+          items={summary.signals}
+          title="What seems to matter"
+        />
+        <SummaryList
+          empty="No practical boundary surfaced clearly yet."
+          items={summary.practicalContext}
+          title="What should shape the options"
+        />
+        <SummaryList
+          empty="There is enough context to explore without forcing another answer."
+          items={summary.openQuestions}
+          title="What can stay open"
+        />
+      </div>
+    </div>
+  );
+}
 
-  return candidate;
+function RefinementConversation({
+  acknowledgement,
+  currentQuestion,
+  turns,
+}: {
+  acknowledgement: string | null;
+  currentQuestion: string | null;
+  turns: ProfileRefinementTurn[];
+}) {
+  return (
+    <div
+      aria-live="polite"
+      className="mt-8 space-y-6 border-y border-border py-7"
+      data-profile-refinement-transcript=""
+    >
+      {turns.map((turn) => (
+        <div className="space-y-3" key={turn.id}>
+          <div className="max-w-[42rem]">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
+              Steppi
+            </p>
+            <p className="mt-1 text-base leading-7 text-ink">{turn.question}</p>
+          </div>
+          <div className="flex justify-end ps-8">
+            <p className="max-w-[38rem] whitespace-pre-wrap break-words rounded-[1.1rem_1.1rem_0.25rem_1.1rem] border border-border-strong bg-surface px-4 py-3 text-sm leading-6 text-graphite sm:px-5">
+              {turn.answer}
+            </p>
+          </div>
+        </div>
+      ))}
+
+      {currentQuestion ? (
+        <div className="max-w-[42rem]">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
+            Steppi
+          </p>
+          {acknowledgement ? (
+            <p className="mt-2 text-sm leading-6 text-muted">{acknowledgement}</p>
+          ) : null}
+          <p className="mt-1 text-base leading-7 text-ink">{currentQuestion}</p>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function ProfileConfirmation({
   developmentPathFixture,
+  developmentProfileRefinementFixture,
   developmentResearchFixture,
   onRestart,
   profile: originalProfile,
 }: {
   developmentPathFixture?: DevelopmentPathFixture;
+  developmentProfileRefinementFixture?: DevelopmentProfileRefinementFixture;
   developmentResearchFixture?: DevelopmentResearchFixture;
   onRestart: () => void;
   profile: StudentProfile;
 }) {
-  const [pendingPatch, setPendingPatch] = useState<ProfilePatch | null>(null);
-  const [confirmedPatch, setConfirmedPatch] = useState<ProfilePatch | null>(null);
-  const [pathFlow, dispatchPathFlow] = useReducer(pathFlowReducer, null);
-  const [inferenceEditor, setInferenceEditor] = useState<InferenceEditor | null>(
+  const [currentProfile, setCurrentProfile] = useState(originalProfile);
+  const [view, setView] = useState<"summary" | "refinement">("summary");
+  const [summaryNotice, setSummaryNotice] = useState<string | null>(null);
+  const [refinementTurns, setRefinementTurns] = useState<ProfileRefinementTurn[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState(
+    PROFILE_REFINEMENT_OPENING_QUESTION,
+  );
+  const [currentAcknowledgement, setCurrentAcknowledgement] = useState<string | null>(
     null,
   );
-  const [constraintEditorOpen, setConstraintEditorOpen] = useState(false);
-  const [constraintStatement, setConstraintStatement] = useState("");
-  const [constraintError, setConstraintError] = useState<string | null>(null);
+  const [composerValue, setComposerValue] = useState("");
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [refinementRequestState, setRefinementRequestState] =
+    useState<RefinementRequestState>({ status: "idle" });
+  const [pendingRefinement, setPendingRefinement] =
+    useState<ProfileRefinementRequest | null>(null);
+  const [pathFlow, dispatchPathFlow] = useReducer(pathFlowReducer, null);
+  const refinementController = useRef<AbortController | null>(null);
   const pathRequestController = useRef<AbortController | null>(null);
+  const refinementSubmissionLock = useRef(false);
+  const pathSubmissionLock = useRef(false);
+  const refinementAttempt = useRef(0);
+  const composer = useRef<HTMLTextAreaElement | null>(null);
   const mapSection = useRef<HTMLElement | null>(null);
 
-  const hasPendingChanges = profilePatchHasChanges(pendingPatch);
-  const previewProfile = useMemo(
-    () =>
-      hasPendingChanges && pendingPatch
-        ? applyProfilePatch(originalProfile, pendingPatch)
-        : originalProfile,
-    [hasPendingChanges, originalProfile, pendingPatch],
-  );
   const confirmedProfile = pathFlow?.confirmedProfile ?? null;
   const pathRequestState = pathFlow?.request ?? { status: "idle" as const };
-  const displayedProfile = confirmedProfile ?? previewProfile;
-  const pendingRemovalId = pendingPatch?.removeInferenceIds?.[0];
-  const pendingReplacement = pendingPatch?.replaceStatements?.[0];
-  const hasPendingInferenceChange = Boolean(
-    pendingRemovalId || pendingReplacement,
-  );
-  const hasPendingConstraint = Boolean(pendingPatch?.addConstraints?.length);
+  const isRefining = view === "refinement";
+  const isRefinementLoading = refinementRequestState.status === "loading";
+  const isPathLoading = pathRequestState.status === "loading";
 
   useEffect(
     () => () => {
+      refinementController.current?.abort();
       pathRequestController.current?.abort();
     },
     [],
   );
+
+  useEffect(() => {
+    if (isRefining && !isRefinementLoading) {
+      composer.current?.focus();
+    }
+  }, [currentQuestion, isRefinementLoading, isRefining]);
 
   useEffect(() => {
     if (pathRequestState.status === "success") {
@@ -139,102 +223,12 @@ export function ProfileConfirmation({
     }
   }, [pathRequestState.status]);
 
-  function openInferenceEditor(targetId: string) {
-    const inference = originalProfile.inferences.find((item) => item.id === targetId);
-    if (!inference) {
+  async function generatePaths(profileForRequest: StudentProfile) {
+    if (pathSubmissionLock.current) {
       return;
     }
 
-    const existingReplacement =
-      pendingReplacement?.targetId === targetId ? pendingReplacement : null;
-    setInferenceEditor({
-      targetId,
-      mode: pendingRemovalId === targetId ? "remove" : "replace",
-      statement: existingReplacement?.newStatement ?? inference.statement,
-      error: null,
-    });
-  }
-
-  function saveInferenceCorrection() {
-    if (!inferenceEditor) {
-      return;
-    }
-
-    if (inferenceEditor.mode === "replace") {
-      const statement = inferenceEditor.statement.trim();
-      if (!statement) {
-        setInferenceEditor((current) =>
-          current ? { ...current, error: "Enter the corrected wording first." } : null,
-        );
-        return;
-      }
-
-      setPendingPatch((current) => ({
-        ...(current ?? {}),
-        removeInferenceIds: undefined,
-        replaceStatements: [
-          { targetId: inferenceEditor.targetId, newStatement: statement },
-        ],
-      }));
-    } else {
-      setPendingPatch((current) => ({
-        ...(current ?? {}),
-        removeInferenceIds: [inferenceEditor.targetId],
-        replaceStatements: undefined,
-      }));
-    }
-
-    setInferenceEditor(null);
-  }
-
-  function addConstraint() {
-    const statement = constraintStatement.trim();
-    if (!statement) {
-      setConstraintError("Describe the constraint before adding it.");
-      return;
-    }
-
-    setPendingPatch((current) => ({
-      ...(current ?? {}),
-      addConstraints: [
-        {
-          id: constraintIdFor(originalProfile),
-          type: "other",
-          statement,
-          priority: "medium",
-        },
-      ],
-    }));
-    setConstraintEditorOpen(false);
-    setConstraintStatement("");
-    setConstraintError(null);
-  }
-
-  function discardPendingChanges() {
-    setPendingPatch(null);
-    setInferenceEditor(null);
-    setConstraintEditorOpen(false);
-    setConstraintStatement("");
-    setConstraintError(null);
-  }
-
-  function confirmProfile() {
-    const patch = pendingPatch ?? {};
-    dispatchPathFlow({
-      type: "confirm",
-      profile: applyProfilePatch(originalProfile, patch),
-    });
-    setConfirmedPatch(hasPendingChanges ? patch : null);
-    setPendingPatch(null);
-    setInferenceEditor(null);
-    setConstraintEditorOpen(false);
-  }
-
-  async function generatePaths() {
-    if (!confirmedProfile) {
-      return;
-    }
-
+    pathSubmissionLock.current = true;
     pathRequestController.current?.abort();
     const controller = new AbortController();
     pathRequestController.current = controller;
@@ -263,8 +257,8 @@ export function ProfileConfirmation({
               code: developmentPathFixture,
               message:
                 developmentPathFixture === "timeout"
-                  ? "Steppi took too long to explore these paths. Your confirmed profile is safe; please try again."
-                  : "Steppi could not explore paths right now. Your confirmed profile is safe; please try again.",
+                  ? "Steppi took too long to explore these paths. Your profile is safe; please try again."
+                  : "Steppi could not explore paths right now. Your profile is safe; please try again.",
               retryable: true,
             },
           };
@@ -273,7 +267,7 @@ export function ProfileConfirmation({
         const response = await fetch("/api/paths", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profile: confirmedProfile }),
+          body: JSON.stringify(pathGenerationRequest(profileForRequest)),
           signal: controller.signal,
         });
         responseBody = await response.json();
@@ -290,7 +284,6 @@ export function ProfileConfirmation({
         });
         return;
       }
-
       if (!parsedResponse.data.ok) {
         dispatchPathFlow({
           type: "fail",
@@ -303,7 +296,7 @@ export function ProfileConfirmation({
 
       let branches;
       try {
-        branches = validatePathGeneration(confirmedProfile, {
+        branches = validatePathGeneration(profileForRequest, {
           branches: parsedResponse.data.branches,
         });
       } catch {
@@ -319,29 +312,154 @@ export function ProfileConfirmation({
 
       dispatchPathFlow({ type: "succeed", branches });
     } catch {
-      if (controller.signal.aborted) {
-        return;
+      if (!controller.signal.aborted) {
+        dispatchPathFlow({
+          type: "fail",
+          code: "api_failure",
+          message:
+            "Steppi could not reach the path service. Your profile is safe; please try again.",
+          retryable: true,
+        });
       }
-
-      dispatchPathFlow({
-        type: "fail",
-        code: "api_failure",
-        message:
-          "Steppi could not reach the path service. Your confirmed profile is safe; please try again.",
-        retryable: true,
-      });
     } finally {
+      pathSubmissionLock.current = false;
       if (pathRequestController.current === controller) {
         pathRequestController.current = null;
       }
     }
   }
 
-  const stateLabel = confirmedProfile
-    ? "Confirmed profile"
-    : hasPendingChanges
-      ? "Pending correction"
-      : "Original profile";
+  function buildMap(profileForRequest = currentProfile) {
+    if (isRefinementLoading || isPathLoading) {
+      return;
+    }
+    refinementController.current?.abort();
+    dispatchPathFlow({ type: "confirm", profile: profileForRequest });
+    setView("summary");
+    void generatePaths(profileForRequest);
+  }
+
+  async function requestRefinement(input: ProfileRefinementRequest) {
+    if (refinementSubmissionLock.current) {
+      return;
+    }
+
+    refinementSubmissionLock.current = true;
+    refinementController.current?.abort();
+    const controller = new AbortController();
+    refinementController.current = controller;
+    setRefinementRequestState({ status: "loading" });
+    setPendingRefinement(input);
+    refinementAttempt.current += 1;
+    const attempt = refinementAttempt.current;
+
+    try {
+      let responseBody: unknown;
+      if (
+        process.env.NODE_ENV === "development" &&
+        developmentProfileRefinementFixture
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 450));
+        if (controller.signal.aborted) {
+          return;
+        }
+        responseBody = developmentProfileRefinementPayload(
+          developmentProfileRefinementFixture,
+          input,
+          attempt,
+        );
+      } else {
+        const response = await fetch("/api/profile/refine", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+          signal: controller.signal,
+        });
+        responseBody = await response.json();
+      }
+
+      const parsed = ProfileRefinementApiResponseSchema.safeParse(responseBody);
+      if (!parsed.success) {
+        setRefinementRequestState({
+          status: "error",
+          message:
+            "Steppi received a refinement it could not safely apply. Your current profile is unchanged; please try again.",
+          retryable: true,
+        });
+        return;
+      }
+      if (!parsed.data.ok) {
+        setRefinementRequestState({
+          status: "error",
+          message: parsed.data.error.message,
+          retryable: parsed.data.error.retryable,
+        });
+        return;
+      }
+
+      setCurrentProfile(parsed.data.profile);
+      setPendingRefinement(null);
+      setRefinementRequestState({ status: "idle" });
+      if (parsed.data.decision === "follow_up" && parsed.data.nextQuestion) {
+        setCurrentAcknowledgement(parsed.data.acknowledgement);
+        setCurrentQuestion(parsed.data.nextQuestion);
+        return;
+      }
+
+      setSummaryNotice(parsed.data.acknowledgement);
+      setCurrentAcknowledgement(null);
+      setCurrentQuestion(PROFILE_REFINEMENT_OPENING_QUESTION);
+      setView("summary");
+    } catch {
+      if (!controller.signal.aborted) {
+        setRefinementRequestState({
+          status: "error",
+          message:
+            "Steppi could not reach the refinement service. Your current profile and wording are safe; please try again.",
+          retryable: true,
+        });
+      }
+    } finally {
+      refinementSubmissionLock.current = false;
+      if (refinementController.current === controller) {
+        refinementController.current = null;
+      }
+    }
+  }
+
+  function submitRefinement() {
+    if (refinementSubmissionLock.current || isRefinementLoading) {
+      return;
+    }
+
+    let nextTurns: ProfileRefinementTurn[];
+    try {
+      nextTurns = appendProfileRefinementTurn(
+        refinementTurns,
+        currentQuestion,
+        composerValue,
+        new Date().toISOString(),
+      );
+    } catch {
+      setFieldError("Share at least a couple of words so Steppi can use the clarification.");
+      return;
+    }
+    if (nextTurns === refinementTurns) {
+      return;
+    }
+
+    const input = ProfileRefinementRequestSchema.parse({
+      profile: currentProfile,
+      turns: nextTurns,
+    });
+    setRefinementTurns(nextTurns);
+    setComposerValue("");
+    setFieldError(null);
+    setCurrentAcknowledgement(null);
+    void requestRefinement(input);
+  }
+
+  const summary = useMemo(() => <ProfileSummary profile={currentProfile} />, [currentProfile]);
 
   if (confirmedProfile && pathRequestState.status === "success") {
     return (
@@ -368,378 +486,255 @@ export function ProfileConfirmation({
     <section aria-labelledby="profile-title" className="mx-auto max-w-[54rem]">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-          <Check aria-hidden="true" className="size-4" />
+          {isRefining ? (
+            <MessageCircle aria-hidden="true" className="size-4" />
+          ) : (
+            <Check aria-hidden="true" className="size-4" />
+          )}
         </span>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-primary">
-            {stateLabel}
+            {isRefining ? "Optional refinement" : "Your starting point"}
           </p>
           <h1
             className="font-display mt-1 text-balance text-[clamp(2.35rem,6vw,3.75rem)] leading-tight text-ink"
             id="profile-title"
           >
-            Here is what Steppi understood.
+            {isRefining
+              ? "Refine what Steppi understood."
+              : "Here’s what Steppi understood."}
           </h1>
           <p className="mt-3 max-w-[42rem] text-sm leading-6 text-muted sm:text-base">
-            This is a working hypothesis for correction—not a prediction or final recommendation.
+            {isRefining
+              ? "Correct what matters or think through one uncertainty. You can build the map whenever you’re ready."
+              : "This is a useful starting hypothesis, not a verdict. You can explore now or clarify something that would meaningfully change the paths."}
           </p>
         </div>
       </div>
 
-      {hasPendingChanges ? (
-        <div
-          aria-live="polite"
-          className="mt-8 flex flex-wrap items-center justify-between gap-3 border-y border-primary/25 bg-primary-soft/45 px-4 py-3"
-        >
-          <p className="text-sm font-medium text-graphite">
-            Your correction is only a preview until you confirm this profile.
-          </p>
-          <Button onClick={discardPendingChanges} variant="ghost">
-            <Undo2 />
-            Discard pending changes
-          </Button>
-        </div>
-      ) : null}
-
-      {confirmedProfile ? (
+      {summaryNotice && !isRefining ? (
         <p
           aria-live="polite"
-          className="mt-8 border-y border-border bg-surface-muted px-4 py-3 text-sm font-medium text-graphite"
+          className="mt-7 border-s-2 border-primary bg-primary-soft/45 px-4 py-3 text-sm leading-6 text-graphite"
         >
-          Profile confirmed
-          {profilePatchHasChanges(confirmedPatch)
-            ? " with your corrections. The original profile remains unchanged in this session."
-            : ". No corrections were added."}
+          {summaryNotice}
         </p>
       ) : null}
 
-      <div className="mt-10 grid gap-x-10 gap-y-9 border-y border-border py-9 md:grid-cols-2">
-        <section>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
-              Based on your answers
-            </p>
-            <span className="text-xs font-medium text-muted">Read-only</span>
-          </div>
-          <h3 className="mt-1 text-lg font-semibold text-ink">What you shared</h3>
-          <ul className="mt-3 space-y-2.5 text-sm leading-6 text-graphite">
-            {displayedProfile.facts.map((fact) => (
-              <li className="border-s border-border-strong ps-3" key={fact.id}>
-                {fact.statement}
-              </li>
-            ))}
-          </ul>
-        </section>
+      {summary}
 
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
-            Steppi inference
-          </p>
-          <h3 className="mt-1 text-lg font-semibold text-ink">Working hypotheses</h3>
-          {originalProfile.inferences.length > 0 ? (
-            <ul className="mt-3 space-y-4">
-              {(confirmedProfile ? displayedProfile.inferences : originalProfile.inferences).map(
-                (inference) => {
-                  const isPendingRemoval = pendingRemovalId === inference.id;
-                  const replacement =
-                    pendingReplacement?.targetId === inference.id
-                      ? pendingReplacement.newStatement
-                      : null;
+      {isRefining ? (
+        <>
+          <RefinementConversation
+            acknowledgement={currentAcknowledgement}
+            currentQuestion={
+              refinementRequestState.status === "idle" ? currentQuestion : null
+            }
+            turns={refinementTurns}
+          />
 
-                  return (
-                    <li className="border-s border-border-strong ps-3" key={inference.id}>
-                      <p
-                        className={`text-sm leading-6 text-graphite ${
-                          isPendingRemoval ? "line-through opacity-55" : ""
-                        }`}
-                      >
-                        {replacement ?? inference.statement}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-muted">
-                        {inference.rationale} · {inference.confidence} confidence
-                      </p>
-                      {isPendingRemoval || replacement ? (
-                        <p className="mt-1 text-xs font-semibold text-primary">
-                          {isPendingRemoval ? "Pending removal" : "Pending replacement"}
-                        </p>
-                      ) : null}
-                      {!confirmedProfile &&
-                      (!hasPendingInferenceChange ||
-                        pendingRemovalId === inference.id ||
-                        pendingReplacement?.targetId === inference.id) ? (
-                        <button
-                          aria-expanded={inferenceEditor?.targetId === inference.id}
-                          className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-primary outline-none hover:bg-primary-soft focus-visible:focus-ring"
-                          onClick={() => openInferenceEditor(inference.id)}
-                          type="button"
-                        >
-                          <Pencil aria-hidden="true" className="size-3.5" />
-                          {replacement || isPendingRemoval ? "Review correction" : "Correct this"}
-                        </button>
-                      ) : null}
-                    </li>
-                  );
-                },
-              )}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-muted">No working hypotheses were added.</p>
-          )}
-
-          {inferenceEditor ? (
-            <form
-              className="mt-5 border-y border-border bg-surface-muted px-4 py-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                saveInferenceCorrection();
-              }}
+          {isRefinementLoading ? (
+            <div
+              aria-live="polite"
+              className="mt-5 flex items-center gap-3 text-sm text-muted"
+              role="status"
             >
-              <fieldset>
-                <legend className="text-sm font-semibold text-ink">Correct this inference</legend>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(["replace", "remove"] as const).map((mode) => (
-                    <button
-                      aria-pressed={inferenceEditor.mode === mode}
-                      className={`min-h-10 rounded-[var(--radius-control)] border px-3 text-sm font-semibold outline-none focus-visible:focus-ring ${
-                        inferenceEditor.mode === mode
-                          ? "border-primary bg-primary-soft text-primary"
-                          : "border-border-strong bg-surface text-graphite"
-                      }`}
-                      key={mode}
-                      onClick={() =>
-                        setInferenceEditor((current) =>
-                          current ? { ...current, mode, error: null } : null,
-                        )
-                      }
-                      type="button"
-                    >
-                      {mode === "replace" ? "Replace wording" : "Remove inference"}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+              <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-primary" />
+              Applying only what your clarification changes…
+            </div>
+          ) : null}
 
-              {inferenceEditor.mode === "replace" ? (
-                <div className="mt-4">
-                  <label className="text-sm font-semibold text-graphite" htmlFor="inference-correction">
-                    Corrected statement
-                  </label>
-                  <textarea
-                    aria-describedby={inferenceEditor.error ? "inference-correction-error" : undefined}
-                    className="mt-2 min-h-28 w-full resize-y rounded-[var(--radius-control)] border border-border-strong bg-surface px-3 py-2 text-sm leading-6 text-ink outline-none focus:border-primary focus:ring-[3px] focus:ring-[color:var(--color-focus)]"
-                    id="inference-correction"
-                    maxLength={CORRECTION_LIMIT}
-                    onChange={(event) =>
-                      setInferenceEditor((current) =>
-                        current
-                          ? { ...current, statement: event.target.value, error: null }
-                          : null,
-                      )
-                    }
-                    value={inferenceEditor.statement}
-                  />
-                  <div className="mt-1 flex items-start justify-between gap-3 text-xs">
-                    {inferenceEditor.error ? (
-                      <p className="text-error" id="inference-correction-error" role="alert">
-                        {inferenceEditor.error}
-                      </p>
-                    ) : (
-                      <span />
-                    )}
-                    <span className="shrink-0 text-muted">
-                      {inferenceEditor.statement.length}/{CORRECTION_LIMIT}
-                    </span>
+          {refinementRequestState.status === "error" ? (
+            <div
+              aria-live="assertive"
+              className="mt-5 border-s-2 border-error bg-surface-muted px-4 py-4"
+              role="alert"
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-error" />
+                <div>
+                  <p className="font-semibold text-ink">That refinement was not applied.</p>
+                  <p className="mt-1 text-sm leading-6 text-muted">
+                    {refinementRequestState.message}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {refinementRequestState.retryable && pendingRefinement ? (
+                      <Button
+                        onClick={() => void requestRefinement(pendingRefinement)}
+                        variant="secondary"
+                      >
+                        <RotateCcw />
+                        Try this clarification again
+                      </Button>
+                    ) : null}
+                    <Button onClick={() => buildMap()}>
+                      Build my map with the current summary
+                    </Button>
                   </div>
                 </div>
-              ) : (
-                <p className="mt-4 text-sm leading-6 text-muted">
-                  This removes only this working hypothesis. Facts and the rest of your profile stay unchanged.
-                </p>
-              )}
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button type="submit">
-                  {inferenceEditor.mode === "replace" ? "Preview replacement" : "Preview removal"}
-                </Button>
-                <Button onClick={() => setInferenceEditor(null)} variant="ghost">
-                  Cancel
-                </Button>
               </div>
-            </form>
-          ) : null}
-        </section>
-
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
-            Constraints that matter
-          </p>
-          <h3 className="mt-1 text-lg font-semibold text-ink">Practical context</h3>
-          <ul className="mt-3 space-y-2.5 text-sm leading-6 text-graphite">
-            {displayedProfile.constraints.map((constraint) => (
-              <li className="border-s border-border-strong ps-3" key={constraint.id}>
-                {constraint.statement}
-                {!confirmedProfile &&
-                pendingPatch?.addConstraints?.some((item) => item.id === constraint.id) ? (
-                  <span className="mt-1 block text-xs font-semibold text-primary">
-                    Pending addition
-                  </span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-
-          {!confirmedProfile && !hasPendingConstraint && !constraintEditorOpen ? (
-            <button
-              aria-expanded="false"
-              className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-primary outline-none hover:bg-primary-soft focus-visible:focus-ring"
-              onClick={() => setConstraintEditorOpen(true)}
-              type="button"
-            >
-              <Plus aria-hidden="true" className="size-3.5" />
-              Add a missing constraint
-            </button>
-          ) : null}
-
-          {constraintEditorOpen ? (
+            </div>
+          ) : (
             <form
-              className="mt-5 border-y border-border bg-surface-muted px-4 py-4"
+              aria-busy={isRefinementLoading}
+              className="sticky bottom-3 z-10 mt-6 rounded-[var(--radius-panel)] border border-border-strong bg-[color:rgb(255_255_255_/_96%)] p-3 shadow-[var(--shadow-panel)] backdrop-blur sm:p-4"
+              data-profile-refinement-composer=""
               onSubmit={(event) => {
                 event.preventDefault();
-                addConstraint();
+                submitRefinement();
               }}
             >
-              <label className="text-sm font-semibold text-ink" htmlFor="missing-constraint">
-                What important constraint is missing?
+              <label className="sr-only" htmlFor="profile-refinement-answer">
+                {currentQuestion}
               </label>
-              <textarea
-                aria-describedby={constraintError ? "constraint-error" : "constraint-hint"}
-                className="mt-2 min-h-24 w-full resize-y rounded-[var(--radius-control)] border border-border-strong bg-surface px-3 py-2 text-sm leading-6 text-ink outline-none focus:border-primary focus:ring-[3px] focus:ring-[color:var(--color-focus)]"
-                id="missing-constraint"
-                maxLength={CORRECTION_LIMIT}
-                onChange={(event) => {
-                  setConstraintStatement(event.target.value);
-                  setConstraintError(null);
-                }}
-                placeholder="For example, I need a course schedule that leaves time for family responsibilities."
-                value={constraintStatement}
-              />
-              <div className="mt-1 flex items-start justify-between gap-3 text-xs">
-                {constraintError ? (
-                  <p className="text-error" id="constraint-error" role="alert">
-                    {constraintError}
-                  </p>
-                ) : (
-                  <p className="text-muted" id="constraint-hint">
-                    Add one practical limit or need that should shape future paths.
-                  </p>
-                )}
-                <span className="shrink-0 text-muted">
-                  {constraintStatement.length}/{CORRECTION_LIMIT}
-                </span>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button type="submit">Preview constraint</Button>
-                <Button
-                  onClick={() => {
-                    setConstraintEditorOpen(false);
-                    setConstraintStatement("");
-                    setConstraintError(null);
+              <div className="flex items-end gap-2">
+                <textarea
+                  aria-describedby={fieldError ? "profile-refinement-error" : undefined}
+                  aria-invalid={Boolean(fieldError)}
+                  className="max-h-52 min-h-20 min-w-0 flex-1 resize-y rounded-[var(--radius-control)] border border-transparent bg-surface-muted px-3.5 py-3 text-base leading-6 text-ink outline-none placeholder:text-faint focus:border-primary focus:ring-[3px] focus:ring-[color:var(--color-focus)]"
+                  disabled={isRefinementLoading}
+                  id="profile-refinement-answer"
+                  maxLength={REFINEMENT_LIMIT}
+                  onChange={(event) => {
+                    setComposerValue(event.target.value);
+                    setFieldError(null);
                   }}
-                  variant="ghost"
+                  onKeyDown={(event) => {
+                    if (
+                      event.key !== "Enter" ||
+                      event.shiftKey ||
+                      event.nativeEvent.isComposing
+                    ) {
+                      return;
+                    }
+                    event.preventDefault();
+                    submitRefinement();
+                  }}
+                  placeholder={
+                    isRefinementLoading
+                      ? "Steppi is applying that…"
+                      : "Say what feels off, important, or still uncertain…"
+                  }
+                  ref={composer}
+                  value={composerValue}
+                />
+                <Button
+                  aria-label="Send refinement"
+                  className="mb-0.5 shrink-0 px-4"
+                  disabled={isRefinementLoading}
+                  type="submit"
                 >
-                  Cancel
+                  <Send aria-hidden="true" />
+                  <span className="hidden sm:inline">Send</span>
                 </Button>
               </div>
+              <div className="mt-2 flex min-h-6 items-start justify-between gap-4 px-1">
+                <p
+                  className="text-sm leading-5 text-error"
+                  id="profile-refinement-error"
+                  role={fieldError ? "alert" : undefined}
+                >
+                  {fieldError}
+                </p>
+                <p className="shrink-0 text-xs text-muted">
+                  Enter to send · Shift+Enter for a new line · {composerValue.length}/
+                  {REFINEMENT_LIMIT}
+                </p>
+              </div>
             </form>
-          ) : null}
-        </section>
-
-        <ProfileList
-          items={displayedProfile.uncertainties.map(
-            (item) => `${item.question} ${item.whyItMatters}`,
           )}
-          label="Still uncertain"
-          title="Useful questions"
-        />
-      </div>
 
-      {displayedProfile.tensions.length > 0 ? (
-        <div className="mt-9 border-b border-border pb-9">
-          <ProfileList
-            items={displayedProfile.tensions.map((item) => item.description)}
-            label="Worth checking"
-            title="Tensions in the answers"
-          />
-        </div>
-      ) : null}
-
-      {confirmedProfile && pathRequestState.status === "loading" ? (
-        <div
-          aria-live="polite"
-          className="mt-9 flex items-center gap-3 border-y border-border bg-surface-muted px-5 py-6"
-          role="status"
-        >
-          <LoaderCircle aria-hidden="true" className="size-5 animate-spin text-primary" />
-          <div>
-            <p className="font-semibold text-ink">Exploring three different directions…</p>
-            <p className="mt-1 text-sm leading-6 text-muted">
-              Steppi is comparing evidence, tradeoffs, and open questions in one request.
-            </p>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <Button
+              disabled={isRefinementLoading || isPathLoading}
+              onClick={() => {
+                setView("summary");
+                setRefinementRequestState({ status: "idle" });
+              }}
+              variant="ghost"
+            >
+              Return to summary
+            </Button>
+            {refinementRequestState.status !== "error" ? (
+              <Button
+                disabled={isRefinementLoading || isPathLoading}
+                onClick={() => buildMap()}
+                size="lg"
+              >
+                Build my map
+                <ArrowRight />
+              </Button>
+            ) : null}
           </div>
-        </div>
-      ) : null}
+        </>
+      ) : (
+        <>
+          {pathRequestState.status === "loading" ? (
+            <div
+              aria-live="polite"
+              className="mt-8 flex items-center gap-3 border-y border-border bg-surface-muted px-5 py-6"
+              role="status"
+            >
+              <LoaderCircle aria-hidden="true" className="size-5 animate-spin text-primary" />
+              <div>
+                <p className="font-semibold text-ink">Building three different directions…</p>
+                <p className="mt-1 text-sm leading-6 text-muted">
+                  Steppi is using this profile without making you review every field.
+                </p>
+              </div>
+            </div>
+          ) : null}
 
-      {confirmedProfile && pathRequestState.status === "error" ? (
-        <div
-          aria-live="assertive"
-          className="mt-9 border-y border-error/25 bg-[color-mix(in_srgb,var(--color-error)_6%,white)] px-5 py-6"
-          role="alert"
-        >
-          <div className="flex items-start gap-3">
-            <AlertCircle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-error" />
-            <div>
-              <p className="font-semibold text-ink">The paths are not ready yet.</p>
-              <p className="mt-1 max-w-[42rem] text-sm leading-6 text-muted">
+          {pathRequestState.status === "error" ? (
+            <div
+              aria-live="assertive"
+              className="mt-8 border-s-2 border-error bg-surface-muted px-5 py-5"
+              role="alert"
+            >
+              <p className="font-semibold text-ink">The map is not ready yet.</p>
+              <p className="mt-1 text-sm leading-6 text-muted">
                 {pathRequestState.message}
               </p>
-              <p className="mt-2 text-xs font-medium text-graphite">
-                Your confirmed profile remains available above.
-              </p>
-              {pathRequestState.retryable ? (
-                <Button className="mt-4" onClick={generatePaths} variant="secondary">
-                  Try path generation again
+              {pathRequestState.retryable && confirmedProfile ? (
+                <Button
+                  className="mt-4"
+                  onClick={() => void generatePaths(confirmedProfile)}
+                  variant="secondary"
+                >
+                  <RotateCcw />
+                  Try map generation again
                 </Button>
               ) : null}
             </div>
-          </div>
-        </div>
-      ) : null}
+          ) : null}
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-        <Button onClick={onRestart} variant="secondary">
-          <RotateCcw />
-          Restart intake
-        </Button>
-        {!confirmedProfile ? (
-          <Button onClick={confirmProfile} size="lg">
-            Confirm this profile
-            <Check />
-          </Button>
-        ) : pathRequestState.status === "idle" ? (
-          <Button
-            onClick={generatePaths}
-            size="lg"
-          >
-            Confirm and explore paths
-            <ArrowRight />
-          </Button>
-        ) : pathRequestState.status === "loading" ? (
-          <Button disabled size="lg">
-            <LoaderCircle className="animate-spin" />
-            Exploring paths…
-          </Button>
-        ) : null}
-      </div>
+          <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <Button
+              disabled={isPathLoading}
+              onClick={() => {
+                setSummaryNotice(null);
+                setView("refinement");
+              }}
+              size="lg"
+              variant="secondary"
+            >
+              <MessageCircle />
+              Refine this first
+            </Button>
+            <Button disabled={isPathLoading} onClick={() => buildMap()} size="lg">
+              {isPathLoading ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <ArrowRight />
+              )}
+              {isPathLoading ? "Building your map…" : "Build my map"}
+            </Button>
+          </div>
+          <p className="mt-3 text-right text-xs leading-5 text-muted">
+            Refining is optional. You can return to it before building the map.
+          </p>
+        </>
+      )}
     </section>
   );
 }

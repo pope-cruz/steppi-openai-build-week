@@ -8,7 +8,9 @@ import type {
 export type DevelopmentIntakeFixture =
   | "intake-success"
   | "intake-alternate"
+  | "intake-practical"
   | "intake-uncertain"
+  | "intake-max-turns"
   | "intake-retry"
   | "intake-malformed";
 
@@ -116,6 +118,86 @@ function creativePatch(turns: ConversationTurn[]): ConversationTurnPatch {
   };
 }
 
+function richFirstAnswerPatch(turns: ConversationTurn[]): ConversationTurnPatch {
+  const latestTurn = turns.at(-1)!;
+
+  return {
+    updates: {
+      ...emptyUpdates(),
+      suppliedFacts: [
+        {
+          id: "fact-rich-grade-11",
+          text: "The student is in Grade 11.",
+          basis: "explicit",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+      interpretedInterests: [
+        {
+          id: "interest-rich-creative-tech",
+          text: "Creative technology may be worth exploring.",
+          basis: "tentative-interpretation",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+      experiences: [
+        {
+          id: "experience-rich-publication",
+          text: "The student designed layouts for a school publication.",
+          basis: "explicit",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+      preferences: [
+        {
+          id: "preference-rich-collaboration",
+          text: "The student likes shaping ideas with a team.",
+          basis: "explicit",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+      dislikes: [
+        {
+          id: "dislike-rich-routine",
+          text: "The student dislikes repetitive work.",
+          basis: "explicit",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+      constraints: [
+        {
+          id: "constraint-rich-manila-cost",
+          text: "Affordable study near Manila matters to the student.",
+          basis: "explicit",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+      consideredPaths: [
+        {
+          id: "path-rich-design-or-computing",
+          text: "The student has considered design and computing but is unsure between them.",
+          basis: "explicit",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+      uncertainty: [
+        {
+          id: "uncertainty-rich-coding",
+          text: "The student is unsure how much coding they would enjoy.",
+          basis: "explicit",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+    },
+    supersedeItemIds: [],
+    unresolvedDimensions: ["certainty-and-help-goal"],
+    enoughContext: true,
+    acknowledgement:
+      "You connected a real creative project with the kind of work and practical limits that matter to you.",
+    nextQuestion: null,
+  };
+}
+
 function alternatePatch(turns: ConversationTurn[]): ConversationTurnPatch {
   const latestTurn = turns.at(-1)!;
 
@@ -158,12 +240,110 @@ function alternatePatch(turns: ConversationTurn[]): ConversationTurnPatch {
     acknowledgement:
       "You mentioned that the coastal cleanup stayed with you.",
     nextQuestion:
-      "What about that experience held your attention: the science, the hands-on work, or helping the community?",
+      "In that cleanup, what held your attention most—and would you rather investigate the problem, organize people, or work hands-on next time?",
+  };
+}
+
+function practicalPatch(turns: ConversationTurn[]): ConversationTurnPatch {
+  const latestTurn = turns.at(-1)!;
+
+  if (turns.length === 1) {
+    return {
+      updates: {
+        ...emptyUpdates(),
+        experiences: [
+          {
+            id: "experience-practical-publication",
+            text: "The student contributed visual work to a school publication.",
+            basis: "explicit",
+            sourceTurnIds: [latestTurn.id],
+          },
+        ],
+        constraints: [
+          {
+            id: "constraint-practical-affordability",
+            text: "Keeping study costs manageable matters to the student.",
+            basis: "explicit",
+            sourceTurnIds: [latestTurn.id],
+          },
+          {
+            id: "constraint-practical-manila",
+            text: "The student needs options in or near Manila.",
+            basis: "explicit",
+            sourceTurnIds: [latestTurn.id],
+          },
+          {
+            id: "constraint-practical-family",
+            text: "The student's family hopes they will choose a stable direction.",
+            basis: "explicit",
+            sourceTurnIds: [latestTurn.id],
+          },
+          {
+            id: "constraint-practical-transport",
+            text: "A long daily commute would be difficult for the student.",
+            basis: "explicit",
+            sourceTurnIds: [latestTurn.id],
+          },
+        ],
+      },
+      supersedeItemIds: [],
+      unresolvedDimensions: [
+        "interests",
+        "strengths-and-preferences",
+        "dislikes",
+      ],
+      enoughContext: false,
+      acknowledgement:
+        "You want to build from your publication experience while keeping Manila, cost, family expectations, and travel realistic.",
+      nextQuestion:
+        "When you worked on the publication, which part gave you energy—making the visuals, shaping the message with others, or solving production problems—and what drained you?",
+    };
+  }
+
+  return {
+    updates: {
+      ...emptyUpdates(),
+      preferences: [
+        {
+          id: "preference-practical-visual-collaboration",
+          text: "The student enjoys collaborative visual work.",
+          basis: "explicit",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+      dislikes: [
+        {
+          id: "dislike-practical-production-rush",
+          text: "The student dislikes rushed production work.",
+          basis: "explicit",
+          sourceTurnIds: [latestTurn.id],
+        },
+      ],
+    },
+    supersedeItemIds: [],
+    unresolvedDimensions: [],
+    enoughContext: true,
+    acknowledgement:
+      "That gives Steppi both the work pattern you enjoy and the practical boundaries an initial profile should respect.",
+    nextQuestion: null,
   };
 }
 
 function uncertainPatch(turns: ConversationTurn[]): ConversationTurnPatch {
   const latestTurn = turns.at(-1)!;
+  const followUps = [
+    "Is there a class, activity, or problem you have enjoyed even a little lately?",
+    "What kind of school task is easiest for you to stay with: making something, explaining an idea, helping someone, or figuring out how something works?",
+    "Would trying something with people, ideas, technology, or hands-on materials feel least unfamiliar right now?",
+    "Is there any kind of task you already know you would rather avoid?",
+    "Have you tried anything outside class—even briefly—that you would or would not do again?",
+    "What kind of support helps you try something new: clear instructions, a teammate, practice time, or seeing an example first?",
+    "Are there any practical limits Steppi should respect, such as location, cost, travel, access, or family expectations—or none you know of yet?",
+    "Has anyone in your family suggested a direction, and how do you feel about that suggestion?",
+    "Which subject feels most manageable right now, even if it is not a favorite?",
+    "What is one small project or experience you might be willing to try before choosing anything?",
+    "What would be most useful for Steppi to help you compare or rule out?",
+  ];
 
   return {
     updates: {
@@ -189,9 +369,9 @@ function uncertainPatch(turns: ConversationTurn[]): ConversationTurnPatch {
       "constraints",
     ],
     enoughContext: false,
-    acknowledgement: "Starting without a clear direction is completely okay.",
-    nextQuestion:
-      "Is there a class, activity, or problem you have enjoyed even a little lately?",
+    acknowledgement:
+      "Not having much exposure yet is useful context; Steppi can keep the next step low-pressure.",
+    nextQuestion: followUps[Math.min(turns.length - 1, followUps.length - 1)],
   };
 }
 
@@ -225,9 +405,13 @@ export function developmentIntakeTurnPayload({
   }
 
   const patch =
-    fixture === "intake-alternate"
+    fixture === "intake-success"
+      ? richFirstAnswerPatch(turns)
+      : fixture === "intake-alternate"
       ? alternatePatch(turns)
-      : fixture === "intake-uncertain"
+      : fixture === "intake-practical"
+        ? practicalPatch(turns)
+        : fixture === "intake-uncertain" || fixture === "intake-max-turns"
         ? uncertainPatch(turns)
         : creativePatch(turns);
 

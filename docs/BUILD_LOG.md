@@ -29,6 +29,100 @@ it is historical evidence, not a second specification.
 
 ## Completed
 
+### 2026-07-17 — Optional profile summary and adaptive refinement fork
+
+- Replaced the mandatory, field-heavy profile review and two-step confirmation
+  sequence with a concise “Here’s what Steppi understood” summary. The summary is
+  derived deterministically from the validated `StudentProfile`, exposes no IDs,
+  source references, confidence fields, or raw schema categories, and presents
+  `Build my map` as the primary action beside the optional `Refine this first`.
+- Added `/api/profile/refine` as a separate server-only GPT-5.6 Structured Outputs
+  turn boundary. Each genuine refinement answer can create at most one SDK request
+  with `maxRetries: 0`. The model proposes a strict patch plus `complete`,
+  `follow_up`, or `offer_choice`; deterministic server code validates references
+  and targets, applies the whole patch atomically, reparses the resulting
+  `StudentProfile`, and returns no raw patch to React.
+- Profile refinement starts from the current valid profile and never restarts
+  intake or regenerates the profile from scratch. Direct corrections can return to
+  the updated summary without a follow-up; contextual questions are limited to one
+  at a time, uncertainty may remain open, and `Build my map` remains available.
+- Failure and malformed output preserve the last valid profile and exact student
+  wording. Explicit retry reuses the same clarification; proceeding builds paths
+  from the last valid profile. Synchronous client locks prevent duplicate answers,
+  refinement requests, and path submissions.
+- Preserved the adaptive intake, `StudentProfile` schema, `/api/profile` contract,
+  exact `{ profile }` path request, exact-three validation, graph state, and all
+  research behavior. No intake, path-generation prompt, map, or research file was
+  changed for the refinement boundary.
+- Added deterministic patch/application, model-output, API-response, service,
+  route, fixture, request-shape, and summary-rendering coverage. Focused checks
+  passed: 5 files and 28 tests. The full suite passed: 30 files and 198 tests.
+- Real-browser fixtures covered 1440×1000 desktop and 390×844 mobile: normal
+  intake-to-summary handoff, immediate map building, direct correction, one adaptive
+  follow-up, uncertainty, updated summary, map generation after refinement,
+  failure/retry, malformed-output proceed-with-last-valid behavior, rapid repeated
+  submission, keyboard-only Enter and Shift+Enter, focus restoration, sticky
+  composer bounds, scrolling, one student plus three branches, and no horizontal
+  overflow. Browser warnings/errors were empty. A duplicate submitted-question
+  rendering issue found during the pass was removed and rechecked.
+- Dev-server evidence contained only fixture page GETs; no `/api/intake/turn`,
+  `/api/profile`, `/api/profile/refine`, `/api/paths`, `/api/research`, live, or paid
+  model request occurred. The live quality of refinement interpretation remains
+  unverified.
+- `npm run lint`, `npm run typecheck`, `npm run test`, the network-enabled `npm run
+  build`, and `git diff --check` passed. The first sandboxed build failed only at
+  the repository's existing Google Fonts network fetch; the identical permitted
+  rerun passed and included `/api/profile/refine`.
+- Remaining limitations: in-memory refresh loss, no screen-reader or
+  representative-student comprehension study, deterministic summary compression,
+  and no live GPT-5.6 refinement turn. Exact next task: implement and
+  deterministically verify the single branch-local refinement, “Prioritize
+  affordable options near Manila,” while preserving valid sources and every
+  unaffected graph area.
+
+### 2026-07-17 — Conversational intake question quality and pacing
+
+- Preserved the fixed broad opening, persistent transcript, stable composer, one
+  server-only GPT-5.6 intake-turn request after every genuine answer, strict
+  Structured Outputs patches, automatic `enoughContext` profile generation, zero
+  automatic SDK retries, and the existing `/api/profile` and downstream contracts.
+- Tightened the turn instructions around contextual high-information questions,
+  related-detail grouping, transcript/state deduplication, uncertainty and limited
+  exposure, sufficiency rather than dimension completion, and sensitive practical
+  context covering affordability, location, family expectations, access, and
+  transportation without hardship assumptions or exact-income questions.
+- Added a narrow deterministic novelty guard for exact repeated questions and a
+  shared 12-answer boundary. The twelfth answer still receives one interpreter
+  call; a valid incomplete patch retains all updates and unresolved dimensions but
+  becomes completion. If that interpretation is unusable, validated prior state and
+  the raw transcript are preserved and profile generation continues. No thirteenth
+  answer can be appended or requested, and no technical limit is shown to students.
+- Kept the composer visible, disabled, and `aria-busy` during interpretation and
+  profile loading, improving pacing clarity without redesigning the transcript UI.
+- Added deterministic rich-answer, practical-context, alternate-path, repeated-
+  uncertainty, retry, malformed-output, and maximum-turn fixtures. Focused tests
+  cover multi-dimension early completion, no known constraints, limited exposure,
+  Manila/cost/transport/family context, repeated-question rejection, correction,
+  compatibility copies, duplicate prevention, and final-turn preservation.
+- Real-browser fixture verification covered 1440×1000 desktop and 390×844 mobile:
+  one-answer completion, materially different publication and coastal-cleanup
+  follow-ups, Enter, Shift+Enter, focus restoration, revision invalidation,
+  transcript scrolling, stable loading, rapid duplicate submission, explicit retry,
+  malformed fallback, twelve-turn completion, no thirteenth prompt, profile
+  transition, composer bounds, and horizontal overflow. The current console had no
+  warnings or errors; fixture code made no intake-turn, profile, or paid model call.
+- Verification passed: focused intake tests (5 files, 38 tests), `npm run lint`,
+  `npm run typecheck`, full `npm run test` (25 files, 170 tests), network-enabled
+  `npm run build`, and `git diff --check`. The first sandboxed build failed only
+  because the existing Google fonts were unreachable; the allowed rerun passed.
+- No live or paid OpenAI request occurred. Remaining limitations are in-memory
+  refresh loss, the unchanged four-record profile compatibility adapter, unmeasured
+  representative-student duration, no screen-reader session, and no live
+  turn-interpreter quality evaluation. Milestone 4 remains complete. Exact next
+  task: implement and deterministically verify the single branch-local refinement,
+  “Prioritize affordable options near Manila,” while preserving valid sources and
+  every unaffected graph area.
+
 ### 2026-07-17 — Constrained hybrid conversational intake
 
 - Replaced client keyword matching and fixed missing-dimension routing with a

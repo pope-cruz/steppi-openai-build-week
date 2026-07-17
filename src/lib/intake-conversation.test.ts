@@ -4,8 +4,12 @@ import {
   ConversationPatchError,
   ConversationTurnPatchSchema,
   EMPTY_CONVERSATION_STATE,
+  MAX_CONVERSATION_TURNS,
+  TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT,
   applyConversationPatch,
+  completeConversationStateAtTurnLimit,
   fallbackConversationQuestion,
+  prepareConversationPatchForPacing,
   questionFromPatch,
   type ConversationState,
   type ConversationTurn,
@@ -114,6 +118,37 @@ describe("conversational state patches", () => {
       [turn],
     );
     expect(result.unresolvedDimensions).toEqual(["dislikes"]);
+  });
+
+  it("accepts no known constraints and little career exposure as useful context", () => {
+    const result = applyConversationPatch(
+      EMPTY_CONVERSATION_STATE,
+      patch({
+        updates: {
+          ...emptyUpdates(),
+          constraints: [
+            {
+              id: "no-known-constraints",
+              text: "The student reports no practical constraints they know of yet.",
+              basis: "explicit",
+              sourceTurnIds: [turn.id],
+            },
+          ],
+          uncertainty: [
+            {
+              id: "little-career-exposure",
+              text: "The student has had little exposure to different careers.",
+              basis: "explicit",
+              sourceTurnIds: [turn.id],
+            },
+          ],
+        },
+      }),
+      [turn],
+    );
+
+    expect(result.constraints[0].id).toBe("no-known-constraints");
+    expect(result.uncertainty[0].id).toBe("little-career-exposure");
   });
 
   it("accepts explicit uncertainty without forcing completion", () => {
@@ -266,6 +301,101 @@ describe("conversational state patches", () => {
         .enoughContext,
     ).toBe(false);
     expect(questionFromPatch(continuing, 4)).not.toBeNull();
+  });
+
+  it("rejects an exact repeated follow-up before it reaches the student", () => {
+    expect(() =>
+      prepareConversationPatchForPacing(
+        patch({ nextQuestion: turn.question }),
+        [turn],
+      ),
+    ).toThrow(ConversationPatchError);
+  });
+
+  it("completes deterministically on answer twelve without losing context", () => {
+    const turns = Array.from({ length: MAX_CONVERSATION_TURNS }, (_, index) => ({
+      ...turn,
+      id: `turn-${index + 1}`,
+      question: `Context question ${index + 1}?`,
+      answer: "I am still not sure, and I have not had much exposure yet.",
+    }));
+    const priorState: ConversationState = {
+      ...EMPTY_CONVERSATION_STATE,
+      uncertainty: [
+        {
+          id: "uncertainty-before-final-turn",
+          text: "The student remains unsure after limited exposure.",
+          basis: "explicit",
+          sourceTurnIds: ["turn-11"],
+        },
+      ],
+    };
+    const finalPatch = patch({
+      updates: {
+        ...emptyUpdates(),
+        uncertainty: [
+          {
+            id: "uncertainty-final-turn",
+            text: "The student still does not have a definite preference.",
+            basis: "explicit",
+            sourceTurnIds: ["turn-12"],
+          },
+        ],
+      },
+      unresolvedDimensions: ["considered-paths", "constraints"],
+    });
+
+    const paced = prepareConversationPatchForPacing(finalPatch, turns);
+    const completed = applyConversationPatch(priorState, paced, turns);
+
+    expect(paced.enoughContext).toBe(true);
+    expect(paced.nextQuestion).toBeNull();
+    expect(paced.acknowledgement).toBe(TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT);
+    expect(paced.unresolvedDimensions).toEqual([
+      "considered-paths",
+      "constraints",
+    ]);
+    expect(completed.uncertainty.map((item) => item.id)).toEqual([
+      "uncertainty-before-final-turn",
+      "uncertainty-final-turn",
+    ]);
+    expect(completed.enoughContext).toBe(true);
+    expect(questionFromPatch(paced, MAX_CONVERSATION_TURNS)).toBeNull();
+  });
+
+  it("can safely complete preserved state when the final interpretation fails", () => {
+    const state: ConversationState = {
+      ...EMPTY_CONVERSATION_STATE,
+      constraints: [
+        {
+          id: "manila-only",
+          text: "The student needs options near Manila.",
+          basis: "explicit",
+          sourceTurnIds: [turn.id],
+        },
+      ],
+      uncertainty: [
+        {
+          id: "still-exploring",
+          text: "The student is still exploring.",
+          basis: "explicit",
+          sourceTurnIds: [turn.id],
+        },
+      ],
+    };
+
+    expect(
+      completeConversationStateAtTurnLimit(state, MAX_CONVERSATION_TURNS - 1),
+    ).toBeNull();
+    const completed = completeConversationStateAtTurnLimit(
+      state,
+      MAX_CONVERSATION_TURNS,
+    );
+    expect(completed).toMatchObject({
+      enoughContext: true,
+      constraints: state.constraints,
+      uncertainty: state.uncertainty,
+    });
   });
 
   it("rejects malformed completion decisions and exposes a safe fallback", () => {

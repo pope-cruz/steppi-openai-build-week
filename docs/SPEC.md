@@ -59,7 +59,7 @@ The primary demo follows this sequence:
 1. The student opens Steppi and understands its value within 30 seconds.
 2. The student completes a short intake.
 3. Steppi generates a structured summary of what it understood.
-4. The student confirms most of it but corrects one assumption.
+4. The student may build the map immediately or optionally refine one consequential assumption.
 5. Steppi generates exactly three initial path branches:
    - strongest current fit;
    - adjacent possibility;
@@ -102,8 +102,8 @@ The submitted MVP must include:
 - [ ] At least one visibly adaptive follow-up
 - [ ] Server-side GPT-5.6 profile generation
 - [ ] Structured output validation before rendering
-- [ ] A hypothesis-confirmation screen
-- [ ] Student correction of at least one assumption
+- [ ] A concise profile-summary decision point
+- [ ] Optional adaptive correction of at least one consequential assumption
 - [ ] Exactly three initial path branches
 - [ ] One central student node
 - [ ] An interactive 2D exploration map
@@ -223,7 +223,8 @@ tentative interpreted interests, experiences, preferences, dislikes, constraints
 considered careers or majors, uncertainty, corrected or superseded information,
 unresolved dimensions, and an explicit enough-context decision.
 
-After each student turn, a server-only GPT-5.6 Structured Outputs request may:
+After each student turn, Steppi makes exactly one server-only GPT-5.6
+Structured Outputs request, with no automatic model retry. That request may:
 
 - interpret that latest answer in transcript context;
 - propose explicit or tentative structured updates with exact source-turn IDs;
@@ -240,9 +241,27 @@ malformed output preserves the student's words and exposes one safe fallback
 question. There are no automatic SDK retries.
 
 Follow-up selection is based on usefulness and ambiguity, not a fixed dimension
-order or message count. Rich context may finish in fewer than four student turns;
-several shallow answers may still require another question. “Not sure,” mixed
-feelings, and incomplete answers are valid context and must not block progression.
+order or user-facing message count. A follow-up should connect to the latest answer,
+gather closely related high-value context in one natural question where useful, and
+never repeat a question or request information already present in the transcript or
+active state. Rich context may finish after one student answer; several shallow
+answers may still require another question. “Not sure,” mixed feelings, little
+career exposure, incomplete answers, and no known constraints are valid context.
+
+Practical context may include affordability, location, family expectations,
+access, and transportation when it would materially affect viable paths. Steppi
+must not assume hardship, frame family influence negatively, or request exact
+household income. Completion depends on having enough context for useful,
+meaningfully different initial hypotheses with honest uncertainty; it does not
+require every tracked dimension to be filled.
+
+The validated conversation boundary supports at most 12 genuine student answers.
+The twelfth answer still receives its one interpreter request. If the validated
+patch proposes another follow-up, deterministic code preserves its updates and
+unresolved context, changes the decision to completion, and begins profile
+generation without mentioning the technical boundary. If that final interpretation
+fails, the accumulated validated state and raw transcript are preserved and profile
+generation continues; no thirteenth answer is requested.
 
 Revising an earlier answer removes later conversational turns before the next
 question is recomputed. Profile-generation failures and retry preserve the full
@@ -270,15 +289,46 @@ GPT-5.6 converts the intake into a validated student profile containing:
 - contradictions or tensions;
 - follow-up questions still worth exploring.
 
-The interface must clearly distinguish facts from inferences.
+After profile generation, the interface shows a concise student-facing summary
+headed “Here’s what Steppi understood.” It communicates:
 
-The student must be able to:
+- what the student is trying to decide;
+- relevant interests, experiences, and preferences;
+- important dislikes or constraints; and
+- meaningful uncertainty that can remain open.
 
-- confirm the profile;
-- edit or reject an inference;
-- add a missing constraint.
+The underlying validated profile continues to distinguish student facts from
+Steppi inferences, but the summary must not expose schema labels, IDs, source
+references, confidence fields, or raw internal categories. It should be a short
+conversational synthesis rather than a dense editable report.
 
-Corrections should patch the profile rather than silently discard all prior understanding.
+The summary offers two decisions:
+
+- **Build my map** is primary and immediately sends the current validated
+  `StudentProfile` through the existing exact-three path-generation boundary.
+- **Refine this first** is optional and opens a short adaptive conversation from
+  the current profile without restarting intake.
+
+Each genuine refinement answer makes at most one server-only GPT-5.6 Structured
+Outputs request with no automatic model retry. The model may propose a strict
+profile patch and then choose to complete, ask one consequential contextual
+follow-up, or return the student to the summary-and-map choice. Deterministic
+server code validates and applies the complete patch atomically before returning
+an updated `StudentProfile`; raw or partially valid model patches never enter UI
+state.
+
+Refinement questions must begin from the current profile and latest clarification,
+avoid information already supplied or declined, allow uncertainty, and ask only
+when the answer could meaningfully change the generated paths. Direct corrections
+should usually complete with no follow-up. Zero to three follow-up questions is a
+soft product target, not a fixed count or visible progress measure, and the student
+must retain a clear **Build my map** path throughout refinement.
+
+Refinement failure or malformed output preserves the last valid profile and the
+student's submitted wording. The student may explicitly retry or proceed with that
+last valid profile. Valid facts, constraints, uncertainty, tensions, and source
+references not affected by a correction remain unchanged. Profile correction
+patches the existing profile rather than regenerating it from scratch.
 
 ### Stage C: Initial Exploration Map
 
@@ -612,24 +662,29 @@ Include a clear primary action.
 
 Must include:
 
-- visible progress;
-- back navigation;
+- semantic orientation without a fixed progress denominator;
+- revision of prior answers with predictable later-turn invalidation;
 - preserved prior answers;
 - clear validation;
-- concise questions;
-- at least one adaptive follow-up;
+- concise, contextual, high-information questions;
+- adaptive follow-ups that do not repeat supplied context;
+- a stable composer with clear loading behavior;
 - keyboard-usable controls.
 
-## 9.3 Confirmation
+## 9.3 Profile Summary and Optional Refinement
 
-Must visually separate:
+Must include:
 
-- what the student said;
-- what Steppi inferred;
-- known constraints;
-- open questions.
-
-The student must be able to correct an inference before generating paths.
+- a concise “Here’s what Steppi understood” summary;
+- a visually primary **Build my map** action;
+- a clearly optional **Refine this first** action;
+- no mandatory field-by-field review or confirmation step;
+- no internal schema labels, confidence labels, source IDs, or category names;
+- one-question-at-a-time adaptive refinement when requested;
+- an updated summary after refinement completes;
+- retry and proceed-with-last-valid-profile choices after failure; and
+- keyboard-usable controls, clear focus, restrained loading, and no fixed
+  refinement progress denominator.
 
 ## 9.4 Map
 
@@ -795,8 +850,8 @@ Complete when:
 Complete when:
 
 - intake answers remain visible in a persistent transcript;
-- deterministic follow-ups skip information already supplied and visibly respond
-  to prior context;
+- validated model-selected follow-ups skip information already supplied and visibly
+  respond to prior context;
 - revision invalidates affected later turns before sequencing continues;
 - GPT-5.6 creates a valid `StudentProfile`;
 - malformed output produces a retry state;

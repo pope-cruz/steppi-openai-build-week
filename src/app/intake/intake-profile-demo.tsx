@@ -15,6 +15,7 @@ import {
 } from "@/app/intake/profile-confirmation";
 import type { DevelopmentResearchFixture } from "@/app/intake/path-branch-preview";
 import { Button } from "@/components/ui/button";
+import type { DevelopmentProfileRefinementFixture } from "@/lib/demo-profile-refinement";
 import {
   developmentIntakeTurnPayload,
   type DevelopmentIntakeFixture,
@@ -23,12 +24,16 @@ import { DEMO_PROFILE_FIXTURE } from "@/lib/demo-profile";
 import {
   EMPTY_CONVERSATION_STATE,
   IntakeTurnApiResponseSchema,
+  TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT,
   applyConversationPatch,
+  completeConversationStateAtTurnLimit,
   fallbackConversationQuestion,
+  prepareConversationPatchForPacing,
   questionFromPatch,
   type ConversationQuestion,
   type ConversationState,
   type ConversationTurn,
+  type ConversationTurnPatch,
 } from "@/lib/intake-conversation";
 import {
   appendConversationTurn,
@@ -72,6 +77,11 @@ type DevelopmentFixtureMode =
   | "paths-api-failure"
   | "paths-timeout"
   | "paths-malformed"
+  | "profile-refine-direct"
+  | "profile-refine-follow-up"
+  | "profile-refine-several"
+  | "profile-refine-failure"
+  | "profile-refine-malformed"
   | "research-live"
   | "research-success"
   | "research-partial-success"
@@ -95,6 +105,11 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
     "paths-api-failure",
     "paths-timeout",
     "paths-malformed",
+    "profile-refine-direct",
+    "profile-refine-follow-up",
+    "profile-refine-several",
+    "profile-refine-failure",
+    "profile-refine-malformed",
     "research-live",
     "research-success",
     "research-partial-success",
@@ -106,7 +121,9 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
     "research-timeout",
     "intake-success",
     "intake-alternate",
+    "intake-practical",
     "intake-uncertain",
+    "intake-max-turns",
     "intake-retry",
     "intake-malformed",
   ];
@@ -114,6 +131,27 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
   return fixtures.includes(fixture as DevelopmentFixtureMode)
     ? (fixture as DevelopmentFixtureMode)
     : null;
+}
+
+function profileRefinementFixtureFor(
+  fixture: DevelopmentFixtureMode,
+): DevelopmentProfileRefinementFixture | undefined {
+  if (isIntakeFixture(fixture) || fixture === "profile-refine-direct") {
+    return "direct";
+  }
+  if (fixture === "profile-refine-follow-up") {
+    return "follow-up";
+  }
+  if (fixture === "profile-refine-several") {
+    return "several";
+  }
+  if (fixture === "profile-refine-failure") {
+    return "failure";
+  }
+  if (fixture === "profile-refine-malformed") {
+    return "malformed";
+  }
+  return undefined;
 }
 
 function isIntakeFixture(
@@ -307,14 +345,16 @@ function ConversationComposer({
     }
   }, [editingIndex, isLoading, question?.id]);
 
-  if (isLoading || (!question && editingIndex === null)) {
+  if (!isLoading && !question && editingIndex === null) {
     return null;
   }
 
   return (
     <form
+      aria-busy={isLoading}
       className="sticky bottom-3 z-10 mt-10 rounded-[var(--radius-panel)] border border-border-strong bg-[color:rgb(255_255_255_/_96%)] p-3 shadow-[var(--shadow-panel)] backdrop-blur sm:p-4"
       data-conversation-composer=""
+      data-loading={isLoading ? "true" : "false"}
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit();
@@ -331,7 +371,7 @@ function ConversationComposer({
         </div>
       ) : null}
 
-      {question?.quickResponses && editingIndex === null ? (
+      {question?.quickResponses && editingIndex === null && !isLoading ? (
         <div aria-label="Optional quick replies" className="mb-3 flex flex-wrap gap-2">
           {question.quickResponses.map((response) => (
             <button
@@ -347,13 +387,16 @@ function ConversationComposer({
       ) : null}
 
       <label className="sr-only" htmlFor="conversation-answer">
-        {editingIndex !== null ? "Revised answer" : question?.prompt}
+        {editingIndex !== null
+          ? "Revised answer"
+          : question?.prompt ?? "Conversation answer"}
       </label>
       <div className="flex items-end gap-2">
         <textarea
           aria-describedby={error ? "conversation-answer-error" : undefined}
           aria-invalid={Boolean(error)}
           className="max-h-52 min-h-20 min-w-0 flex-1 resize-y rounded-[var(--radius-control)] border border-transparent bg-surface-muted px-3.5 py-3 text-base leading-6 text-ink outline-none placeholder:text-faint focus:border-primary focus:ring-[3px] focus:ring-[color:var(--color-focus)]"
+          disabled={isLoading}
           id="conversation-answer"
           maxLength={800}
           onChange={(event) => onChange(event.target.value)}
@@ -368,7 +411,9 @@ function ConversationComposer({
             onSubmit();
           }}
           placeholder={
-            editingIndex !== null
+            isLoading
+              ? "Steppi is taking that in…"
+              : editingIndex !== null
               ? "Update what you want Steppi to use…"
               : question?.placeholder
           }
@@ -378,6 +423,7 @@ function ConversationComposer({
         <Button
           aria-label={editingIndex !== null ? "Save revised answer" : "Send answer"}
           className="mb-0.5 shrink-0 px-4"
+          disabled={isLoading}
           type="submit"
         >
           <Send aria-hidden="true" />
@@ -492,6 +538,9 @@ export function IntakeProfileDemo() {
       <div className="mx-auto w-full max-w-[64rem]">
         <ProfileConfirmation
           developmentPathFixture={pathFixtureFor(developmentFixtureMode)}
+          developmentProfileRefinementFixture={profileRefinementFixtureFor(
+            developmentFixtureMode,
+          )}
           developmentResearchFixture={researchFixtureFor(developmentFixtureMode)}
           onRestart={() => {
             setFixtureDismissed(true);
@@ -605,6 +654,21 @@ export function IntakeProfileDemo() {
     message: string,
     retryable: boolean,
   ) {
+    const completionState = completeConversationStateAtTurnLimit(
+      input.baseState,
+      input.turns.length,
+    );
+
+    if (completionState) {
+      setConversationState(completionState);
+      setCheckpoints([...input.priorCheckpoints, completionState]);
+      setCurrentQuestion(null);
+      setCompletionAcknowledgement(TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT);
+      setTurnRequestState({ status: "idle" });
+      void generateProfile(input.turns);
+      return;
+    }
+
     setConversationState(input.baseState);
     setCheckpoints([...input.priorCheckpoints, input.baseState]);
     setCurrentQuestion(fallbackConversationQuestion(input.turns.length));
@@ -676,10 +740,15 @@ export function IntakeProfileDemo() {
       }
 
       let nextState: ConversationState;
+      let pacedPatch: ConversationTurnPatch;
       try {
+        pacedPatch = prepareConversationPatchForPacing(
+          parsedResult.data.patch,
+          input.turns,
+        );
         nextState = applyConversationPatch(
           input.baseState,
-          parsedResult.data.patch,
+          pacedPatch,
           input.turns,
         );
       } catch {
@@ -694,10 +763,10 @@ export function IntakeProfileDemo() {
       setConversationState(nextState);
       setCheckpoints([...input.priorCheckpoints, nextState]);
       setTurnRequestState({ status: "idle" });
-      setCompletionAcknowledgement(parsedResult.data.patch.acknowledgement);
+      setCompletionAcknowledgement(pacedPatch.acknowledgement);
 
       const nextQuestion = questionFromPatch(
-        parsedResult.data.patch,
+        pacedPatch,
         input.turns.length,
       );
       setCurrentQuestion(nextQuestion);
@@ -764,6 +833,11 @@ export function IntakeProfileDemo() {
         messageSubmissionLock.current = false;
         return;
       }
+
+      if (nextTurns === turns) {
+        messageSubmissionLock.current = false;
+        return;
+      }
     } catch (submitError) {
       setFieldError(
         submitError instanceof Error
@@ -810,6 +884,11 @@ export function IntakeProfileDemo() {
         <ProfileConfirmation
           developmentPathFixture={
             isIntakeFixture(developmentFixtureMode) ? "success" : undefined
+          }
+          developmentProfileRefinementFixture={
+            developmentFixtureMode
+              ? profileRefinementFixtureFor(developmentFixtureMode)
+              : undefined
           }
           onRestart={restart}
           profile={profileRequestState.profile}

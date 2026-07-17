@@ -16,8 +16,9 @@ deployment records, and audit evidence.
 ## Current State
 
 - Implemented: landing shell; in-memory conversational intake; server-only,
-  schema-validated GPT-5.6 profile and exact-three path generation; local profile
-  correction; the graph-first map; and one branch-local research expansion.
+  schema-validated GPT-5.6 profile and exact-three path generation; an optional
+  profile-summary/refinement fork; the graph-first map; and one branch-local
+  research expansion.
 - Intake now uses a constrained hybrid conversation: one broad opening, a
   persistent transcript and stable composer, plus a server-only GPT-5.6 turn
   interpreter that proposes a strictly validated state patch and either one
@@ -27,10 +28,24 @@ deployment records, and audit evidence.
 - Intake can complete from rich context before four student messages and can
   continue after four shallow answers. Uncertainty is valid context. Revision
   predictably removes later turns and restores the earlier structured checkpoint.
+- Intake-turn guidance now favors concise, contextual, high-information questions;
+  treats unresolved dimensions as planning context rather than a checklist; and
+  sensitively considers affordability, Manila/location, family expectations,
+  access, and transportation without assuming hardship or asking for income.
+- The twelfth genuine answer is a deterministic completion boundary. It still gets
+  one interpreter request, then preserves validated updates and unresolved context
+  while preventing a thirteenth prompt. A failed final interpretation preserves the
+  accumulated state and transcript and continues to the unchanged profile handoff.
 - The adapter still sends the existing validated `IntakeAnswer[]` body to
   `/api/profile`; early completion uses exact-answer compatibility copies only to
-  satisfy that unchanged boundary's four-record minimum. Profile, path, graph,
-  research, and refinement contracts were not changed.
+  satisfy that unchanged boundary's four-record minimum. Intake, profile, path,
+  graph, and research contracts remain unchanged.
+- The mandatory profile review is replaced by a concise “Here’s what Steppi
+  understood” summary. `Build my map` immediately uses the current validated
+  profile; `Refine this first` is optional and sends one answer at a time through
+  a new server-only GPT-5.6 Structured Outputs patch boundary with zero automatic
+  retries. Valid patches apply atomically; failure preserves the last valid profile
+  and student wording and permits retry or immediate map generation.
 - A selected branch now offers three suggestions and free text, preserves the
   confirmed profile and all original branches, and renders at most five concise,
   validated research nodes beneath only that branch.
@@ -181,8 +196,9 @@ and console behavior in a real browser; run lint, typecheck, tests, build, and
   provenance, but deterministic code cannot prove semantic entailment from URL
   structure alone; readable source audits remain appropriate for future changes to
   the research contract.
-- The confirmed-profile presentation remains long and report-like; profile
-  evidence should become contextual rather than repeated.
+- The concise profile summary deliberately selects a small set of signals and open
+  questions; representative-student testing has not yet established whether that
+  compression ever hides context students expect to see before building the map.
 - Refresh clears intake, profile, map, selection, and researched expansion state.
 - Early intake completion currently repeats exact student answer records only at
   the internal `/api/profile` compatibility boundary because its existing schema
@@ -242,8 +258,13 @@ and console behavior in a real browser; run lint, typecheck, tests, build, and
   interpretation, tentative-vs-explicit extraction, correction proposals,
   whether a follow-up is useful, its concise wording, and the completion proposal.
   Deterministic code controls schema/reference validation, patch application,
-  supersession, transcript checkpoints, duplicate prevention, safe fallback, and
-  the unchanged profile handoff. Intake does not generate path recommendations.
+  supersession, transcript checkpoints, duplicate prevention, exact repeated-question
+  rejection, safe fallback, the 12-answer completion boundary, and the unchanged
+  profile handoff. Intake does not generate path recommendations.
+- Profile review is an optional decision fork, not a mandatory administrative
+  screen. The model may interpret a refinement and propose a strict patch plus one
+  useful follow-up or completion; deterministic server code validates and applies
+  the patch, and the student can always proceed with the last valid profile.
 
 ## Unverified Behavior
 
@@ -261,7 +282,12 @@ and console behavior in a real browser; run lint, typecheck, tests, build, and
 - Root error/loading foundations were not deliberately forced in-browser.
 - Intake timing has not been measured with representative students, and the new
   transcript has not been tested with a screen reader. Desktop and 390×844 mobile
-  fixture checks covered two distinct follow-up paths, correction, five shallow
-  uncertainty turns, keyboard submission, multiline input, loading, failure/retry,
-  malformed fallback, transcript scrolling, sticky-composer bounds, focus, and a
-  clean console. The live GPT-5.6 turn interpreter was deliberately not exercised.
+  fixture checks covered one-answer completion, two distinct contextual follow-up
+  paths, practical constraints, correction, twelve shallow uncertainty turns,
+  keyboard submission, multiline input, stable loading, failure/retry, malformed
+  fallback, duplicate prevention, transcript scrolling, composer bounds, focus,
+  profile transition, and a clean console. The live GPT-5.6 turn interpreter was
+  deliberately not exercised.
+- Profile refinement is verified with deterministic fixtures only; no live or paid
+  refinement turn was made, and no screen-reader session or representative-student
+  comprehension study has been completed for the new summary.

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { EMPTY_CONVERSATION_STATE } from "@/lib/intake-conversation";
+import {
+  EMPTY_CONVERSATION_STATE,
+  MAX_CONVERSATION_TURNS,
+} from "@/lib/intake-conversation";
 import {
   appendConversationTurn,
   buildConversationIntakeAnswers,
@@ -75,6 +78,32 @@ describe("hybrid conversational intake shell", () => {
     expect(canStartRequest("error")).toBe(true);
   });
 
+  it("never appends an unsupported thirteenth answer", () => {
+    const turns = Array.from({ length: MAX_CONVERSATION_TURNS }, (_, index) => ({
+      id: `turn-${index + 1}`,
+      acknowledgement: index === 0 ? null : "Thanks for explaining.",
+      question: `Question ${index + 1}?`,
+      answer: "I am still figuring that out.",
+      answeredAt,
+    }));
+    const unsupportedQuestion: ConversationQuestion = {
+      id: "follow-up-13",
+      acknowledgement: "Thanks for explaining.",
+      prompt: "One more question?",
+      helper: "",
+      placeholder: "",
+    };
+
+    expect(
+      appendConversationTurn(
+        turns,
+        unsupportedQuestion,
+        "Another answer",
+        answeredAt,
+      ),
+    ).toBe(turns);
+  });
+
   it("revision replaces the answer and invalidates later turns", () => {
     const first = addTurn([], firstConversationQuestion(), "I am in Grade 11.");
     const followUp: ConversationQuestion = {
@@ -114,6 +143,10 @@ describe("hybrid conversational intake shell", () => {
     const answers = buildConversationIntakeAnswers(turns);
 
     expect(answers).toHaveLength(4);
+    expect(answers[0].questionId).toBe(turns[0].id);
+    expect(answers.slice(1).every((answer) => answer.questionId.includes("context-copy"))).toBe(
+      true,
+    );
     expect(new Set(answers.map((answer) => answer.answer))).toEqual(
       new Set([turns[0].answer]),
     );
