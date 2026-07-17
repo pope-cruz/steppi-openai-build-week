@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, UserRound } from "lucide-react";
+import { ArrowRight, Check, UserRound } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 
 import {
@@ -34,25 +34,28 @@ import {
 const BRANCH_PRESENTATION = {
   "strongest-fit": {
     label: "Strongest current fit",
+    index: "01",
     nodeClass: "border-[var(--color-branch-blue-edge)] bg-[var(--color-branch-blue)]",
     positionClass: "lg:left-[4%] lg:top-[11%]",
   },
   adjacent: {
     label: "Adjacent possibility",
+    index: "02",
     nodeClass: "border-[var(--color-branch-peach-edge)] bg-[var(--color-branch-peach)]",
     positionClass: "lg:right-[4%] lg:top-[11%]",
   },
   underexplored: {
     label: "Underexplored possibility",
+    index: "03",
     nodeClass: "border-[var(--color-branch-green-edge)] bg-[var(--color-branch-green)]",
     positionClass: "lg:bottom-[8%] lg:left-1/2 lg:-translate-x-1/2",
   },
 } as const;
 
 const EDGE_PATHS = {
-  "strongest-fit": "M 500 270 C 390 245, 310 178, 190 145",
-  adjacent: "M 500 270 C 610 245, 690 178, 810 145",
-  underexplored: "M 500 270 C 500 335, 500 385, 500 455",
+  "strongest-fit": "M 360 270 C 305 245, 250 178, 150 145",
+  adjacent: "M 360 270 C 415 245, 470 178, 570 145",
+  underexplored: "M 360 270 C 360 335, 360 385, 360 455",
 } as const;
 
 export type DevelopmentResearchFixture =
@@ -447,102 +450,188 @@ export function InitialPathMap({
       <div
         aria-describedby="path-map-instructions"
         aria-label="Your confirmed profile connected to three path directions"
-        className="relative mt-8 isolate overflow-hidden rounded-[1.75rem] border border-border-strong bg-surface-muted p-4 sm:p-6 lg:min-h-[35rem] lg:p-0"
-        data-mobile-fallback="hierarchical"
+        className="relative mt-8 isolate overflow-hidden rounded-[1.75rem] border border-border-strong bg-surface"
+        data-mobile-fallback="path-list"
         data-relationship-count="3"
       >
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 -z-10 opacity-70 [background-image:linear-gradient(to_right,rgba(30,33,31,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(30,33,31,0.035)_1px,transparent_1px)] [background-size:32px_32px]"
-        />
-        <svg
-          aria-hidden="true"
-          className="absolute inset-0 hidden size-full lg:block"
-          preserveAspectRatio="none"
-          viewBox="0 0 1000 560"
-        >
-          {state.branches.map((branch) => (
-            <path
-              className={
-                state.selectedBranchId === branch.id
-                  ? "fill-none stroke-ink [stroke-width:2.5]"
-                  : "fill-none stroke-border-strong [stroke-width:1.5]"
-              }
-              d={EDGE_PATHS[branch.kind]}
-              data-path-edge={branch.kind}
-              key={branch.id}
-              vectorEffect="non-scaling-stroke"
+        <div className="grid lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.75fr)]">
+          <div
+            aria-label="Interactive path graph"
+            className="relative hidden min-h-[35rem] overflow-hidden bg-surface-muted lg:block"
+            data-path-graph="primary"
+          >
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 opacity-70 [background-image:radial-gradient(circle,rgba(30,33,31,0.09)_1px,transparent_1.5px)] [background-size:32px_32px]"
             />
-          ))}
-        </svg>
-
-        <div
-          className="relative z-10 flex min-h-28 w-full items-center gap-4 rounded-[var(--radius-card)] border border-primary bg-surface px-5 py-4 shadow-[var(--shadow-card)] lg:absolute lg:top-1/2 lg:left-1/2 lg:size-40 lg:min-h-0 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:flex-col lg:justify-center lg:gap-1 lg:rounded-full lg:px-4 lg:text-center"
-          data-path-node="student"
-        >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary lg:size-9">
-            <UserRound aria-hidden="true" className="size-5" />
-          </span>
-          <span className="min-w-0">
-            <strong className="font-display block text-2xl font-medium text-ink lg:text-[1.7rem]">
-              You
-            </strong>
-            <span className="mt-0.5 block text-xs leading-5 text-muted">
-              {state.profile.facts.length} {state.profile.facts.length === 1 ? "fact" : "facts"} ·{" "}
-              {state.profile.constraints.length} {state.profile.constraints.length === 1 ? "constraint" : "constraints"}
-            </span>
-          </span>
-        </div>
-
-        <div className="relative mt-4 ml-8 grid gap-3 border-s border-border-strong ps-6 lg:contents">
-          {state.branches.map((branch) => {
-            const presentation = BRANCH_PRESENTATION[branch.kind];
-            const selected = state.selectedBranchId === branch.id;
-
-            return (
-              <button
-                aria-controls={selected ? `path-detail-${branch.id}` : undefined}
-                aria-label={`Explore ${presentation.label}: ${branch.title}`}
-                aria-pressed={selected}
-                className={`relative z-10 w-full min-w-0 rounded-[var(--radius-card)] border px-4 py-4 text-left outline-none before:absolute before:top-1/2 before:right-full before:h-px before:w-6 before:bg-border-strong before:content-[''] hover:border-ink focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:absolute lg:w-[30%] lg:max-w-[20rem] lg:min-h-36 lg:px-5 lg:py-5 lg:before:hidden ${presentation.nodeClass} ${presentation.positionClass} ${
-                  selected
-                    ? "ring-2 ring-ink ring-offset-4 ring-offset-surface-muted"
-                    : "shadow-[var(--shadow-card)]"
-                }`}
-                data-path-node="branch"
-                data-path-role={branch.kind}
-                disabled={isResearchRequestActive(researchFlow.request)}
-                key={branch.id}
-                onClick={() => dispatch({ type: "select", branchId: branch.id })}
-                ref={(node) => {
-                  if (node) {
-                    branchButtonRefs.current.set(branch.id, node);
-                  } else {
-                    branchButtonRefs.current.delete(branch.id);
+            <svg
+              aria-hidden="true"
+              className="absolute inset-0 size-full"
+              preserveAspectRatio="none"
+              viewBox="0 0 720 560"
+            >
+              {state.branches.map((branch) => (
+                <path
+                  className={
+                    state.selectedBranchId === branch.id
+                      ? "fill-none stroke-ink [stroke-width:2.5]"
+                      : "fill-none stroke-border-strong [stroke-width:1.5]"
                   }
-                }}
-                type="button"
-              >
-                <span className="flex items-start justify-between gap-3">
-                  <span className="text-[0.68rem] font-bold uppercase tracking-[0.09em] text-graphite">
-                    {presentation.label}
-                  </span>
-                  {selected ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-ink bg-surface px-2 py-1 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-ink">
-                      <Check aria-hidden="true" className="size-3" />
-                      Selected
+                  d={EDGE_PATHS[branch.kind]}
+                  data-path-edge={branch.kind}
+                  key={branch.id}
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+            </svg>
+
+            <div
+              className="absolute top-1/2 left-1/2 z-10 flex size-36 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-primary bg-surface px-4 text-center shadow-[var(--shadow-card)]"
+              data-path-node="student"
+            >
+              <span className="flex size-9 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <UserRound aria-hidden="true" className="size-5" />
+              </span>
+              <strong className="font-display block text-[1.6rem] font-medium text-ink">
+                You
+              </strong>
+              <span className="block text-[0.68rem] leading-4 text-muted">
+                {state.profile.facts.length} {state.profile.facts.length === 1 ? "fact" : "facts"} ·{" "}
+                {state.profile.constraints.length} {state.profile.constraints.length === 1 ? "constraint" : "constraints"}
+              </span>
+            </div>
+
+            {state.branches.map((branch) => {
+              const presentation = BRANCH_PRESENTATION[branch.kind];
+              const selected = state.selectedBranchId === branch.id;
+
+              return (
+                <button
+                  aria-controls={selected ? `path-detail-${branch.id}` : undefined}
+                  aria-label={`Explore ${presentation.label}: ${branch.title}`}
+                  aria-pressed={selected}
+                  className={`absolute z-10 w-[38%] max-w-[17rem] min-h-36 rounded-[var(--radius-card)] border px-5 py-5 text-left outline-none hover:border-ink focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted ${presentation.nodeClass} ${presentation.positionClass} ${
+                    selected
+                      ? "ring-2 ring-ink ring-offset-4 ring-offset-surface-muted shadow-[var(--shadow-panel)]"
+                      : "shadow-[var(--shadow-card)]"
+                  }`}
+                  data-focused={selected ? "true" : undefined}
+                  data-path-node="branch"
+                  data-path-role={branch.kind}
+                  disabled={isResearchRequestActive(researchFlow.request)}
+                  key={branch.id}
+                  onClick={() => dispatch({ type: "select", branchId: branch.id })}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      dispatch({ type: "select", branchId: branch.id });
+                    }
+                  }}
+                  type="button"
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="text-[0.65rem] font-bold uppercase tracking-[0.09em] text-graphite">
+                      {presentation.label}
                     </span>
-                  ) : null}
-                </span>
-                <strong className="mt-2 block text-base font-semibold leading-5 text-ink">
-                  {branch.title}
-                </strong>
-                <span className="mt-2 block text-sm leading-5 text-graphite">
-                  {branch.summary}
-                </span>
-              </button>
-            );
-          })}
+                    {selected ? (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-ink bg-surface px-2 py-1 text-[0.6rem] font-bold uppercase tracking-[0.08em] text-ink">
+                        <Check aria-hidden="true" className="size-3" />
+                        Focused
+                      </span>
+                    ) : null}
+                  </span>
+                  <strong className="mt-2 block text-base font-semibold leading-5 text-ink">
+                    {branch.title}
+                  </strong>
+                  <span className="mt-2 block text-xs leading-5 text-graphite">
+                    {branch.summary}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <aside
+            aria-labelledby="path-browser-title"
+            className="relative border-border-strong bg-surface px-4 py-5 sm:px-6 sm:py-7 lg:border-s lg:px-7"
+            data-path-browser="index"
+          >
+            <div className="flex items-start gap-3 border-b border-border pb-5 lg:block">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary bg-primary-soft text-primary lg:hidden">
+                <UserRound aria-hidden="true" className="size-5" />
+              </span>
+              <div>
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.11em] text-primary">
+                  Paths connected to you
+                </p>
+                <h2 className="font-display mt-1 text-2xl leading-tight text-ink" id="path-browser-title">
+                  Browse your directions
+                </h2>
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  Start anywhere. Each path opens its own evidence, tradeoffs, and questions.
+                </p>
+              </div>
+            </div>
+
+            <ol className="relative mt-1 before:absolute before:top-0 before:bottom-0 before:left-[0.68rem] before:w-px before:bg-border-strong before:content-[''] lg:before:hidden">
+              {state.branches.map((branch) => {
+                const presentation = BRANCH_PRESENTATION[branch.kind];
+                const selected = state.selectedBranchId === branch.id;
+
+                return (
+                  <li className="relative border-b border-border last:border-b-0" key={branch.id}>
+                    <button
+                      aria-controls={selected ? `path-detail-${branch.id}` : undefined}
+                      aria-label={`Browse ${presentation.label}: ${branch.title}`}
+                      aria-pressed={selected}
+                      className={`group relative w-full py-5 ps-9 pe-1 text-left outline-none transition-colors before:absolute before:top-7 before:left-[0.35rem] before:size-[0.7rem] before:rounded-full before:border-2 before:border-surface before:bg-border-strong before:ring-1 before:ring-border-strong before:content-[''] hover:bg-surface-muted focus-visible:rounded-[var(--radius-control)] focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] lg:px-3 lg:before:hidden ${
+                        selected ? "bg-surface-muted before:bg-ink before:ring-ink" : ""
+                      }`}
+                      data-path-browser-item={branch.kind}
+                      disabled={isResearchRequestActive(researchFlow.request)}
+                      onClick={() => dispatch({ type: "select", branchId: branch.id })}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          dispatch({ type: "select", branchId: branch.id });
+                        }
+                      }}
+                      ref={(node) => {
+                        if (node) {
+                          branchButtonRefs.current.set(branch.id, node);
+                        } else {
+                          branchButtonRefs.current.delete(branch.id);
+                        }
+                      }}
+                      type="button"
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-muted">
+                          {presentation.index} · {presentation.label}
+                        </span>
+                        {selected ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-ink">
+                            <Check aria-hidden="true" className="size-3" />
+                            Open now
+                          </span>
+                        ) : null}
+                      </span>
+                      <strong className="mt-2 block text-[1.05rem] font-semibold leading-6 text-ink">
+                        {branch.title}
+                      </strong>
+                      <span className="mt-1.5 block text-sm leading-5 text-graphite">
+                        {branch.summary}
+                      </span>
+                      <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
+                        {selected ? "Viewing this path" : "Explore this path"}
+                        <ArrowRight aria-hidden="true" className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </aside>
         </div>
       </div>
 

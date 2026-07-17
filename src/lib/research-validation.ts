@@ -9,6 +9,7 @@ import {
 import type {
   ResearchDiagnosticCategory,
 } from "@/lib/research-diagnostics";
+import { isAffordabilityResearchQuestion } from "@/lib/research-intent";
 
 export class ResearchValidationError extends Error {
   readonly category: ResearchDiagnosticCategory;
@@ -73,6 +74,7 @@ export function validateResearchContext(
 
 export function validateResearchGeneration(
   branch: PathBranch,
+  question: string,
   output: unknown,
   retrievedSourceUrls: string[],
   dateChecked: string,
@@ -126,6 +128,7 @@ export function validateResearchGeneration(
       );
     }
 
+    const nodeSourceUrls = new Set<string>();
     for (const source of node.sources) {
       if (source.dateChecked !== dateChecked) {
         throw new ResearchValidationError(
@@ -149,6 +152,61 @@ export function validateResearchGeneration(
           "Research output cites a URL that was not retrieved.",
           "source_processing",
           "citation_not_retrieved",
+        );
+      }
+      nodeSourceUrls.add(citedUrl);
+    }
+
+    const referencedSourceUrls = new Set<string>();
+    for (const url of node.titleSourceUrls) {
+      const normalized = normalizedUrl(url);
+      if (!nodeSourceUrls.has(normalized)) {
+        throw new ResearchValidationError(
+          "Research title cites evidence outside its node.",
+          "schema_validation",
+          "title_source_mismatch",
+        );
+      }
+      referencedSourceUrls.add(normalized);
+    }
+
+    for (const claim of node.claims) {
+      for (const url of claim.sourceUrls) {
+        const normalized = normalizedUrl(url);
+        if (!nodeSourceUrls.has(normalized)) {
+          throw new ResearchValidationError(
+            "Research claim cites evidence outside its node.",
+            "schema_validation",
+            "claim_source_mismatch",
+          );
+        }
+        if (!retrieved.has(normalized)) {
+          throw new ResearchValidationError(
+            "Research claim cites a URL that was not retrieved.",
+            "source_processing",
+            "claim_citation_not_retrieved",
+          );
+        }
+        referencedSourceUrls.add(normalized);
+      }
+    }
+
+    if ([...nodeSourceUrls].some((url) => !referencedSourceUrls.has(url))) {
+      throw new ResearchValidationError(
+        "Research source evidence is not attached to a visible claim.",
+        "schema_validation",
+        "source_not_claimed",
+      );
+    }
+
+    if (isAffordabilityResearchQuestion(question)) {
+      const claimKinds = new Set(node.claims.map((claim) => claim.kind));
+      const requiredKinds = ["cost", "eligibility", "conditional-aid"] as const;
+      if (requiredKinds.some((kind) => !claimKinds.has(kind))) {
+        throw new ResearchValidationError(
+          "Affordability results require sourced cost, eligibility, and conditional-aid claims.",
+          "schema_validation",
+          "affordability_evidence_incomplete",
         );
       }
     }

@@ -4,7 +4,7 @@ project: Steppi
 event: OpenAI Build Week
 status: active
 version: 0.1
-last_updated: 2026-07-16
+last_updated: 2026-07-17
 ---
 
 # Steppi Operational Handoff
@@ -21,67 +21,112 @@ deployment records, and audit evidence.
 - A selected branch now offers three suggestions and free text, preserves the
   confirmed profile and all original branches, and renders at most five concise,
   validated research nodes beneath only that branch.
+- The desktop map now pairs its dominant four-node graph with a synchronized
+  three-item path index. Both surfaces use the existing branch titles, roles,
+  and summaries; selecting either focuses the same graph node and reveals only
+  that branch's detail. Mobile uses the path index as its non-graph fallback.
 - Research now starts exactly one server-only background Responses API job,
   keeps its provider ID inside an encrypted HttpOnly same-site cookie, and polls
   that same response every 2.5 seconds for up to 120 seconds. Status and cancel
   never create another response; cancel is provider-idempotent per local handle.
-- Completed output still passes through the unchanged Structured Outputs parser,
-  research schema, and retrieved-URL allow-list before rendering. The model,
-  output meaning, and Structured Outputs schema are unchanged.
+- Completed output now uses atomic source-backed claims: every title and factual
+  claim names one or more URLs attached to its node and present in the existing
+  provider-retrieved allow-list. Detached evidence and unused source records fail
+  validation; the server check date, branch parent, and five-node cap remain.
 - Fixture-backed queued, in-progress, success, no-source, provider-failure,
   malformed-output, cancel, timeout, retry, and duplicate-prevention states are
-  covered. Current factual research is **not yet verified live**.
+  covered by tests. The 2026-07-17 browser audit reconfirmed every listed state
+  except cancellation, which remained stuck in polling and is now a known defect.
 - Diagnostics now distinguish configuration, upstream API, parsing, schema,
   source processing, timeout, and client-rendering boundaries without recording
   prompts, raw output, API keys, or student data.
-- One final authorized background request completed at the provider, but source
-  normalization rejected it safely as
-  `source_processing/model_output_validation/retrieved_sources_missing`; the
-  public route returned HTTP 502. No upstream code or request ID was available,
-  no result rendered, and no retry occurred.
 - Creation and every background status retrieval now request
   `web_search_call.action.sources`; creation still requires web search. The
   completed-response extractor allow-lists provider-backed URLs from both
   search-call sources and output-text `url_citation` annotations; model-authored
   URLs still cannot pass without matching provider evidence.
+- A 2026-07-17 clean-browser audit completed one local live profile request, one
+  live path request, and one live research creation. All three succeeded without
+  retry. Research completed after 24 status polls and rendered five nodes with 13
+  displayed citations across 11 unique HTTPS destinations; every destination
+  resolved and the nodes remained attached only to the selected branch.
+- The audit's trust gap is corrected deterministically. The UI renders each atomic
+  claim beside its exact source references and labels profile-based relevance as a
+  Steppi connection, not a sourced fact. Affordability results require sourced
+  cost, eligibility, and conditional-aid claims together or show unavailable.
+- Audit regressions prevent unsupported UP Visual Communication curriculum claims
+  and require the CIIT PHP 135,000–165,000 annual estimate plus conditional-aid
+  caveat when that fixture appears in an affordability result.
 - Active student, map, and research state remain intentionally in memory.
 
 ## Active Milestone
 
-Milestone 4 — Source-backed Research Expansion. The scoped implementation and
-deterministic verification are present; the required live retrieval/synthesis
-success remains open. See [SPEC.md](./SPEC.md).
+Milestone 4 reliability boundary — Source-backed Research Expansion. The
+claim-to-source contract is corrected and fixture-verified, but the revised
+Structured Outputs contract has not yet had a separately authorized live request
+and claim-by-claim source audit. Milestone 5 refinement remains unimplemented.
 
 ## Immediate Objective
 
-Perform one separately authorized final live `/api/research` verification with
-no automatic or repeated retries; audit the rendered sources if it succeeds.
+Perform one separately authorized live research request using the revised atomic
+claim contract, then audit every rendered claim against its linked source. Do not
+begin refinement until that live boundary passes.
 
 ## In Progress
 
-- No implementation is currently in progress; the source-extraction fix has
-  passed deterministic verification only.
+- No implementation is currently in progress.
 
 ## Next Recommended Tasks
 
-1. Perform one separately authorized final live `/api/research` verification
-   with no automatic or repeated retries. If it succeeds, render and source-audit
-   the exact result before deciding Milestone 4 status.
-2. Complete the deferred second-persona and native Enter/Space graph checks in
-   the reliability pass.
+1. Authorize exactly one live background research request. Audit every rendered
+   atomic claim, title, source, date, caveat, confidence, and selected-branch-only
+   expansion; do not retry automatically.
+2. Fix and real-browser verify research cancellation. The 2026-07-17 deterministic
+   `research-cancel` fixture stayed in polling after repeated pointer and Enter
+   activation of the visible cancel control.
+3. Reuse the research timeout classifier for profile and path generation so real
+   SDK timeouts are not mislabeled as generic API failures, and add equivalent safe
+   category/stage/reason/status/code/request-ID diagnostics.
+4. Implement one validated branch-local refinement, preserving the selected
+   branch's sources and every unaffected graph area, then deploy and verify an
+   anonymously accessible golden path.
+
+## Exact Next Recommended Prompt
+
+```text
+Read AGENTS.md, docs/VISION.md, docs/SPEC.md, docs/TASKS.md, and the latest
+2026-07-17 research trust-boundary entry in docs/BUILD_LOG.md. Make exactly one
+live background `/api/research` request using the current atomic-claim schema; do
+not retry, redesign, refine, deploy, or change the contract first. Render the
+exact result in the real app and audit every title and claim against its linked
+provider-retrieved source, including date, limitation, confidence, and any cost,
+eligibility, or conditional-aid statement. Confirm the student, three original
+branches, selected branch, and unrelated graph state remain stable. Run the full
+validation suite and update TASKS/BUILD_LOG. Mark Milestone 4 complete only if
+the live result renders and every displayed factual claim passes its source audit.
+```
 
 ## Current Blockers
 
-- Live research still has no renderable result. The single background response
-  completed before the extractor handled output-text `url_citation` annotations,
-  so the source allow-list received no provider URLs and rejected the output as
-  `source_processing/model_output_validation/retrieved_sources_missing` with
-  public HTTP 502. The corrected extractor is not yet live-verified.
-- Vercel Authentication blocks anonymous Preview access; the research changes
-  have not been deployed.
+- The revised atomic-claim Structured Outputs contract has not yet been exercised
+  by a live research request or claim-by-claim source audit.
+- Branch-local refinement is not implemented, so the complete student exploration
+  loop stops after research.
+- Vercel Authentication blocks anonymous Preview access, and the audited research
+  flow is not deployed for judge verification.
 
 ## Known Issues
 
+- The visible research cancel control did not transition out of polling in the
+  deterministic browser fixture after pointer or keyboard activation. The actual
+  live provider-cancel boundary was not retested to avoid a second paid request.
+- Profile and path timeout classification still checks `error.name`; the installed
+  OpenAI SDK's timeout class can retain the generic `Error` name. Those routes can
+  therefore report an actual timeout as generic `api_failure` and do not retain the
+  safe diagnostic detail available on the research route.
+- Research validation enforces explicit claim-to-source addressing and URL
+  provenance, but deterministic code cannot prove semantic entailment from URL
+  structure alone; the next live result still requires a human-readable source audit.
 - Intake is a multi-step questionnaire, not the intended continuous transcript;
   it must be revisited before final feature freeze.
 - The confirmed-profile presentation remains long and report-like; profile
@@ -109,13 +154,20 @@ no automatic or repeated retries; audit the rendered sources if it succeeds.
 - OpenAI-facing schemas use only the documented Structured Outputs subset. URL
   protocol and syntax remain strict runtime checks after parsing instead of
   emitting the unsupported JSON Schema `format: uri` keyword.
-- Timeout classification uses the installed SDK timeout class identity first,
+- Research timeout classification uses the installed SDK timeout class identity first,
   then bounded safe name/code signals with at most one nested cause. Generic SDK
   connection errors remain `connection_failed`; there is no speculative
   hosted-search diagnostic without a returned tool-call signal.
 - Provider source evidence may come from completed web-search call sources or
   output-text URL-citation annotations. Both are allow-list inputs; model-authored
   source URLs remain untrusted unless they match that provider evidence.
+- Current research output separates atomic factual claims from the student-specific
+  relevance note. Every title and claim points to attached provider-backed URLs,
+  every attached source must be visibly used, and affordability output is rejected
+  unless cost, eligibility, and conditional-aid claims are all present.
+- Path discovery uses one synchronized state across the desktop graph and its
+  browseable path index. The index improves scanability but does not replace the
+  graph, add branches, or reveal multiple branches' evidence at once.
 - Research adds no more than five nodes to one selected branch. Insufficient
   evidence and all failures render honest, retryable states without changing the map.
 - No authentication, persistence, database, comprehensive dataset, global search,
@@ -125,17 +177,19 @@ no automatic or repeated retries; audit the rendered sources if it succeeds.
 
 ## Unverified Behavior
 
-- The corrected retrieval include and dual-location provider-source extractor
-  have not been exercised against a live completed GPT-5.6 response. No live
-  request was made in this pass.
-- Live background creation, polling, and provider completion are verified.
-  Live source normalization and research rendering remain unverified at the
-  `retrieved_sources_missing` boundary.
-- No live factual claim was rendered, so there was nothing to source-audit or
-  correct in this pass.
-- The research loop is not deployed or verified in Vercel.
-- A materially different map persona and native Enter/Space activation remain
-  verification debt for the reliability pass; do not block refinement on them.
+- The public deployed golden path remains unverified; the audited flow ran locally.
+- No live model request was made after the atomic-claim schema change, so live
+  Structured Outputs acceptance and semantic source support remain unverified.
+- A real live cancellation was not induced. The deterministic browser cancellation
+  check failed, while unit tests still pass.
+- Profile and path upstream status, code, and request ID remain unavailable in
+  their current error model. The controlled profile configuration failure returned
+  HTTP 503 with no upstream code or request ID, as expected before any SDK request.
+- Native Enter activation of the landing CTA could not be dispatched by the audit
+  browser surface; pointer navigation worked, branch Enter/Space activation worked,
+  and visible focus styling was verified.
+- Path browsing remains unverified with a materially different persona. The live
+  persona did exercise materially longer branch titles without overflow.
 - Real upstream no-source, timeout, malformed-output, and retrieval-failure
   responses were not induced; deterministic service and route tests cover them.
 - Root error/loading foundations were not deliberately forced in-browser.

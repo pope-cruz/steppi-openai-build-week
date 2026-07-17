@@ -2,28 +2,42 @@ import type { ResearchNode } from "@/lib/schemas";
 
 export const DEMO_RESEARCH_QUESTION = "How can I try this before committing?";
 
+const FIGMA_SOURCE = "https://help.figma.com/hc/en-us/categories/360002051613-Get-started";
+const UPOU_SOURCE =
+  "https://fics.upou.edu.ph/programs/bachelor-of-arts-in-multimedia-studies/";
+const GOOGLE_UX_SOURCE = "https://grow.google/certificates/ux-design/";
+
 /** Representative source-backed output used only by deterministic tests and local UI verification. */
 export const DEMO_RESEARCH_NODES: ResearchNode[] = [
   {
     id: "research-product-design-figma",
     parentBranchId: "path-product-design",
     type: "resource",
-    title: "Prototype one small screen",
-    summary:
-      "Use Figma's beginner material to recreate and then improve one familiar app screen before deciding whether longer design study feels worthwhile.",
-    relevanceToStudent:
-      "This is a low-cost way to test visual problem-solving and iteration without committing to a programming-heavy course.",
-    caveats: [
-      "A short tool exercise tests interest in interface work, not the full research and collaboration involved in product design.",
+    title: "Figma beginner material",
+    titleSourceUrls: [FIGMA_SOURCE],
+    claims: [
+      {
+        id: "figma-beginner-material",
+        kind: "fact",
+        statement: "Figma publishes official beginner material for learning and practicing with its design tool.",
+        sourceUrls: [FIGMA_SOURCE],
+      },
+      {
+        id: "figma-scope-limitation",
+        kind: "limitation",
+        statement: "The cited material covers tool learning, not the full research and collaboration involved in product design.",
+        sourceUrls: [FIGMA_SOURCE],
+      },
     ],
+    relevanceToStudent:
+      "This offers a bounded way to test visual problem-solving before choosing a longer course.",
     confidence: "high",
     sources: [
       {
         title: "Get started with Figma",
         publisher: "Figma Help Center",
-        url: "https://help.figma.com/hc/en-us/categories/360002051613-Get-started",
+        url: FIGMA_SOURCE,
         dateChecked: "2026-07-16",
-        supports: "Provides official beginner material for learning and practicing in Figma.",
       },
     ],
   },
@@ -31,22 +45,31 @@ export const DEMO_RESEARCH_NODES: ResearchNode[] = [
     id: "research-product-design-bams",
     parentBranchId: "path-product-design",
     type: "program",
-    title: "Inspect a multimedia degree pathway",
-    summary:
-      "Review the University of the Philippines Open University's multimedia studies overview and note which listed areas feel energizing or unappealing.",
-    relevanceToStudent:
-      "It offers a Philippine higher-education reference point for comparing visual, media, and technology study while location and cost remain important.",
-    caveats: [
-      "Program offerings, admissions details, and fees can change; verify them directly before making an application decision.",
+    title: "Bachelor of Arts in Multimedia Studies",
+    titleSourceUrls: [UPOU_SOURCE],
+    claims: [
+      {
+        id: "upou-program-fact",
+        kind: "fact",
+        statement: "UP Open University describes a Bachelor of Arts in Multimedia Studies program.",
+        sourceUrls: [UPOU_SOURCE],
+      },
+      {
+        id: "upou-program-limitation",
+        kind: "limitation",
+        statement: "The cited program overview is not evidence of current admission, fee, or application details.",
+        sourceUrls: [UPOU_SOURCE],
+      },
     ],
+    relevanceToStudent:
+      "This gives the student a Philippine higher-education reference point for comparing visual, media, and technology study.",
     confidence: "medium",
     sources: [
       {
         title: "Bachelor of Arts in Multimedia Studies",
         publisher: "UP Open University",
-        url: "https://fics.upou.edu.ph/programs/bachelor-of-arts-in-multimedia-studies/",
+        url: UPOU_SOURCE,
         dateChecked: "2026-07-16",
-        supports: "Describes the university's Bachelor of Arts in Multimedia Studies program.",
       },
     ],
   },
@@ -54,27 +77,141 @@ export const DEMO_RESEARCH_NODES: ResearchNode[] = [
     id: "research-product-design-ux-certificate",
     parentBranchId: "path-product-design",
     type: "resource",
-    title: "Sample a structured UX curriculum",
-    summary:
-      "Compare the topics in Google's UX Design Certificate with the parts of product design you want to test, then choose one topic for a small weekend experiment.",
-    relevanceToStudent:
-      "The outline can make an unfamiliar path more concrete before the student chooses a degree or pays for a longer course.",
-    caveats: [
-      "A professional certificate is not a substitute for checking local degree requirements, and access or pricing may vary.",
+    title: "Google UX Design Certificate",
+    titleSourceUrls: [GOOGLE_UX_SOURCE],
+    claims: [
+      {
+        id: "google-ux-outline",
+        kind: "fact",
+        statement: "Google publishes an outline and format for its UX Design Certificate.",
+        sourceUrls: [GOOGLE_UX_SOURCE],
+      },
+      {
+        id: "google-ux-limitation",
+        kind: "limitation",
+        statement: "The cited certificate page does not establish local degree requirements or guaranteed access and pricing.",
+        sourceUrls: [GOOGLE_UX_SOURCE],
+      },
     ],
+    relevanceToStudent:
+      "The outline can make an unfamiliar path more concrete before the student chooses a degree or longer course.",
     confidence: "medium",
     sources: [
       {
         title: "Google UX Design Certificate",
         publisher: "Grow with Google",
-        url: "https://grow.google/certificates/ux-design/",
+        url: GOOGLE_UX_SOURCE,
         dateChecked: "2026-07-16",
-        supports: "Describes the topics and format of Google's UX Design Certificate.",
       },
     ],
   },
 ];
 
+export const AUDIT_AFFORDABILITY_QUESTION = "What affordable options exist near Manila?";
+
+const UP_VISUAL_COMMUNICATION_SOURCE =
+  "https://audit-fixture.steppi.test/up-visual-communication";
+
+/** Regression fixture limited to what the cited program page explicitly identifies. */
+export const AUDIT_UP_VISUAL_COMMUNICATION_NODE: ResearchNode = {
+  id: "audit-up-visual-communication",
+  parentBranchId: "path-product-design",
+  type: "program",
+  title: "UP Diliman Visual Communication",
+  titleSourceUrls: [UP_VISUAL_COMMUNICATION_SOURCE],
+  claims: [
+    {
+      id: "up-visual-communication-program",
+      kind: "fact",
+      statement: "UP Diliman's College of Fine Arts identifies Visual Communication as an academic program.",
+      sourceUrls: [UP_VISUAL_COMMUNICATION_SOURCE],
+    },
+    {
+      id: "up-visual-communication-scope",
+      kind: "limitation",
+      statement: "This fixture makes no broader curriculum or preparation claim beyond the cited program identification.",
+      sourceUrls: [UP_VISUAL_COMMUNICATION_SOURCE],
+    },
+  ],
+  relevanceToStudent:
+    "It is a local program reference for a student exploring visual and technology-adjacent study.",
+  confidence: "medium",
+  sources: [
+    {
+      title: "Visual Communication",
+      publisher: "UP Diliman College of Fine Arts",
+      url: UP_VISUAL_COMMUNICATION_SOURCE,
+      dateChecked: "2026-07-17",
+    },
+  ],
+};
+
+const CIIT_TUITION_SOURCE = "https://audit-fixture.steppi.test/ciit-tuition";
+const CIIT_ADMISSIONS_SOURCE = "https://audit-fixture.steppi.test/ciit-admissions";
+const CIIT_SCHOLARSHIP_SOURCE =
+  "https://audit-fixture.steppi.test/ciit-scholarships";
+
+/** Regression fixture for the affordability caveats omitted from the audited live result. */
+export const AUDIT_CIIT_AFFORDABILITY_NODE: ResearchNode = {
+  id: "audit-ciit-affordability",
+  parentBranchId: "path-product-design",
+  type: "program",
+  title: "CIIT degree option",
+  titleSourceUrls: [CIIT_TUITION_SOURCE],
+  claims: [
+    {
+      id: "ciit-annual-cost",
+      kind: "cost",
+      statement: "The cited CIIT estimate is PHP 135,000–165,000 per academic year.",
+      sourceUrls: [CIIT_TUITION_SOURCE],
+    },
+    {
+      id: "ciit-admissions-eligibility",
+      kind: "eligibility",
+      statement: "Enrollment depends on meeting CIIT's cited admissions requirements.",
+      sourceUrls: [CIIT_ADMISSIONS_SOURCE],
+    },
+    {
+      id: "ciit-scholarship-conditions",
+      kind: "conditional-aid",
+      statement: "CIIT scholarships are conditional on cited eligibility and retention requirements; aid is not guaranteed.",
+      sourceUrls: [CIIT_SCHOLARSHIP_SOURCE],
+    },
+    {
+      id: "ciit-affordability-limitation",
+      kind: "limitation",
+      statement: "The annual estimate and conditional aid do not establish that CIIT is affordable for this student.",
+      sourceUrls: [CIIT_TUITION_SOURCE, CIIT_SCHOLARSHIP_SOURCE],
+    },
+  ],
+  relevanceToStudent:
+    "The explicit annual estimate and aid conditions let the student compare this option against their financial constraint without labeling it affordable.",
+  confidence: "medium",
+  sources: [
+    {
+      title: "Tuition and fees",
+      publisher: "CIIT Philippines",
+      url: CIIT_TUITION_SOURCE,
+      dateChecked: "2026-07-17",
+    },
+    {
+      title: "Admissions",
+      publisher: "CIIT Philippines",
+      url: CIIT_ADMISSIONS_SOURCE,
+      dateChecked: "2026-07-17",
+    },
+    {
+      title: "Scholarships",
+      publisher: "CIIT Philippines",
+      url: CIIT_SCHOLARSHIP_SOURCE,
+      dateChecked: "2026-07-17",
+    },
+  ],
+};
+
 export const DEMO_RETRIEVED_SOURCE_URLS = DEMO_RESEARCH_NODES.flatMap((node) =>
   node.sources.map((source) => source.url),
 );
+
+export const AUDIT_CIIT_RETRIEVED_SOURCE_URLS =
+  AUDIT_CIIT_AFFORDABILITY_NODE.sources.map((source) => source.url);

@@ -133,6 +133,11 @@ describe("background research API route", () => {
       question: DEMO_RESEARCH_QUESTION,
       nodes: DEMO_RESEARCH_NODES,
     });
+    expect(DEMO_RESEARCH_NODES[0].claims[0]).toMatchObject({
+      kind: "fact",
+      sourceUrls: [DEMO_RESEARCH_NODES[0].sources[0].url],
+    });
+    expect(JSON.stringify(DEMO_RESEARCH_NODES)).not.toContain('"supports"');
     expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
     expect(deps.startResearch).toHaveBeenCalledOnce();
   });

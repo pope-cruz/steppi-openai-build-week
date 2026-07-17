@@ -45,7 +45,11 @@ Rules:
 - Use the web search tool before answering. Prefer official institutions, government or education agencies, primary program pages, and reputable first-party resources.
 - Return no more than five concise research nodes and prefer two to four useful nodes over a broad report.
 - Attach every node to the supplied selectedBranch.id.
-- Every node must cite at least one URL actually found in this request's web search.
+- Put every current factual sentence in a short, atomic claims item. Do not place current facts in relevanceToStudent.
+- Give every title and every claim one or more source URLs copied exactly from that node's sources. Never use an unattached or model-invented URL.
+- Use fact, cost, eligibility, conditional-aid, and limitation claim kinds precisely. Every node requires a source-addressable limitation claim.
+- Do not treat a source URL as blanket support for a node. Cite only the source URLs that directly support that individual claim.
+- When the question concerns affordability, each returned option must include directly sourced cost, eligibility, and conditional-aid claims. Do not call an option affordable because aid exists. If those facts are not all available, return no_useful_sources instead.
 - Use the supplied dateChecked exactly for every source.
 - Explain why each finding is relevant to this student and include a concrete caveat or limitation.
 - Treat student facts and constraints as context, not as claims proven by the sources.
@@ -553,6 +557,7 @@ export async function retrieveBackgroundResearch(
       status: "completed",
       result: validateResearchGeneration(
         context.branch,
+        context.question,
         result.output,
         result.retrievedSourceUrls,
         dateChecked,
@@ -657,6 +662,7 @@ export async function generateResearchExpansion(
   try {
     return validateResearchGeneration(
       branch,
+      question,
       result.output,
       result.retrievedSourceUrls,
       dateChecked,

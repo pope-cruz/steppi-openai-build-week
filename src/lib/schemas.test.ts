@@ -12,7 +12,12 @@ import {
 import { VALID_PROFILE_FIXTURE } from "../test/profile-fixture";
 import { VALID_PROFILE_PATCH_FIXTURE } from "../test/profile-patch-fixture";
 import { DEMO_PATH_BRANCHES } from "./demo-paths";
-import { DEMO_RESEARCH_NODES, DEMO_RESEARCH_QUESTION } from "./demo-research";
+import {
+  AUDIT_CIIT_AFFORDABILITY_NODE,
+  AUDIT_UP_VISUAL_COMMUNICATION_NODE,
+  DEMO_RESEARCH_NODES,
+  DEMO_RESEARCH_QUESTION,
+} from "./demo-research";
 
 describe("Steppi schemas", () => {
   it("accepts the representative intake fixture", () => {
@@ -132,6 +137,43 @@ describe("Steppi schemas", () => {
         })),
       }).success,
     ).toBe(false);
+  });
+
+  it("requires explicit source relationships for titles, claims, and limitations", () => {
+    const missingClaimSource = structuredClone(DEMO_RESEARCH_NODES);
+    missingClaimSource[0].claims[0].sourceUrls = [];
+    const detachedClaimSource = structuredClone(DEMO_RESEARCH_NODES);
+    detachedClaimSource[0].claims[0].sourceUrls = [
+      detachedClaimSource[1].sources[0].url,
+    ];
+    const missingLimitation = structuredClone(DEMO_RESEARCH_NODES);
+    missingLimitation[0].claims = missingLimitation[0].claims.filter(
+      (claim) => claim.kind !== "limitation",
+    );
+
+    for (const nodes of [missingClaimSource, detachedClaimSource, missingLimitation]) {
+      expect(
+        ResearchGenerationSchema.safeParse({ status: "success", nodes }).success,
+      ).toBe(false);
+    }
+  });
+
+  it("accepts the audit regression fixtures with explicit factual claims", () => {
+    expect(
+      ResearchGenerationSchema.safeParse({
+        status: "success",
+        nodes: [AUDIT_UP_VISUAL_COMMUNICATION_NODE, AUDIT_CIIT_AFFORDABILITY_NODE],
+      }).success,
+    ).toBe(true);
+    expect(
+      AUDIT_CIIT_AFFORDABILITY_NODE.claims.find((claim) => claim.kind === "cost")
+        ?.statement,
+    ).toContain("PHP 135,000–165,000");
+    expect(
+      AUDIT_CIIT_AFFORDABILITY_NODE.claims.find(
+        (claim) => claim.kind === "conditional-aid",
+      )?.statement,
+    ).toMatch(/conditional|not guaranteed/i);
   });
 
   it("accepts only an empty no-useful-source result", () => {

@@ -404,19 +404,30 @@ type ResearchNode = {
   parentBranchId: string;
   type: "career" | "major" | "college" | "program" | "resource" | "cost";
   title: string;
-  summary: string;
+  titleSourceUrls: string[];
+  claims: Array<{
+    id: string;
+    kind: "fact" | "cost" | "eligibility" | "conditional-aid" | "limitation";
+    statement: string;
+    sourceUrls: string[];
+  }>;
   relevanceToStudent: string;
-  caveats: string[];
   confidence: "low" | "medium" | "high";
   sources: Array<{
     title: string;
     publisher?: string;
     url: string;
     dateChecked: string;
-    supports: string;
   }>;
 };
 ```
+
+Every rendered current factual sentence must be an atomic `claims` entry with
+one or more explicit `sourceUrls`. Titles must likewise declare their supporting
+URLs. Every declared URL must match both the node's source directory and
+provider-retrieved evidence; a model-authored URL or a detached source record is
+not sufficient. `relevanceToStudent` is a clearly labeled Steppi connection to
+the confirmed profile, not a sourced current fact.
 
 ## 7.6 Map State
 
@@ -501,8 +512,14 @@ Output:
 Required behavior:
 
 - every current factual node includes at least one source;
-- the source must support the displayed claim;
+- every current factual claim and node title identifies the exact source URLs
+  intended to support it;
+- source URLs must be provider-retrieved, attached to the node, and visibly
+  addressable from the claim;
+- a source record alone must not be treated as support for the whole node;
 - include date checked and caveats;
+- for affordability questions, show directly sourced cost, eligibility, and
+  conditional-aid limitations together or return an honest unavailable state;
 - prefer a few high-quality nodes over broad, shallow coverage.
 
 ## 8.5 Refinement

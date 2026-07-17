@@ -4,14 +4,14 @@ project: Steppi
 event: OpenAI Build Week
 status: active
 version: 0.1
-last_updated: 2026-07-16
+last_updated: 2026-07-17
 ---
 
 # Steppi Build Log
 
 This file preserves chronological implementation history, detailed test and
 browser reports, deployment records, command results, decisions, and verification
-evidence through 2026-07-16. Read [TASKS.md](./TASKS.md) for the current handoff
+evidence through 2026-07-17. Read [TASKS.md](./TASKS.md) for the current handoff
 and [SPEC.md](./SPEC.md) for milestone acceptance criteria.
 
 ## Archived Milestone Snapshot
@@ -28,6 +28,156 @@ it is historical evidence, not a second specification.
 - Milestones 4–6 — Research, refinement, reliability, and submission: not complete.
 
 ## Completed
+
+### 2026-07-17 — Atomic research claim trust boundary
+
+- Replaced node-level model-authored `summary`, `caveats`, and `supports` prose
+  with atomic factual claims. Every title and claim now lists one or more exact
+  source URLs; the student-specific relevance note is visibly labeled as a Steppi
+  connection rather than a sourced fact.
+- Kept the existing provider-retrieved URL allow-list, HTTPS normalization, server
+  check date, selected-branch parent validation, and five-node maximum. Validation
+  now also rejects title or claim URLs outside the node, claim URLs outside the
+  provider allow-list, duplicate claim/source references, attached sources unused
+  by visible content, and nodes without a sourced limitation.
+- Added affordability intent validation. A successful affordability result must
+  include explicit `cost`, `eligibility`, and `conditional-aid` claims for every
+  rendered option; otherwise the response fails validation, while an honest
+  `no_useful_sources` result renders “Affordability information is unavailable.”
+- Added audit fixtures: the UP Visual Communication fixture is restricted to the
+  cited program identification and contains no interface-design, prototyping, or
+  portfolio-preparation claim; the CIIT fixture visibly includes the cited PHP
+  135,000–165,000 annual estimate and states that scholarships are conditional
+  and not guaranteed.
+- Updated the research instructions and SPEC contract so source URLs are not
+  treated as blanket support for a node. This makes every factual sentence
+  addressable and auditable, but deterministic URL checks still do not prove
+  semantic entailment; a live result must still be read against its pages.
+- Rendering therefore labels the mappings as title sources and cited factual
+  claims rather than presenting URL retrieval itself as proof of support.
+- Focused verification passed: schema, validator, service, route, rendering,
+  flow, and polling coverage (7 files, 69 tests), followed by the expanded focused
+  trust-boundary set (5 files, 62 tests). No provider or model call occurred.
+- Real-browser fixture verification at 1440×1000 and 390×844 covered success,
+  no-source affordability, malformed output, and retry. Success rendered three
+  nodes with six atomic claims, six claim citations, and three cited titles under
+  only the selected branch. No-source and malformed output added no node; retry
+  preserved the question, selected branch, student node, confirmed profile, and
+  all three original branches. Mobile hid the graph, retained the three-item path
+  fallback, and had no overflow or off-screen controls. Browser warnings/errors
+  were empty.
+- Repository verification passed: `npm run lint`; `npm run typecheck`; `npm run
+  test` (21 files, 130 tests); network-enabled `npm run build`; and `git diff
+  --check`. The first sandboxed build failed only because the existing Google Font
+  fetch was network-blocked; the authorized network-enabled rerun passed.
+- No live model request or deployment was made. One separately authorized live
+  background research request is now justified to verify Structured Outputs
+  acceptance and audit every rendered claim against the linked source. Milestone
+  4 remains open until that live audit passes.
+
+### 2026-07-17 — Clean-browser MVP exploration-loop audit
+
+- Audited the current dirty worktree as-is without changing product code or
+  redesigning the interface. Read the current product, specification, handoff,
+  and relevant implementation history before testing.
+- Ran one clean local live golden path with representative Grade 11 answers. The
+  landing entry, eight-question intake, adaptive technology follow-up, empty-input
+  validation, Back preservation, review step, and server/client profile validation
+  passed. The one live profile request returned HTTP 200 in 17.8 seconds.
+- The live profile rendered 8 facts, 2 clearly labeled inferences, 6 constraints,
+  5 uncertainties, and 1 tension. Replacing one inference and confirming the
+  profile preserved the unrelated inference, all facts, constraints,
+  uncertainties, and tension without another model request.
+- The one live path request returned HTTP 200 in 21.9 seconds and produced exactly
+  one strongest-fit, adjacent, and underexplored direction: UX/UI and Digital
+  Product Design; Product Management and Digital Project Coordination; and Digital
+  Communications and Creative Production. The central node, three equal branches,
+  selected-only detail, pointer selection, Enter, Space, and stable branch titles
+  passed in the browser.
+- The one live research action created exactly one background response. Server
+  evidence showed one `POST /api/research`, 24 `PUT /api/research` status polls,
+  and no second creation or retry. It completed successfully and rendered five
+  nodes under only the selected UX/UI branch with 13 displayed citations across
+  11 unique HTTPS destinations. Switching branches hid the research without
+  changing any original branch and returning restored the same five nodes.
+- Opened all 11 unique destinations independently. Every link resolved to its
+  claimed institution or document and every displayed check date was 2026-07-17.
+  The source audit nevertheless failed the SPEC's every-claim-supported boundary:
+  the UP Visual Communication node synthesized interface design, information
+  design, prototyping, and portfolio-development claims not stated by the cited
+  BFA page or curriculum checklist; the CIIT option appeared in an affordability
+  answer without visibly surfacing its cited PHP 135,000–165,000 annual estimate
+  or the conditional nature of scholarship aid. URL provenance passed, but
+  semantic claim support did not.
+- Verified deterministic path API failure, path timeout, malformed paths, research
+  API failure, research retry, malformed research, polling timeout, and no-source
+  states without model traffic. Each retained the confirmed profile, selected
+  branch, question, and three original paths, and added no unvalidated node.
+- Found a real-browser cancellation defect in `?fixture=research-cancel`: the
+  visible Cancel research control remained in the polling state after repeated
+  pointer activation and Enter. Unit tests still pass. A live provider cancel was
+  not induced because that would require a second paid research action.
+- Ran one controlled real profile-generation failure with placeholder credentials
+  and a deliberately invalid model name. The route returned HTTP 503 once, made no
+  SDK request, rendered a calm non-retryable error, and preserved all eight answers.
+  Safe code was `invalid_model_configuration`; profile diagnostics do not currently
+  retain category, stage, reason, upstream status/code, or request ID, and no
+  upstream values existed for this preflight rejection.
+- Static inspection found that profile and path timeout classifiers still depend
+  on `error.name === "APIConnectionTimeoutError"`, while the installed SDK timeout
+  instance can retain the generic `Error` name. Unlike research, those routes can
+  misclassify a real timeout as generic `api_failure` and cannot capture the
+  requested bounded diagnostic metadata.
+- Browser-verified a 390×844 fixture-backed full flow: the desktop graph hides,
+  the three-item connected path list remains, Enter selection and the research
+  expansion work, all controls stay within the viewport, and horizontal overflow
+  is absent. A computed three-pixel focus ring was present. Desktop live branch
+  copy also had no horizontal overflow. Browser logs contained no warnings or
+  errors; the malformed fixture emitted only its bounded client diagnostic.
+- The browser surface could focus the native landing CTA but did not dispatch its
+  Enter activation; pointer entry worked. Branch Enter and Space activation were
+  genuinely verified. Root loading/error foundations and live upstream failure
+  modes were not deliberately induced.
+- Confirmed `.env.local` is ignored, the expected local key/model configuration is
+  present without printing values, and neither rendered pages nor `.next/static`
+  contained an OpenAI key signature or server environment-variable name.
+- Verification passed: `npm run lint`; `npm run typecheck`; `npm run test` (21
+  files, 122 tests); network-enabled `npm run build`; and `git diff --check`. The
+  first sandboxed build failed only because Google Fonts were network-blocked.
+- Submission remains blocked by three functional boundaries: source-to-claim trust,
+  missing branch-local refinement, and an anonymously usable deployed golden path.
+  No milestone was marked complete and no implementation fix was made.
+
+### 2026-07-17 — Browseable career-path exploration layer
+
+- Kept the existing central student node, exactly three validated path branches,
+  graph reducer, selected-only detail panel, and research flow. No path or
+  research schema, prompt, API behavior, model call, or dependency changed.
+- Added a synchronized editorial path index beside the dominant desktop graph.
+  Each equal item uses the existing branch role, title, and concise summary;
+  selecting either the index or graph focuses the same node and reveals only the
+  selected branch's evidence, tradeoff, uncertainty, related options, and research.
+- Replaced the small-screen graph with the same three-item connected path list,
+  retaining the student-to-three-path relationship without dragging or precise
+  graph interaction. No unsupported client-side career information was added.
+- Added explicit Enter/Space activation to both native control surfaces and
+  preserved clearing with focus restoration to the selected path index item.
+- Expanded focused markup coverage for three graph controls, three browse
+  controls, all required roles, existing title/summary reuse, no initial detail,
+  and the path-list mobile fallback.
+- Real-browser fixture verification at 1440×1000 and 390×844 covered initial
+  equal presentation, pointer selection, Enter and Space switching, synchronized
+  graph/index emphasis, exactly one selected detail, clearing and focus restore,
+  hidden mobile graph, three mobile relationships, safe control bounds, no
+  horizontal overflow, and no console warnings or errors.
+- Verification passed: `npm run lint`; `npm run typecheck`; focused tests (2
+  files, 9 tests); `npm run test` (21 files, 122 tests); network-enabled
+  `npm run build`; and `git diff --check`. The first sandboxed build attempt was
+  blocked only by the existing Google Fonts fetch.
+- Remaining UX debt: validate path-index density with a materially different
+  persona or unusually long live branch copy. Exact next task: implement one
+  validated branch-local refinement while preserving the researched branch's
+  sources and every unaffected graph area.
 
 ### 2026-07-16 — Background retrieval source inclusion
 

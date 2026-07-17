@@ -188,7 +188,21 @@ export const SourceEvidenceSchema = z
         message: "Research sources must use HTTPS.",
       }),
     dateChecked: z.string().date(),
-    supports: z.string().trim().min(1).max(400),
+  })
+  .strict();
+
+export const ResearchClaimSchema = z
+  .object({
+    id: identifierSchema,
+    kind: z.enum([
+      "fact",
+      "cost",
+      "eligibility",
+      "conditional-aid",
+      "limitation",
+    ]),
+    statement: statementSchema,
+    sourceUrls: z.array(SourceEvidenceSchema.shape.url).min(1).max(4),
   })
   .strict();
 
@@ -198,13 +212,62 @@ export const ResearchNodeSchema = z
     parentBranchId: identifierSchema,
     type: z.enum(["career", "major", "college", "program", "resource", "cost"]),
     title: z.string().trim().min(1).max(140),
-    summary: z.string().trim().min(1).max(500),
+    titleSourceUrls: z.array(SourceEvidenceSchema.shape.url).min(1).max(4),
+    claims: z.array(ResearchClaimSchema).min(1).max(6),
     relevanceToStudent: z.string().trim().min(1).max(400),
-    caveats: z.array(statementSchema).min(1).max(3),
     confidence: z.enum(["low", "medium", "high"]),
     sources: z.array(SourceEvidenceSchema).min(1).max(4),
   })
-  .strict();
+  .strict()
+  .superRefine(({ claims, sources, titleSourceUrls }, context) => {
+    const sourceUrls = new Set(sources.map((source) => source.url));
+    const claimIds = claims.map((claim) => claim.id);
+
+    if (new Set(claimIds).size !== claimIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Research claims must have unique IDs within a node.",
+        path: ["claims"],
+      });
+    }
+    if (new Set(sources.map((source) => source.url)).size !== sources.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Research sources must have unique URLs within a node.",
+        path: ["sources"],
+      });
+    }
+    if (titleSourceUrls.some((url) => !sourceUrls.has(url))) {
+      context.addIssue({
+        code: "custom",
+        message: "A research title may reference only sources attached to its node.",
+        path: ["titleSourceUrls"],
+      });
+    }
+    for (const [claimIndex, claim] of claims.entries()) {
+      if (new Set(claim.sourceUrls).size !== claim.sourceUrls.length) {
+        context.addIssue({
+          code: "custom",
+          message: "A research claim may reference each source only once.",
+          path: ["claims", claimIndex, "sourceUrls"],
+        });
+      }
+      if (claim.sourceUrls.some((url) => !sourceUrls.has(url))) {
+        context.addIssue({
+          code: "custom",
+          message: "A research claim may reference only sources attached to its node.",
+          path: ["claims", claimIndex, "sourceUrls"],
+        });
+      }
+    }
+    if (!claims.some((claim) => claim.kind === "limitation")) {
+      context.addIssue({
+        code: "custom",
+        message: "Every research node requires a source-addressable limitation.",
+        path: ["claims"],
+      });
+    }
+  });
 
 export const ResearchRequestSchema = z
   .object({
@@ -245,6 +308,7 @@ export type PathBranch = z.infer<typeof PathBranchSchema>;
 export type PathGeneration = z.infer<typeof PathGenerationSchema>;
 export type ResearchQuestion = z.infer<typeof ResearchQuestionSchema>;
 export type SourceEvidence = z.infer<typeof SourceEvidenceSchema>;
+export type ResearchClaim = z.infer<typeof ResearchClaimSchema>;
 export type ResearchNode = z.infer<typeof ResearchNodeSchema>;
 export type ResearchRequest = z.infer<typeof ResearchRequestSchema>;
 export type ResearchGeneration = z.infer<typeof ResearchGenerationSchema>;

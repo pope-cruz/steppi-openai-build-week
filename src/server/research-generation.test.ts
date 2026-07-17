@@ -7,6 +7,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
 import {
+  AUDIT_AFFORDABILITY_QUESTION,
+  AUDIT_CIIT_AFFORDABILITY_NODE,
+  AUDIT_CIIT_RETRIEVED_SOURCE_URLS,
   DEMO_RESEARCH_NODES,
   DEMO_RESEARCH_QUESTION,
   DEMO_RETRIEVED_SOURCE_URLS,
@@ -103,6 +106,9 @@ describe("generateResearchExpansion", () => {
     expect(JSON.stringify(params.text.format.schema)).not.toContain(
       '"format":"uri"',
     );
+    expect(JSON.stringify(params.text.format.schema)).toContain('"claims"');
+    expect(JSON.stringify(params.text.format.schema)).toContain('"sourceUrls"');
+    expect(JSON.stringify(params.text.format.schema)).not.toContain('"supports"');
   });
 
   it("classifies upstream rejections without retaining raw messages", () => {
@@ -246,6 +252,42 @@ describe("generateResearchExpansion", () => {
         },
       ),
     ).resolves.toEqual({ status: "no_useful_sources", nodes: [] });
+  });
+
+  it("enforces complete affordability evidence at the service boundary", async () => {
+    const incomplete = vi.fn().mockResolvedValue({
+      output: { status: "success", nodes: DEMO_RESEARCH_NODES },
+      retrievedSourceUrls: DEMO_RETRIEVED_SOURCE_URLS,
+      retrievalStatus: "completed",
+    });
+    await expect(
+      generateResearchExpansion(
+        VALID_PROFILE_FIXTURE,
+        DEMO_PATH_BRANCHES[0],
+        AUDIT_AFFORDABILITY_QUESTION,
+        { ...baseOptions, requestResearch: incomplete },
+      ),
+    ).rejects.toMatchObject({
+      code: "malformed_model_output",
+      diagnostic: { reason: "affordability_evidence_incomplete" },
+    });
+
+    const complete = vi.fn().mockResolvedValue({
+      output: { status: "success", nodes: [AUDIT_CIIT_AFFORDABILITY_NODE] },
+      retrievedSourceUrls: AUDIT_CIIT_RETRIEVED_SOURCE_URLS,
+      retrievalStatus: "completed",
+    });
+    await expect(
+      generateResearchExpansion(
+        VALID_PROFILE_FIXTURE,
+        DEMO_PATH_BRANCHES[0],
+        AUDIT_AFFORDABILITY_QUESTION,
+        { ...baseOptions, dateChecked: "2026-07-17", requestResearch: complete },
+      ),
+    ).resolves.toEqual({
+      status: "success",
+      nodes: [AUDIT_CIIT_AFFORDABILITY_NODE],
+    });
   });
 
   it("maps retrieval, API, and timeout failures without retrying", async () => {

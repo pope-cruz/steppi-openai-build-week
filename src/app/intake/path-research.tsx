@@ -7,6 +7,7 @@ import {
   isResearchRequestActive,
   type ResearchRequestState,
 } from "@/lib/research-flow";
+import { isAffordabilityResearchQuestion } from "@/lib/research-intent";
 import type { PathBranch } from "@/lib/schemas";
 
 export function suggestedResearchQuestions(branch: PathBranch) {
@@ -44,6 +45,8 @@ export function ResearchComposer({
     isActiveRequest && request.status === "error" ? request : null;
   const noSources =
     isActiveRequest && request.status === "no_useful_sources";
+  const affordabilityUnavailable =
+    noSources && isAffordabilityResearchQuestion(request.question);
   const wasCancelled = isActiveRequest && request.status === "cancelled";
   const helpId = `research-question-help-${branch.id}`;
   const errorId = `research-question-error-${branch.id}`;
@@ -96,9 +99,15 @@ export function ResearchComposer({
 
       {noSources ? (
         <div className="mt-5 border-s-2 border-border-strong bg-surface px-4 py-3" role="status">
-          <p className="text-sm font-semibold text-ink">No useful source was found</p>
+          <p className="text-sm font-semibold text-ink">
+            {affordabilityUnavailable
+              ? "Affordability information is unavailable"
+              : "No useful source was found"}
+          </p>
           <p className="mt-1 text-sm leading-6 text-muted">
-            Nothing was added to the map. Try narrowing the question or asking about a different part of this path.
+            {affordabilityUnavailable
+              ? "Steppi could not verify cost, eligibility, and conditional-aid details together, so it did not label an option affordable or add it to the map."
+              : "Nothing was added to the map. Try narrowing the question or asking about a different part of this path."}
           </p>
         </div>
       ) : null}
