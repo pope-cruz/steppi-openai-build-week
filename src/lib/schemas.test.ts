@@ -14,6 +14,7 @@ import { VALID_PROFILE_PATCH_FIXTURE } from "../test/profile-patch-fixture";
 import { DEMO_PATH_BRANCHES } from "./demo-paths";
 import {
   AUDIT_CIIT_AFFORDABILITY_NODE,
+  AUDIT_FIGMA_PROTOTYPING_NODE,
   AUDIT_UP_VISUAL_COMMUNICATION_NODE,
   DEMO_RESEARCH_NODES,
   DEMO_RESEARCH_QUESTION,
@@ -162,7 +163,11 @@ describe("Steppi schemas", () => {
     expect(
       ResearchGenerationSchema.safeParse({
         status: "success",
-        nodes: [AUDIT_UP_VISUAL_COMMUNICATION_NODE, AUDIT_CIIT_AFFORDABILITY_NODE],
+        nodes: [
+          AUDIT_UP_VISUAL_COMMUNICATION_NODE,
+          AUDIT_CIIT_AFFORDABILITY_NODE,
+          AUDIT_FIGMA_PROTOTYPING_NODE,
+        ],
       }).success,
     ).toBe(true);
     expect(
@@ -174,6 +179,18 @@ describe("Steppi schemas", () => {
         (claim) => claim.kind === "conditional-aid",
       )?.statement,
     ).toMatch(/conditional|not guaranteed/i);
+    expect(
+      AUDIT_FIGMA_PROTOTYPING_NODE.claims.map((claim) => claim.statement),
+    ).toEqual([
+      "Figma supports creating interface mockups.",
+      "Figma supports creating interactive prototypes.",
+      "Access to Figma's education plan depends on meeting its eligibility requirements.",
+    ]);
+    expect(
+      AUDIT_FIGMA_PROTOTYPING_NODE.claims
+        .map((claim) => claim.statement)
+        .join(" "),
+    ).not.toMatch(/without writing code/i);
   });
 
   it("accepts only an empty no-useful-source result", () => {

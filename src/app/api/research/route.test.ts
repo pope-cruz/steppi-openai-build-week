@@ -185,13 +185,13 @@ describe("background research API route", () => {
     }
   });
 
-  it("maps malformed completed output to a safe public failure", async () => {
+  it("maps an all-invalid completed result to the existing safe failure state", async () => {
     const { cookie, deps } = await startJob();
     deps.retrieveResearch.mockRejectedValueOnce(
       new ResearchGenerationError("malformed_model_output", {
         category: "schema_validation",
         stage: "model_output_validation",
-        reason: "output_schema",
+        reason: "no_valid_research_nodes",
       }),
     );
     const response = await handleResearchStatus(
@@ -205,7 +205,9 @@ describe("background research API route", () => {
       status: "failed",
       error: { code: "malformed_model_output" },
     });
+    expect(body).not.toHaveProperty("nodes");
     expect(JSON.stringify(body)).not.toContain("model_output_validation");
+    expect(JSON.stringify(body)).not.toContain("no_valid_research_nodes");
   });
 
   it("cancels the provider at most once and classifies client polling timeout safely", async () => {

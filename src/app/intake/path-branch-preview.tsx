@@ -60,6 +60,7 @@ const EDGE_PATHS = {
 
 export type DevelopmentResearchFixture =
   | "success"
+  | "partial_success"
   | "no_useful_sources"
   | "retrieval_failure"
   | "api_failure"
@@ -128,13 +129,20 @@ export function InitialPathMap({
     ) {
       return { ok: true, status: "in_progress" };
     }
-    if (developmentResearchFixture === "success") {
+    if (
+      developmentResearchFixture === "success" ||
+      developmentResearchFixture === "partial_success"
+    ) {
+      const fixtureNodes =
+        developmentResearchFixture === "partial_success"
+          ? [DEMO_RESEARCH_NODES[0], DEMO_RESEARCH_NODES[2]]
+          : DEMO_RESEARCH_NODES;
       return {
         ok: true,
         status: "completed",
         outcome: "success",
         question,
-        nodes: DEMO_RESEARCH_NODES.map((node) => ({
+        nodes: fixtureNodes.map((node) => ({
           ...node,
           parentBranchId: branch.id,
         })),

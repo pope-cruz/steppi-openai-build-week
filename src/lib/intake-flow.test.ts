@@ -1,90 +1,146 @@
 import { describe, expect, it } from "vitest";
 
-import { DEMO_INTAKE_ANSWERS } from "@/lib/demo-intake";
+import { EMPTY_CONVERSATION_STATE } from "@/lib/intake-conversation";
 import {
-  applyQuickResponse,
-  buildIntakeAnswers,
-  getIntakeQuestions,
-  intakePhase,
-  type IntakeDraft,
-  validateIntakeValue,
+  appendConversationTurn,
+  buildConversationIntakeAnswers,
+  canStartRequest,
+  conversationOrientation,
+  firstConversationQuestion,
+  reviseConversationTurn,
+  shouldSubmitConversationKey,
+  stateBeforeRevision,
+  validateConversationAnswer,
+  type ConversationQuestion,
+  type ConversationTurn,
 } from "@/lib/intake-flow";
+import { IntakeRequestSchema } from "@/lib/schemas";
 
-const demoDraft = Object.fromEntries(
-  DEMO_INTAKE_ANSWERS.map((answer) => [
-    answer.questionId,
-    Array.isArray(answer.answer) ? answer.answer.join(", ") : answer.answer,
-  ]),
-) as IntakeDraft;
+const answeredAt = "2026-07-17T02:00:00.000Z";
 
-describe("intake flow", () => {
-  it("adapts the follow-up to technology context", () => {
-    const questions = getIntakeQuestions(demoDraft);
-    const followUp = questions.find(
-      (question) => question.id === "adaptive-follow-up",
+function addTurn(
+  turns: ConversationTurn[],
+  question: ConversationQuestion,
+  answer: string,
+) {
+  return appendConversationTurn(turns, question, answer, answeredAt);
+}
+
+describe("hybrid conversational intake shell", () => {
+  it("opens broadly without exposing a category", () => {
+    const opening = firstConversationQuestion();
+    expect(opening.prompt).toBe(
+      "What are you trying to figure out about college or work right now?",
     );
-
-    expect(followUp).toMatchObject({
-      adaptive: true,
-      label: "Based on your interest in technology",
-    });
-    expect(followUp?.prompt).toContain("technology");
+    expect(opening.prompt).not.toMatch(/category|dimension|assessment/i);
   });
 
-  it("uses a creative follow-up when that is the strongest signal", () => {
-    const questions = getIntakeQuestions({
-      interests: "Illustration and creative writing",
-      considering: "I am still exploring",
-    });
-    const followUp = questions.find(
-      (question) => question.id === "adaptive-follow-up",
+  it("rejects empty input and preserves multiline input", () => {
+    expect(validateConversationAnswer(" \n ")).toContain("before sending");
+    const turn = addTurn(
+      [],
+      firstConversationQuestion(),
+      "I enjoy visual projects.\nI am unsure about coding.",
     );
-
-    expect(followUp?.label).toContain("creative work");
+    expect(turn[0].answer).toContain("\n");
   });
 
-  it("provides phase-based progress without an exact question count", () => {
-    expect(intakePhase(0)).toEqual({
-      label: "Getting to know what matters to you",
-      segment: 1,
-    });
-    expect(intakePhase(4).segment).toBe(2);
-    expect(intakePhase(7).segment).toBe(3);
-  });
-
-  it("validates required, useful-length answers", () => {
-    expect(validateIntakeValue(" ")).toContain("before continuing");
-    expect(validateIntakeValue("x")).toContain("more detail");
-    expect(validateIntakeValue("Grade 11")).toBeNull();
-  });
-
-  it("toggles additive quick responses and replaces single choices", () => {
-    expect(applyQuickResponse("Technology", "Creative work", "append")).toBe(
-      "Technology, Creative work",
-    );
+  it("uses Enter to send but leaves Shift+Enter for a newline", () => {
     expect(
-      applyQuickResponse("Technology, Creative work", "Technology", "append"),
-    ).toBe("Creative work");
-    expect(applyQuickResponse("Grade 10", "Grade 11", "replace")).toBe(
-      "Grade 11",
+      shouldSubmitConversationKey({
+        key: "Enter",
+        shiftKey: false,
+        isComposing: false,
+        value: "A useful answer",
+      }),
+    ).toBe(true);
+    expect(
+      shouldSubmitConversationKey({
+        key: "Enter",
+        shiftKey: true,
+        isComposing: false,
+        value: "Line one\nLine two",
+      }),
+    ).toBe(false);
+  });
+
+  it("prevents duplicate messages and model starts while loading", () => {
+    const opening = firstConversationQuestion();
+    const turns = addTurn([], opening, "I have a few ideas to compare.");
+    expect(
+      appendConversationTurn(turns, opening, "Duplicate", answeredAt),
+    ).toBe(turns);
+    expect(canStartRequest("loading")).toBe(false);
+    expect(canStartRequest("idle")).toBe(true);
+    expect(canStartRequest("error")).toBe(true);
+  });
+
+  it("revision replaces the answer and invalidates later turns", () => {
+    const first = addTurn([], firstConversationQuestion(), "I am in Grade 11.");
+    const followUp: ConversationQuestion = {
+      id: "follow-up-2",
+      acknowledgement: "You mentioned Grade 11.",
+      prompt: "What has held your attention lately?",
+      helper: "",
+      placeholder: "",
+    };
+    const turns = addTurn(first, followUp, "Digital art projects.");
+    const revised = reviseConversationTurn(
+      turns,
+      0,
+      "Correction: I am in Grade 12.",
+      answeredAt,
+    );
+    expect(revised).toHaveLength(1);
+    expect(revised[0].answer).toContain("Grade 12");
+  });
+
+  it("restores the checkpoint before a revised turn", () => {
+    const afterFirst = { ...EMPTY_CONVERSATION_STATE, enoughContext: false };
+    expect(stateBeforeRevision([afterFirst], 0, EMPTY_CONVERSATION_STATE)).toBe(
+      EMPTY_CONVERSATION_STATE,
+    );
+    expect(stateBeforeRevision([afterFirst], 1, EMPTY_CONVERSATION_STATE)).toBe(
+      afterFirst,
     );
   });
 
-  it("builds a schema-valid request while rejecting incomplete drafts", () => {
-    const completeDraft: IntakeDraft = {
-      ...demoDraft,
-      "adaptive-follow-up":
-        "I enjoy shaping digital products, but not programming-heavy work.",
-    };
-    const answers = buildIntakeAnswers(
-      completeDraft,
-      "2026-07-16T06:00:00.000Z",
+  it("preserves the existing validated IntakeAnswer payload after early completion", () => {
+    const turns = addTurn(
+      [],
+      firstConversationQuestion(),
+      "I am in Grade 11, enjoy digital art, coordinated a school project, dislike programming-heavy work, and need affordable options near Manila.",
     );
+    const answers = buildConversationIntakeAnswers(turns);
 
-    expect(answers).toHaveLength(8);
-    expect(answers[4].questionId).toBe("adaptive-follow-up");
-    expect(() =>
-      buildIntakeAnswers({ "grade-level": "Grade 11" }, "2026-07-16T06:00:00.000Z"),
-    ).toThrow();
+    expect(answers).toHaveLength(4);
+    expect(new Set(answers.map((answer) => answer.answer))).toEqual(
+      new Set([turns[0].answer]),
+    );
+    expect(IntakeRequestSchema.safeParse({ answers }).success).toBe(true);
+  });
+
+  it("reports semantic progress without a step count", () => {
+    expect(
+      conversationOrientation({
+        enoughContext: false,
+        isInterpreting: false,
+        turnCount: 0,
+      }),
+    ).toContain("conversation");
+    expect(
+      conversationOrientation({
+        enoughContext: false,
+        isInterpreting: true,
+        turnCount: 4,
+      }),
+    ).toContain("Taking in");
+    expect(
+      conversationOrientation({
+        enoughContext: true,
+        isInterpreting: false,
+        turnCount: 2,
+      }),
+    ).toContain("Enough context");
   });
 });

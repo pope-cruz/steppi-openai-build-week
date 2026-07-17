@@ -12,6 +12,7 @@ import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
 import {
   AUDIT_AFFORDABILITY_QUESTION,
   AUDIT_CIIT_AFFORDABILITY_NODE,
+  AUDIT_FIGMA_PROTOTYPING_NODE,
   DEMO_RESEARCH_NODES,
   DEMO_RESEARCH_QUESTION,
 } from "@/lib/demo-research";
@@ -134,6 +135,22 @@ describe("initial path map markup", () => {
     expect(markup).not.toContain(DEMO_PATH_BRANCHES[2].id);
   });
 
+  it("renders a validated partial result without restoring an omitted node", () => {
+    const partialNodes = [DEMO_RESEARCH_NODES[0], DEMO_RESEARCH_NODES[2]];
+    const markup = renderToStaticMarkup(
+      <ResearchExpansion
+        branch={DEMO_PATH_BRANCHES[0]}
+        nodes={partialNodes}
+        question={DEMO_RESEARCH_QUESTION}
+      />,
+    );
+
+    expect(markup.match(/data-research-node=/g)).toHaveLength(2);
+    expect(markup).toContain(DEMO_RESEARCH_NODES[0].title);
+    expect(markup).toContain(DEMO_RESEARCH_NODES[2].title);
+    expect(markup).not.toContain(DEMO_RESEARCH_NODES[1].title);
+  });
+
   it("renders audited affordability facts beside their exact source references", () => {
     const markup = renderToStaticMarkup(
       <ResearchExpansion
@@ -155,6 +172,22 @@ describe("initial path map markup", () => {
         expect(markup).toContain(`data-claim-source-url="${url}"`);
       }
     }
+  });
+
+  it("renders the audited Figma capabilities as separate sourced claims without the unsupported qualifier", () => {
+    const markup = renderToStaticMarkup(
+      <ResearchExpansion
+        branch={DEMO_PATH_BRANCHES[0]}
+        nodes={[AUDIT_FIGMA_PROTOTYPING_NODE]}
+        question={DEMO_RESEARCH_QUESTION}
+      />,
+    );
+
+    expect(markup).toContain("Figma supports creating interface mockups.");
+    expect(markup).toContain("Figma supports creating interactive prototypes.");
+    expect(markup).toContain("Medium source confidence");
+    expect(markup.match(/data-research-claim=/g)).toHaveLength(3);
+    expect(markup).not.toMatch(/without writing code/i);
   });
 
   it("states when a complete affordability answer is unavailable", () => {

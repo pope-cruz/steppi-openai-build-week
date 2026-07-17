@@ -212,9 +212,50 @@ Collect a small but useful set of student context:
 - family constraints where relevant;
 - current certainty level.
 
-The flow should feel conversational rather than like a long static survey.
+The intake is a persistent conversational transcript, not a restyled multi-step
+questionnaire. It begins with one broad free-text prompt, adds one Steppi message
+at a time, keeps previous prompts and answers visible, and uses a stable composer.
+Optional quick replies may reduce effort, but free text remains the primary input.
 
-At least one follow-up must visibly respond to a prior answer. This can be model-generated or selected from a validated adaptive-question structure.
+For the MVP, intake uses a constrained hybrid decision layer. The application
+maintains a validated structured conversation state containing supplied facts,
+tentative interpreted interests, experiences, preferences, dislikes, constraints,
+considered careers or majors, uncertainty, corrected or superseded information,
+unresolved dimensions, and an explicit enough-context decision.
+
+After each student turn, a server-only GPT-5.6 Structured Outputs request may:
+
+- interpret that latest answer in transcript context;
+- propose explicit or tentative structured updates with exact source-turn IDs;
+- identify active state items that a correction supersedes;
+- decide whether one concise, context-specific follow-up is useful; or
+- decide that enough useful context exists to form the initial profile.
+
+The turn interpreter must not generate career, major, college, program, or path
+recommendations. Strict schema and reference validation run before its result can
+affect the interface. Deterministic application code—not the model—owns item
+identity checks, correction replacement, supersession history, transcript and
+checkpoint updates, request locking, and completion handoff. Model failure or
+malformed output preserves the student's words and exposes one safe fallback
+question. There are no automatic SDK retries.
+
+Follow-up selection is based on usefulness and ambiguity, not a fixed dimension
+order or message count. Rich context may finish in fewer than four student turns;
+several shallow answers may still require another question. “Not sure,” mixed
+feelings, and incomplete answers are valid context and must not block progression.
+
+Revising an earlier answer removes later conversational turns before the next
+question is recomputed. Profile-generation failures and retry preserve the full
+transcript. Refresh may clear the in-memory conversation until persistence is
+explicitly in scope.
+
+The completed conversation is adapted into the existing validated `IntakeAnswer[]`
+request shape and sent to the unchanged `/api/profile` boundary. Until that
+existing contract's four-record minimum is revised as a separate decision, an
+early-completing transcript is padded only with compatibility copies of exact
+student wording; the adapter may not invent extracted facts or inferred answers.
+The subsequent server-side GPT-5.6 profile generation, profile, path, graph, and
+research contracts remain unchanged.
 
 Target completion time: approximately 3–5 minutes.
 
@@ -511,16 +552,28 @@ Output:
 
 Required behavior:
 
-- every current factual node includes at least one source;
-- every current factual claim and node title identifies the exact source URLs
-  intended to support it;
-- source URLs must be provider-retrieved, attached to the node, and visibly
-  addressable from the claim;
+- every rendered current factual node includes at least one source;
+- every rendered current factual claim and node title identifies the exact source
+  URLs intended to support it;
+- rendered source URLs must be provider-retrieved, attached to the node, and
+  visibly addressable from the claim;
 - a source record alone must not be treated as support for the whole node;
+- omit a claim whose citation is missing, unmatched, or unsupported;
+- omit a node when its title or remaining content cannot meet the full rendered
+  research-node contract;
+- retain and render otherwise valid nodes when at least one useful validated
+  result remains;
+- if no valid research nodes remain, add nothing and show the existing safe retry
+  state;
 - include date checked and caveats;
 - for affordability questions, show directly sourced cost, eligibility, and
   conditional-aid limitations together or return an honest unavailable state;
 - prefer a few high-quality nodes over broad, shallow coverage.
+
+Partial acceptance does not weaken the validation contract for content that is
+actually rendered. Every retained node must still pass the complete strict
+`ResearchNode` schema and provider-source checks after unsupported content is
+removed.
 
 ## 8.5 Refinement
 
@@ -741,8 +794,10 @@ Complete when:
 
 Complete when:
 
-- intake answers are preserved;
-- at least one follow-up adapts;
+- intake answers remain visible in a persistent transcript;
+- deterministic follow-ups skip information already supplied and visibly respond
+  to prior context;
+- revision invalidates affected later turns before sequencing continues;
 - GPT-5.6 creates a valid `StudentProfile`;
 - malformed output produces a retry state;
 - the student can correct an inference.
@@ -766,11 +821,24 @@ Complete when:
 
 Complete when:
 
-- one branch can be researched;
-- the result uses retrieved current sources;
-- claims are source-backed;
-- research nodes appear under the selected branch;
-- failures and malformed output are handled.
+- a student can research one selected branch;
+- valid, source-backed research nodes render beneath that branch;
+- claims or nodes with missing, unmatched, or unsupported citations are omitted;
+- one invalid citation does not discard otherwise valid research results;
+- every claim and node that is rendered still passes the full source-validation
+  boundary;
+- the student node, three initial branches, their relationships, the current
+  selection, and the submitted question remain preserved during research and
+  failure states;
+- when no valid research nodes remain, nothing is added and the existing safe
+  retry state appears;
+- at least one representative live request renders useful source-backed results
+  and is verified in the browser;
+- individual live-request failures are handled safely without corrupting the
+  graph.
+
+Milestone 4 does not require every live request, retrieved source, generated
+claim, or generated node to succeed.
 
 ## Milestone 5 — Refinement
 
@@ -823,7 +891,6 @@ Complete when:
 Codex may identify these as choices, but should not block the first milestone unless necessary:
 
 - exact graph-rendering library;
-- whether adaptive intake uses a model call for every question or a hybrid approach;
 - exact retrieval implementation;
 - whether temporary state uses URL state, React state, or browser storage;
 - exact component library;

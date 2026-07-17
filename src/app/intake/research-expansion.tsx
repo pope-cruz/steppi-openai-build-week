@@ -3,9 +3,9 @@ import { ArrowDown, ExternalLink } from "lucide-react";
 import type { PathBranch, ResearchNode } from "@/lib/schemas";
 
 const CONFIDENCE_LABELS = {
-  high: "High confidence",
-  medium: "Medium confidence",
-  low: "Low confidence",
+  high: "High source confidence",
+  medium: "Medium source confidence",
+  low: "Low source confidence",
 } as const;
 
 const CLAIM_LABELS = {

@@ -15,9 +15,22 @@ deployment records, and audit evidence.
 
 ## Current State
 
-- Implemented: landing shell; eight-question in-memory intake; server-only,
+- Implemented: landing shell; in-memory conversational intake; server-only,
   schema-validated GPT-5.6 profile and exact-three path generation; local profile
   correction; the graph-first map; and one branch-local research expansion.
+- Intake now uses a constrained hybrid conversation: one broad opening, a
+  persistent transcript and stable composer, plus a server-only GPT-5.6 turn
+  interpreter that proposes a strictly validated state patch and either one
+  context-specific question or completion. Deterministic code applies patches,
+  resolves corrections, owns transcript checkpoints and request locks, and falls
+  back safely without losing the student's words.
+- Intake can complete from rich context before four student messages and can
+  continue after four shallow answers. Uncertainty is valid context. Revision
+  predictably removes later turns and restores the earlier structured checkpoint.
+- The adapter still sends the existing validated `IntakeAnswer[]` body to
+  `/api/profile`; early completion uses exact-answer compatibility copies only to
+  satisfy that unchanged boundary's four-record minimum. Profile, path, graph,
+  research, and refinement contracts were not changed.
 - A selected branch now offers three suggestions and free text, preserves the
   confirmed profile and all original branches, and renders at most five concise,
   validated research nodes beneath only that branch.
@@ -29,10 +42,12 @@ deployment records, and audit evidence.
   keeps its provider ID inside an encrypted HttpOnly same-site cookie, and polls
   that same response every 2.5 seconds for up to 120 seconds. Status and cancel
   never create another response; cancel is provider-idempotent per local handle.
-- Completed output now uses atomic source-backed claims: every title and factual
-  claim names one or more URLs attached to its node and present in the existing
-  provider-retrieved allow-list. Detached evidence and unused source records fail
-  validation; the server check date, branch parent, and five-node cap remain.
+- Completed output now uses atomic source-backed claims: every rendered title and
+  factual claim names one or more URLs attached to its node and present in the
+  provider-retrieved allow-list. Unsupported claims and invalid nodes are omitted,
+  unused source records are removed, and every retained node is reparsed through
+  the full strict render schema. The server check date, branch parent, and
+  five-node cap remain.
 - Fixture-backed queued, in-progress, success, no-source, provider-failure,
   malformed-output, cancel, timeout, retry, and duplicate-prevention states are
   covered by tests. The 2026-07-17 browser audit reconfirmed every listed state
@@ -57,20 +72,61 @@ deployment records, and audit evidence.
 - Audit regressions prevent unsupported UP Visual Communication curriculum claims
   and require the CIIT PHP 135,000–165,000 annual estimate plus conditional-aid
   caveat when that fixture appears in an affordability result.
+- The one authorized live atomic-claim request succeeded: one background creation
+  and 17 status polls rendered four nodes with 14 factual claims across seven
+  provider-backed source pages under only Digital product design. All links
+  resolved, the browser console was clean, and the original graph remained stable.
+- The live audit accepted 13 claims but rejected one compound Figma claim. The
+  cited education page supports interface mockups and interactive prototypes, not
+  the added qualifier “without writing code.” The unsupported qualifier remained
+  visible in a high-confidence node; the later grounding fix addressed this
+  specific trust-boundary defect.
+- The narrow grounding fix is now implemented. The Structured Outputs contract
+  defines each claim as one independently verifiable clause, the research prompt
+  requires separate claims and omission of unsupported qualifiers using the exact
+  Figma failure as its counterexample, and the UI labels confidence as source
+  confidence. Fixture-backed schema, service, and rendering regressions pass; no
+  live `/api/research` request was made during the fix.
+- The one fresh post-fix live verification made exactly one background creation
+  and 22 status polls, then failed safely at the source-provenance boundary. The
+  terminal route response was HTTP 502 with diagnostic category
+  `source_processing`, stage `model_output_validation`, and reason
+  `citation_not_retrieved`; no upstream error code or request ID was available.
+  No research node, claim, or source link rendered. The student node, three
+  original branches and relationships, Digital product design selection, and
+  unrelated map state were preserved, and the browser console was clean.
+- Milestone 4's completed boundary is resilient source-backed branch expansion
+  for the Build Week MVP. One invalid or unmatched citation no longer discards valid siblings:
+  claim-level failures remove the claim, node-level failures remove the node, and
+  zero retained nodes still produce the existing safe retry state.
+- Deterministic partial-result verification rendered two validated nodes while
+  omitting the invalid sibling. It preserved one student node, all three initial
+  branches, three relationships, the Digital product design selection, and the
+  exact research question; the browser console was clean and no `/api/research`
+  request occurred.
+- Milestone 4 is complete for the Build Week MVP. Live research has rendered
+  useful source-backed results, every retained claim and node crosses the strict
+  provider-source validation boundary, invalid content is omitted without losing
+  valid siblings, selected-branch locality and original graph state are preserved,
+  and deterministic tests cover success, partial success, no-source,
+  malformed-output, timeout, cancellation, retry, and duplicate prevention.
+- Safe individual provider or citation failures are acceptable MVP behavior when
+  valid results remain available or Steppi preserves the graph and shows an honest
+  retry state. No further paid `/api/research` request is required to close or
+  reconfirm Milestone 4.
 - Active student, map, and research state remain intentionally in memory.
 
 ## Active Milestone
 
-Milestone 4 reliability boundary — Source-backed Research Expansion. The
-claim-to-source contract is corrected and fixture-verified, but the revised
-Structured Outputs contract has not yet had a separately authorized live request
-and claim-by-claim source audit. Milestone 5 refinement remains unimplemented.
+Milestone 5 — One Validated Branch-local Refinement. Milestone 4 is complete for
+the Build Week MVP; do not make another paid `/api/research` request or reopen it
+solely because an individual live request can fail safely.
 
 ## Immediate Objective
 
-Perform one separately authorized live research request using the revised atomic
-claim contract, then audit every rendered claim against its linked source. Do not
-begin refinement until that live boundary passes.
+Implement the demo refinement, “Prioritize affordable options near Manila,” so
+only the selected researched branch changes while its valid sources and every
+unaffected graph area remain preserved.
 
 ## In Progress
 
@@ -78,60 +134,60 @@ begin refinement until that live boundary passes.
 
 ## Next Recommended Tasks
 
-1. Authorize exactly one live background research request. Audit every rendered
-   atomic claim, title, source, date, caveat, confidence, and selected-branch-only
-   expansion; do not retry automatically.
-2. Fix and real-browser verify research cancellation. The 2026-07-17 deterministic
-   `research-cancel` fixture stayed in polling after repeated pointer and Enter
-   activation of the visible cancel control.
-3. Reuse the research timeout classifier for profile and path generation so real
-   SDK timeouts are not mislabeled as generic API failures, and add equivalent safe
-   category/stage/reason/status/code/request-ID diagnostics.
-4. Implement one validated branch-local refinement, preserving the selected
-   branch's sources and every unaffected graph area, then deploy and verify an
-   anonymously accessible golden path.
+1. Implement the demo refinement, “Prioritize affordable options near Manila,” so
+   only the selected researched branch changes while its valid sources and every
+   unaffected graph area remain preserved.
+2. Browser-verify the full refinement flow, including loading, success, empty,
+   failure, malformed-output, retry, mobile, keyboard, and console states.
+3. After Milestone 5 passes, deploy and verify an anonymously accessible golden
+   path, then complete the remaining submission work.
 
 ## Exact Next Recommended Prompt
 
 ```text
 Read AGENTS.md, docs/VISION.md, docs/SPEC.md, docs/TASKS.md, and the latest
-2026-07-17 research trust-boundary entry in docs/BUILD_LOG.md. Make exactly one
-live background `/api/research` request using the current atomic-claim schema; do
-not retry, redesign, refine, deploy, or change the contract first. Render the
-exact result in the real app and audit every title and claim against its linked
-provider-retrieved source, including date, limitation, confidence, and any cost,
-eligibility, or conditional-aid statement. Confirm the student, three original
-branches, selected branch, and unrelated graph state remain stable. Run the full
-validation suite and update TASKS/BUILD_LOG. Mark Milestone 4 complete only if
-the live result renders and every displayed factual claim passes its source audit.
+Milestone 4 and Milestone 5 entries in docs/BUILD_LOG.md. Treat Milestone 4 as
+complete and do not perform another paid `/api/research` request. Implement the
+demo refinement, “Prioritize affordable options near Manila,” so only the selected
+researched branch changes while its valid sources and every unaffected graph area
+remain preserved. Validate the branch-local patch before rendering; cover normal,
+loading, empty, failure, malformed-output, retry, duplicate-prevention, and
+preservation behavior with deterministic tests; verify desktop, mobile, keyboard,
+and console behavior in a real browser; run lint, typecheck, tests, build, and
+`git diff --check`; then update TASKS.md and BUILD_LOG.md with verified results.
 ```
 
 ## Current Blockers
 
-- The revised atomic-claim Structured Outputs contract has not yet been exercised
-  by a live research request or claim-by-claim source audit.
-- Branch-local refinement is not implemented, so the complete student exploration
-  loop stops after research.
+- No known blocker prevents implementation of the Milestone 5 demo refinement.
 - Vercel Authentication blocks anonymous Preview access, and the audited research
   flow is not deployed for judge verification.
 
-## Known Issues
+## Non-blocking Reliability Debt
 
 - The visible research cancel control did not transition out of polling in the
   deterministic browser fixture after pointer or keyboard activation. The actual
-  live provider-cancel boundary was not retested to avoid a second paid request.
+  live provider-cancel boundary was not retested to avoid another paid request.
+  This does not block Milestone 5 or reopen Milestone 4.
 - Profile and path timeout classification still checks `error.name`; the installed
   OpenAI SDK's timeout class can retain the generic `Error` name. Those routes can
   therefore report an actual timeout as generic `api_failure` and do not retain the
-  safe diagnostic detail available on the research route.
+  safe diagnostic detail available on the research route. This classification gap
+  does not block the validated refinement slice.
+
+## Known Issues
+
 - Research validation enforces explicit claim-to-source addressing and URL
   provenance, but deterministic code cannot prove semantic entailment from URL
-  structure alone; the next live result still requires a human-readable source audit.
-- Intake is a multi-step questionnaire, not the intended continuous transcript;
-  it must be revisited before final feature freeze.
+  structure alone; readable source audits remain appropriate for future changes to
+  the research contract.
 - The confirmed-profile presentation remains long and report-like; profile
   evidence should become contextual rather than repeated.
 - Refresh clears intake, profile, map, selection, and researched expansion state.
+- Early intake completion currently repeats exact student answer records only at
+  the internal `/api/profile` compatibility boundary because its existing schema
+  requires four entries. No inferred content is added, but removing that legacy
+  minimum would require a separately authorized downstream contract change.
 - The intended three-to-five-minute intake duration has not been measured.
 - Two moderate `npm audit` findings remain in Next.js's pinned PostCSS; the forced
   remediation is an unsafe framework downgrade.
@@ -146,7 +202,8 @@ the live result renders and every displayed factual claim passes its source audi
   progressive disclosure, secondary context panels, and branch-local updates.
 - Milestone 4 uses the official OpenAI SDK, one stateless server-only Responses
   API background response, required hosted web search, GPT-5.6 structured output,
-  zero automatic retries, strict Zod validation, and a retrieved-URL allow-list.
+  zero automatic retries, structurally strict candidate parsing, full strict Zod
+  validation for every retained node, and a retrieved-URL allow-list.
 - The background job handle is an encrypted HttpOnly same-site cookie containing
   only the provider response ID, a context hash, check date, creation time, and
   cancellation flag. It expires quickly, does not make jobs resumable after a
@@ -165,26 +222,35 @@ the live result renders and every displayed factual claim passes its source audi
   relevance note. Every title and claim points to attached provider-backed URLs,
   every attached source must be visibly used, and affordability output is rejected
   unless cost, eligibility, and conditional-aid claims are all present.
+- Atomicity is semantic, not merely sentence-level: each independently verifiable
+  assertion is a separate claim, unsupported clauses are omitted, and source
+  confidence reflects evidence strength rather than general plausibility.
+- Research acceptance is item-scoped. Missing, unmatched, or unsupported claim
+  citations remove the claim; an invalid title, parent, freshness boundary,
+  affordability evidence set, or final strict parse removes the node. Valid sibling
+  nodes render, while zero valid nodes preserve the existing safe retry state.
 - Path discovery uses one synchronized state across the desktop graph and its
   browseable path index. The index improves scanability but does not replace the
   graph, add branches, or reveal multiple branches' evidence at once.
 - Research adds no more than five nodes to one selected branch. Insufficient
   evidence and all failures render honest, retryable states without changing the map.
-- No authentication, persistence, database, comprehensive dataset, global search,
-  or refinement infrastructure is part of the research slice.
-- The questionnaire intake is temporary UX debt; the intended final interaction
-  is a continuous transcript with a stable composer and contextual follow-ups.
+- No authentication, persistence, database, comprehensive dataset, or global
+  search is part of the MVP. The completed research slice did not include
+  refinement infrastructure; Milestone 5 now adds only the single validated demo
+  refinement.
+- Intake is a constrained hybrid conversation. GPT-5.6 controls contextual
+  interpretation, tentative-vs-explicit extraction, correction proposals,
+  whether a follow-up is useful, its concise wording, and the completion proposal.
+  Deterministic code controls schema/reference validation, patch application,
+  supersession, transcript checkpoints, duplicate prevention, safe fallback, and
+  the unchanged profile handoff. Intake does not generate path recommendations.
 
 ## Unverified Behavior
 
 - The public deployed golden path remains unverified; the audited flow ran locally.
-- No live model request was made after the atomic-claim schema change, so live
-  Structured Outputs acceptance and semantic source support remain unverified.
-- A real live cancellation was not induced. The deterministic browser cancellation
-  check failed, while unit tests still pass.
-- Profile and path upstream status, code, and request ID remain unavailable in
-  their current error model. The controlled profile configuration failure returned
-  HTTP 503 with no upstream code or request ID, as expected before any SDK request.
+- The item-scoped partial-result path is verified deterministically but has not
+  been separately exercised by another paid live response; that additional call
+  is not required for the Build Week MVP and must not reopen Milestone 4.
 - Native Enter activation of the landing CTA could not be dispatched by the audit
   browser surface; pointer navigation worked, branch Enter/Space activation worked,
   and visible focus styling was verified.
@@ -193,3 +259,9 @@ the live result renders and every displayed factual claim passes its source audi
 - Real upstream no-source, timeout, malformed-output, and retrieval-failure
   responses were not induced; deterministic service and route tests cover them.
 - Root error/loading foundations were not deliberately forced in-browser.
+- Intake timing has not been measured with representative students, and the new
+  transcript has not been tested with a screen reader. Desktop and 390×844 mobile
+  fixture checks covered two distinct follow-up paths, correction, five shallow
+  uncertainty turns, keyboard submission, multiline input, loading, failure/retry,
+  malformed fallback, transcript scrolling, sticky-composer bounds, focus, and a
+  clean console. The live GPT-5.6 turn interpreter was deliberately not exercised.

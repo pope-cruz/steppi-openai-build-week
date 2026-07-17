@@ -26,7 +26,7 @@ import {
   validateResearchGeneration,
 } from "@/lib/research-validation";
 import {
-  ResearchGenerationSchema,
+  ResearchGenerationCandidateSchema,
   type PathBranch,
   type ResearchGeneration,
   type StudentProfile,
@@ -45,17 +45,19 @@ Rules:
 - Use the web search tool before answering. Prefer official institutions, government or education agencies, primary program pages, and reputable first-party resources.
 - Return no more than five concise research nodes and prefer two to four useful nodes over a broad report.
 - Attach every node to the supplied selectedBranch.id.
-- Put every current factual sentence in a short, atomic claims item. Do not place current facts in relevanceToStudent.
+- Put every current factual clause in a short claims item. Atomic means one independently verifiable assertion per claim, even when several assertions could fit in one grammatical sentence. Do not place current facts in relevanceToStudent.
 - Give every title and every claim one or more source URLs copied exactly from that node's sources. Never use an unattached or model-invented URL.
 - Use fact, cost, eligibility, conditional-aid, and limitation claim kinds precisely. Every node requires a source-addressable limitation claim.
-- Do not treat a source URL as blanket support for a node. Cite only the source URLs that directly support that individual claim.
+- Do not treat a source URL as blanket support for a node. Before writing a claim, verify that its linked source directly supports every verb, object, qualifier, condition, and statement of scope in that claim.
+- Never add a plausible qualifier from general knowledge. If a source supports only part of a proposed claim, keep each supported assertion as its own claim and omit every unsupported clause; do not preserve unsupported wording by lowering confidence.
+- Exact grounding example: if a Figma source supports creating interface mockups and interactive prototypes, return those as separate claims. Do not add “without writing code” unless a linked source directly supports that additional assertion.
 - When the question concerns affordability, each returned option must include directly sourced cost, eligibility, and conditional-aid claims. Do not call an option affordable because aid exists. If those facts are not all available, return no_useful_sources instead.
 - Use the supplied dateChecked exactly for every source.
 - Explain why each finding is relevant to this student and include a concrete caveat or limitation.
 - Treat student facts and constraints as context, not as claims proven by the sources.
 - Do not invent program availability, admissions requirements, tuition, costs, rankings, salaries, or career demand.
 - If retrieved evidence is insufficient, return status no_useful_sources with an empty nodes array.
-- Use qualitative confidence only. Never predict outcomes, diagnose aptitude, or claim one path is correct.
+- Base qualitative confidence only on the directness, authority, specificity, and freshness of the linked source support for the rendered title and claims, never on general plausibility or model knowledge. Set node confidence no higher than the weakest-supported title or claim. If any wording lacks direct support, omit it rather than lowering confidence. Never predict outcomes, diagnose aptitude, or claim one path is correct.
 - Keep the response scannable and suitable for connected graph nodes, not a full report.`;
 
 type ResearchProviderResult = {
@@ -299,7 +301,10 @@ export function buildResearchResponseParams({
     tool_choice: "required" as const,
     include: ["web_search_call.action.sources" as const],
     text: {
-      format: zodTextFormat(ResearchGenerationSchema, "research_generation"),
+      format: zodTextFormat(
+        ResearchGenerationCandidateSchema,
+        "research_generation",
+      ),
     },
   };
 }

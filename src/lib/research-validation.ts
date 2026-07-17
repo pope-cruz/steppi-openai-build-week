@@ -1,5 +1,7 @@
 import {
+  ResearchGenerationCandidateSchema,
   ResearchGenerationSchema,
+  ResearchNodeSchema,
   ResearchRequestSchema,
   type PathBranch,
   type ResearchGeneration,
@@ -79,7 +81,7 @@ export function validateResearchGeneration(
   retrievedSourceUrls: string[],
   dateChecked: string,
 ): ResearchGeneration {
-  const parsed = ResearchGenerationSchema.safeParse(output);
+  const parsed = ResearchGenerationCandidateSchema.safeParse(output);
   if (!parsed.success) {
     throw new ResearchValidationError(
       "Research output does not match its schema.",
@@ -89,13 +91,19 @@ export function validateResearchGeneration(
   }
 
   if (parsed.data.status === "no_useful_sources") {
-    return parsed.data;
+    return ResearchGenerationSchema.parse(parsed.data);
   }
 
-  let retrieved: Set<string>;
-  try {
-    retrieved = new Set(retrievedSourceUrls.map(normalizedUrl));
-  } catch {
+  const retrieved = new Set<string>();
+  for (const url of retrievedSourceUrls) {
+    try {
+      retrieved.add(normalizedUrl(url));
+    } catch {
+      // Invalid provider metadata cannot support a rendered citation. Other
+      // valid provider URLs remain eligible for partial acceptance.
+    }
+  }
+  if (retrieved.size === 0 && retrievedSourceUrls.length > 0) {
     throw new ResearchValidationError(
       "Retrieved source metadata contains an invalid URL.",
       "source_processing",
@@ -110,109 +118,95 @@ export function validateResearchGeneration(
     );
   }
 
-  const nodeIds = parsed.data.nodes.map((node) => node.id);
-  if (new Set(nodeIds).size !== nodeIds.length) {
-    throw new ResearchValidationError(
-      "Research nodes must have unique IDs.",
-      "schema_validation",
-      "duplicate_node_ids",
-    );
-  }
+  const validatedNodes: ResearchNode[] = [];
+  const retainedNodeIds = new Set<string>();
 
   for (const node of parsed.data.nodes) {
     if (node.parentBranchId !== branch.id) {
-      throw new ResearchValidationError(
-        "Research node is attached to the wrong branch.",
-        "schema_validation",
-        "parent_branch_mismatch",
-      );
+      continue;
     }
 
+    const validSources: typeof node.sources = [];
     const nodeSourceUrls = new Set<string>();
     for (const source of node.sources) {
       if (source.dateChecked !== dateChecked) {
-        throw new ResearchValidationError(
-          "Research source freshness does not match the server check date.",
-          "schema_validation",
-          "date_checked_mismatch",
-        );
+        continue;
       }
-      let citedUrl: string;
-      try {
-        citedUrl = normalizedUrl(source.url);
-      } catch {
-        throw new ResearchValidationError(
-          "Research output cites an invalid URL.",
-          "source_processing",
-          "cited_url_invalid",
-        );
-      }
+      const citedUrl = normalizedUrl(source.url);
       if (!retrieved.has(citedUrl)) {
-        throw new ResearchValidationError(
-          "Research output cites a URL that was not retrieved.",
-          "source_processing",
-          "citation_not_retrieved",
-        );
+        continue;
       }
-      nodeSourceUrls.add(citedUrl);
+      if (nodeSourceUrls.has(source.url)) {
+        continue;
+      }
+      nodeSourceUrls.add(source.url);
+      validSources.push(source);
     }
 
+    if (
+      node.titleSourceUrls.length === 0 ||
+      node.titleSourceUrls.some((url) => !nodeSourceUrls.has(url))
+    ) {
+      continue;
+    }
+
+    const validClaims: typeof node.claims = [];
+    const claimIds = new Set<string>();
     const referencedSourceUrls = new Set<string>();
     for (const url of node.titleSourceUrls) {
-      const normalized = normalizedUrl(url);
-      if (!nodeSourceUrls.has(normalized)) {
-        throw new ResearchValidationError(
-          "Research title cites evidence outside its node.",
-          "schema_validation",
-          "title_source_mismatch",
-        );
-      }
-      referencedSourceUrls.add(normalized);
+      referencedSourceUrls.add(url);
     }
 
     for (const claim of node.claims) {
-      for (const url of claim.sourceUrls) {
-        const normalized = normalizedUrl(url);
-        if (!nodeSourceUrls.has(normalized)) {
-          throw new ResearchValidationError(
-            "Research claim cites evidence outside its node.",
-            "schema_validation",
-            "claim_source_mismatch",
-          );
-        }
-        if (!retrieved.has(normalized)) {
-          throw new ResearchValidationError(
-            "Research claim cites a URL that was not retrieved.",
-            "source_processing",
-            "claim_citation_not_retrieved",
-          );
-        }
-        referencedSourceUrls.add(normalized);
+      if (
+        claimIds.has(claim.id) ||
+        claim.sourceUrls.length === 0 ||
+        new Set(claim.sourceUrls).size !== claim.sourceUrls.length ||
+        claim.sourceUrls.some((url) => !nodeSourceUrls.has(url))
+      ) {
+        continue;
       }
+      claimIds.add(claim.id);
+      validClaims.push(claim);
+      claim.sourceUrls.forEach((url) => referencedSourceUrls.add(url));
     }
 
-    if ([...nodeSourceUrls].some((url) => !referencedSourceUrls.has(url))) {
-      throw new ResearchValidationError(
-        "Research source evidence is not attached to a visible claim.",
-        "schema_validation",
-        "source_not_claimed",
-      );
-    }
+    const usedSources = validSources.filter((source) =>
+      referencedSourceUrls.has(source.url),
+    );
 
     if (isAffordabilityResearchQuestion(question)) {
-      const claimKinds = new Set(node.claims.map((claim) => claim.kind));
+      const claimKinds = new Set(validClaims.map((claim) => claim.kind));
       const requiredKinds = ["cost", "eligibility", "conditional-aid"] as const;
       if (requiredKinds.some((kind) => !claimKinds.has(kind))) {
-        throw new ResearchValidationError(
-          "Affordability results require sourced cost, eligibility, and conditional-aid claims.",
-          "schema_validation",
-          "affordability_evidence_incomplete",
-        );
+        continue;
       }
     }
+
+    const validatedNode = ResearchNodeSchema.safeParse({
+      ...node,
+      claims: validClaims,
+      sources: usedSources,
+    });
+    if (!validatedNode.success || retainedNodeIds.has(validatedNode.data.id)) {
+      continue;
+    }
+    retainedNodeIds.add(validatedNode.data.id);
+    validatedNodes.push(validatedNode.data);
   }
 
-  return parsed.data;
+  if (validatedNodes.length === 0) {
+    throw new ResearchValidationError(
+      "Research output has no valid source-backed nodes.",
+      "schema_validation",
+      "no_valid_research_nodes",
+    );
+  }
+
+  return ResearchGenerationSchema.parse({
+    status: "success",
+    nodes: validatedNodes,
+  });
 }
 
 export function researchNodesForBranch(

@@ -164,6 +164,15 @@ export const PathGenerationSchema = z
 
 export const ResearchQuestionSchema = z.string().trim().min(6).max(300);
 
+const researchClaimStatementSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(300)
+  .describe(
+    "One concise, independently verifiable factual clause. Every word and qualifier must be directly supported by the linked source URLs; omit unsupported wording.",
+  );
+
 export const SourceEvidenceSchema = z
   .object({
     title: z.string().trim().min(1).max(180),
@@ -201,8 +210,14 @@ export const ResearchClaimSchema = z
       "conditional-aid",
       "limitation",
     ]),
-    statement: statementSchema,
-    sourceUrls: z.array(SourceEvidenceSchema.shape.url).min(1).max(4),
+    statement: researchClaimStatementSchema,
+    sourceUrls: z
+      .array(SourceEvidenceSchema.shape.url)
+      .min(1)
+      .max(4)
+      .describe(
+        "Only source URLs that directly support the complete factual clause, including every qualifier and condition.",
+      ),
   })
   .strict();
 
@@ -211,11 +226,20 @@ export const ResearchNodeSchema = z
     id: identifierSchema,
     parentBranchId: identifierSchema,
     type: z.enum(["career", "major", "college", "program", "resource", "cost"]),
-    title: z.string().trim().min(1).max(140),
+    title: z
+      .string()
+      .trim()
+      .min(1)
+      .max(140)
+      .describe("A concise title directly supported by titleSourceUrls."),
     titleSourceUrls: z.array(SourceEvidenceSchema.shape.url).min(1).max(4),
     claims: z.array(ResearchClaimSchema).min(1).max(6),
     relevanceToStudent: z.string().trim().min(1).max(400),
-    confidence: z.enum(["low", "medium", "high"]),
+    confidence: z
+      .enum(["low", "medium", "high"])
+      .describe(
+        "Strength of direct source support for this node's title and claims, no higher than the weakest supported item and never based on general plausibility.",
+      ),
     sources: z.array(SourceEvidenceSchema).min(1).max(4),
   })
   .strict()
@@ -288,6 +312,48 @@ export const ResearchGenerationSchema = z
       context.addIssue({
         code: "custom",
         message: "Successful research requires at least one node.",
+        path: ["nodes"],
+      });
+    }
+    if (status === "no_useful_sources" && nodes.length !== 0) {
+      context.addIssue({
+        code: "custom",
+        message: "No-useful-source results cannot contain research nodes.",
+        path: ["nodes"],
+      });
+    }
+  });
+
+// Provider parsing keeps field-level structure strict while deferring citation
+// relationships to the item-scoped validator. Retained nodes are parsed again
+// with ResearchNodeSchema before they can reach the client.
+const ResearchClaimCandidateSchema = z
+  .object({
+    ...ResearchClaimSchema.shape,
+    sourceUrls: z.array(SourceEvidenceSchema.shape.url).max(4),
+  })
+  .strict();
+
+export const ResearchNodeCandidateSchema = z
+  .object({
+    ...ResearchNodeSchema.shape,
+    titleSourceUrls: z.array(SourceEvidenceSchema.shape.url).max(4),
+    claims: z.array(ResearchClaimCandidateSchema).max(6),
+    sources: z.array(SourceEvidenceSchema).max(4),
+  })
+  .strict();
+
+export const ResearchGenerationCandidateSchema = z
+  .object({
+    status: z.enum(["success", "no_useful_sources"]),
+    nodes: z.array(ResearchNodeCandidateSchema).max(5),
+  })
+  .strict()
+  .superRefine(({ nodes, status }, context) => {
+    if (status === "success" && nodes.length === 0) {
+      context.addIssue({
+        code: "custom",
+        message: "Successful research requires at least one candidate node.",
         path: ["nodes"],
       });
     }

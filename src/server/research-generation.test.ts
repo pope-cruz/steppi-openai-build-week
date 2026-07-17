@@ -10,6 +10,8 @@ import {
   AUDIT_AFFORDABILITY_QUESTION,
   AUDIT_CIIT_AFFORDABILITY_NODE,
   AUDIT_CIIT_RETRIEVED_SOURCE_URLS,
+  AUDIT_FIGMA_PROTOTYPING_NODE,
+  AUDIT_FIGMA_RETRIEVED_SOURCE_URLS,
   DEMO_RESEARCH_NODES,
   DEMO_RESEARCH_QUESTION,
   DEMO_RETRIEVED_SOURCE_URLS,
@@ -109,6 +111,49 @@ describe("generateResearchExpansion", () => {
     expect(JSON.stringify(params.text.format.schema)).toContain('"claims"');
     expect(JSON.stringify(params.text.format.schema)).toContain('"sourceUrls"');
     expect(JSON.stringify(params.text.format.schema)).not.toContain('"supports"');
+    expect(JSON.stringify(params.text.format.schema)).toContain(
+      "One concise, independently verifiable factual clause",
+    );
+    expect(JSON.stringify(params.text.format.schema)).toContain(
+      "Strength of direct source support",
+    );
+    expect(params.instructions).toContain(
+      "one independently verifiable assertion per claim",
+    );
+    expect(params.instructions).toContain(
+      "return those as separate claims",
+    );
+    expect(params.instructions).toContain(
+      "Do not add “without writing code”",
+    );
+    expect(params.instructions).toContain(
+      "never on general plausibility or model knowledge",
+    );
+    expect(params.instructions).toContain(
+      "no higher than the weakest-supported title or claim",
+    );
+  });
+
+  it("keeps the audited Figma capabilities separate and omits the unsupported no-code qualifier", async () => {
+    const requestResearch = vi.fn().mockResolvedValue({
+      output: { status: "success", nodes: [AUDIT_FIGMA_PROTOTYPING_NODE] },
+      retrievedSourceUrls: AUDIT_FIGMA_RETRIEVED_SOURCE_URLS,
+      retrievalStatus: "completed",
+    });
+
+    const result = await generateResearchExpansion(
+      VALID_PROFILE_FIXTURE,
+      DEMO_PATH_BRANCHES[0],
+      DEMO_RESEARCH_QUESTION,
+      { ...baseOptions, dateChecked: "2026-07-17", requestResearch },
+    );
+    const statements = result.nodes.flatMap((node) =>
+      node.claims.map((claim) => claim.statement),
+    );
+
+    expect(statements).toContain("Figma supports creating interface mockups.");
+    expect(statements).toContain("Figma supports creating interactive prototypes.");
+    expect(statements.join(" ")).not.toMatch(/without writing code/i);
   });
 
   it("classifies upstream rejections without retaining raw messages", () => {
@@ -269,7 +314,7 @@ describe("generateResearchExpansion", () => {
       ),
     ).rejects.toMatchObject({
       code: "malformed_model_output",
-      diagnostic: { reason: "affordability_evidence_incomplete" },
+      diagnostic: { reason: "no_valid_research_nodes" },
     });
 
     const complete = vi.fn().mockResolvedValue({
@@ -333,7 +378,7 @@ describe("generateResearchExpansion", () => {
     );
   });
 
-  it("rejects malformed, unsupported, and wrong-branch source output", async () => {
+  it("rejects malformed or wholly invalid output but retains valid siblings", async () => {
     await expectResearchError(
       generateResearchExpansion(
         VALID_PROFILE_FIXTURE,
@@ -375,7 +420,7 @@ describe("generateResearchExpansion", () => {
 
     const unsupported = structuredClone(DEMO_RESEARCH_NODES);
     unsupported[0].sources[0].url = "https://unretrieved.example/source";
-    await expectResearchError(
+    await expect(
       generateResearchExpansion(
         VALID_PROFILE_FIXTURE,
         DEMO_PATH_BRANCHES[0],
@@ -389,8 +434,36 @@ describe("generateResearchExpansion", () => {
           }),
         },
       ),
-      "malformed_model_output",
-    );
+    ).resolves.toEqual({
+      status: "success",
+      nodes: DEMO_RESEARCH_NODES.slice(1),
+    });
+
+    const allInvalid = structuredClone(DEMO_RESEARCH_NODES);
+    for (const node of allInvalid) {
+      node.titleSourceUrls = [`https://invented.example/${node.id}`];
+    }
+    await expect(
+      generateResearchExpansion(
+        VALID_PROFILE_FIXTURE,
+        DEMO_PATH_BRANCHES[0],
+        DEMO_RESEARCH_QUESTION,
+        {
+          ...baseOptions,
+          requestResearch: vi.fn().mockResolvedValue({
+            output: { status: "success", nodes: allInvalid },
+            retrievedSourceUrls: DEMO_RETRIEVED_SOURCE_URLS,
+            retrievalStatus: "completed",
+          }),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "malformed_model_output",
+      diagnostic: {
+        category: "schema_validation",
+        reason: "no_valid_research_nodes",
+      },
+    });
   });
 
   it("fails before a provider request when configuration is missing", async () => {
@@ -563,6 +636,36 @@ describe("background research generation", () => {
     ).resolves.toEqual({
       status: "completed",
       result: { status: "success", nodes: DEMO_RESEARCH_NODES },
+    });
+    expect(provider.create).not.toHaveBeenCalled();
+  });
+
+  it("parses one invalid citation and returns the remaining validated nodes", async () => {
+    const partiallyInvalid = structuredClone(DEMO_RESEARCH_NODES);
+    partiallyInvalid[0].titleSourceUrls = ["https://invented.example/title"];
+    const provider = backgroundProvider();
+    provider.retrieve.mockResolvedValueOnce(
+      providerResponse("completed", [
+        completedSearchCall(DEMO_RETRIEVED_SOURCE_URLS),
+        completedMessage(
+          JSON.stringify({ status: "success", nodes: partiallyInvalid }),
+          [],
+        ),
+      ]),
+    );
+
+    await expect(
+      retrieveBackgroundResearch(
+        "resp_background_test",
+        VALID_PROFILE_FIXTURE,
+        DEMO_PATH_BRANCHES[0],
+        DEMO_RESEARCH_QUESTION,
+        "2026-07-16",
+        { ...baseOptions, provider },
+      ),
+    ).resolves.toEqual({
+      status: "completed",
+      result: { status: "success", nodes: DEMO_RESEARCH_NODES.slice(1) },
     });
     expect(provider.create).not.toHaveBeenCalled();
   });

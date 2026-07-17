@@ -29,6 +29,276 @@ it is historical evidence, not a second specification.
 
 ## Completed
 
+### 2026-07-17 — Constrained hybrid conversational intake
+
+- Replaced client keyword matching and fixed missing-dimension routing with a
+  server-only GPT-5.6 turn interpreter. Each turn returns a strict Structured
+  Outputs patch over supplied facts, tentative interests, experiences,
+  preferences, dislikes, constraints, considered paths, uncertainty,
+  supersessions, unresolved dimensions, and enough-context state, plus either one
+  concise follow-up or completion. The interpreter is forbidden from recommending
+  paths during intake and uses zero automatic retries.
+- Added deterministic patch application that validates active item identity,
+  transcript source references, duplicate IDs, correction targets, supersession
+  history, unresolved dimensions, and completion/question consistency before
+  state changes. Raw model output never enters React state.
+- Preserved the existing transcript and stable composer. Each Steppi turn now
+  visibly carries the validated contextual acknowledgement; correction restores
+  the checkpoint before the edited turn and removes later state; uncertainty is
+  retained; rich context may complete early; shallow context may keep going.
+- Added public-safe `/api/intake/turn` configuration, timeout, upstream,
+  malformed-output, and input failures. Any unusable interpretation preserves the
+  transcript, offers a deterministic fallback question, and supports explicit
+  retry without duplicate turn or model requests.
+- Preserved `/api/profile` and its exact `IntakeAnswer[]` contract. Because that
+  existing schema requires four records, early completion uses uniquely identified
+  compatibility copies of exact student wording only; it never synthesizes an
+  extracted answer. Profile, path, graph, research, and refinement code and
+  contracts were unchanged.
+- Added deterministic development fixtures for creative-project, coastal-cleanup,
+  uncertainty, retry, and malformed-output paths. Focused tests cover rich opening
+  context, personalized direction, skipping supplied context, uncertainty,
+  correction/contradiction supersession, invalid source references, early
+  completion, continued shallow questioning, empty and multiline input, duplicate
+  prevention, safe fallback, malformed output, timeout/API failure, and the
+  unchanged profile payload.
+- Browser verification at 1440×1000 and 390×844 covered normal completion; two
+  meaningfully different follow-ups; earlier-answer revision; five shallow
+  uncertainty turns; loading; malformed fallback; failure and retry; rapid
+  duplicate submission; Enter; Shift+Enter; focus restoration; transcript scroll;
+  sticky-composer bounds; and horizontal overflow. All fixture tabs had no console
+  warnings or errors. Dev-server evidence contained only fixture page GETs and no
+  `/api/intake/turn`, `/api/profile`, or other model request.
+- Verification passed: focused intake tests (4 files, 26 tests), full `npm run
+  test` (24 files, 158 tests), `npm run lint`, `npm run typecheck`, network-enabled
+  `npm run build`, and `git diff --check`. The first sandboxed build failed only
+  because the existing Google fonts were unreachable; the allowed rerun passed.
+- No live or paid OpenAI request occurred. Remaining limitations are refresh-loss,
+  the legacy four-record profile adapter minimum, unmeasured representative-student
+  timing, no screen-reader session, and no live turn-interpreter verification.
+  Milestone 4 remains complete. The exact next task remains the single
+  branch-local refinement, “Prioritize affordable options near Manila.”
+
+### 2026-07-17 — Conversational intake replaces questionnaire UX debt
+
+- Replaced the eight-screen questionnaire and pre-profile review report with one
+  persistent conversation transcript, a stable free-text composer, restrained
+  Steppi/student messages, contextual acknowledgements, optional quick replies,
+  subtle orientation copy, automatic composer focus, and transcript-aware scroll.
+- Added a deterministic gap selector covering grade, interests, subjects and
+  activities, experiences, considered paths, strengths and dislikes, practical
+  constraints, certainty, and the student's help goal. Already-supplied dimensions
+  are skipped; “not sure” satisfies the active prompt; useful enrichment keeps the
+  flow compatible with the existing four-answer API minimum without repeating a
+  known gap.
+- Added predictable revision: editing an earlier answer visibly warns that later
+  turns will be removed, truncates those turns on save, and recomputes the next
+  question. Empty/whitespace input is rejected, Enter submits, Shift+Enter retains
+  a newline, and synchronous locks prevent duplicate messages and profile starts.
+- Preserved the backend boundary. The transcript adapter emits the unchanged,
+  schema-validated `IntakeAnswer[]` request to `/api/profile`; the existing
+  server-side GPT-5.6 profile request remains the first model call. Profile, patch,
+  path, graph, and research schemas and behavior were not changed for this task.
+- Added development-only `intake-success`, `intake-retry`, and `intake-malformed`
+  fixtures. The real browser exercised normal completion, loading, failure, retry,
+  malformed output, transcript preservation, rapid double submission, and the
+  transition to “Here is what Steppi understood.” The dev server recorded only
+  fixture page GETs and no `/api/profile` or `/api/research` request.
+- Browser-verified 1440×1000 desktop and 390×844 mobile layouts with no horizontal
+  overflow or off-screen composer controls. Mixed pointer/keyboard desktop and
+  keyboard-only mobile runs covered long and multiline answers, empty submission,
+  autofocus, transcript scrolling, conditional skipping, revision and downstream
+  invalidation, loading, retry, malformed output, and refresh clearing. The browser
+  console had no warnings or errors.
+- Deterministic verification passed: `npx vitest run src/lib/intake-flow.test.ts`
+  (11 tests); `npm run test` (21 files, 143 tests); `npm run typecheck`; and `npm
+  run lint`. The first sandboxed `npm run build` failed only because the existing
+  Google Fonts could not be fetched; the network-enabled `npm run build` passed
+  with `/intake`, `/api/profile`, `/api/paths`, and `/api/research` present.
+  `git diff --check` passed after documentation and generated-file cleanup.
+- No paid or live OpenAI request was made. Remaining intake limitations are
+  in-memory-only state, deterministic keyword matching for implicit answers, no
+  representative-student timing study, and no screen-reader session. Exact next
+  task: implement and deterministically verify the one branch-local refinement,
+  “Prioritize affordable options near Manila,” without reopening Milestone 4.
+
+### 2026-07-17 — Milestone 4 accepted for the Build Week MVP
+
+- Marked Milestone 4 — Resilient Source-backed Branch Expansion complete based on
+  the accumulated live and deterministic evidence. Live background research has
+  successfully rendered useful source-backed results, and the current validation
+  boundary retains only provider-grounded claims and nodes while preserving valid
+  siblings when other content is invalid.
+- Acceptance includes branch-local attachment, preservation of the student node,
+  all three initial paths and relationships, selection, submitted question, and
+  safe graph state through failures. Deterministic coverage includes success,
+  partial success, no-source, malformed-output, timeout, cancellation, retry, and
+  duplicate-prevention states.
+- Safe individual provider or citation failures are acceptable MVP behavior when
+  valid results are preserved or the graph remains unchanged with an honest retry
+  state. An occasional safely handled live failure is not a reason to reopen
+  Milestone 4, and no additional paid `/api/research` request is required for its
+  acceptance.
+- Moved the research cancellation defect and the profile/path timeout
+  classification gap to non-blocking reliability debt. They remain worth fixing,
+  but neither blocks the validated branch-local refinement or invalidates the
+  completed research milestone.
+- Set Milestone 5 — One Validated Branch-local Refinement as active. Exact next
+  task: Implement the demo refinement, “Prioritize affordable options near
+  Manila,” so only the selected researched branch changes while its valid sources
+  and every unaffected graph area remain preserved.
+- This task changed documentation only. It made no application-code change and no
+  paid `/api/research` request.
+
+### 2026-07-17 — Resilient partial research acceptance (Milestone 4 remains open)
+
+- Revised the Build Week MVP boundary in `SPEC.md` and `TASKS.md`: Milestone 4 is
+  resilient source-backed branch expansion. It does not require every live
+  request, retrieved source, generated claim, or generated node to succeed;
+  individual request failures are acceptable when the retry state is safe and the
+  graph is unchanged.
+- Kept the current background POST/PUT flow, hosted-search requirement,
+  provider-retrieved URL allow-list, atomic-claim prompt, public errors, and UI.
+  The model-facing parser now accepts structurally strict candidate nodes so URL
+  relationships can be evaluated independently before rendering.
+- Changed only the completed-output validation boundary. An unsupported or
+  unmatched claim citation removes that claim; invalid title support, parent,
+  freshness, affordability completeness, or final node shape removes that node;
+  unused sources are removed. Each retained node is then parsed through the full
+  strict `ResearchNodeSchema`, so no rendered validation was weakened.
+- Valid siblings now return as a normal successful expansion. If zero valid nodes
+  remain, validation raises `no_valid_research_nodes`, which maps to the existing
+  public `malformed_model_output` retry state and adds nothing to the map.
+- Added deterministic coverage for one invalid citation beside multiple valid
+  nodes, a missing claim citation, claim removal, invalid-node omission,
+  all-invalid safe failure, provider background parsing of a partial result,
+  strict route failure mapping, rendered partial markup, and original profile,
+  branches, relationships, selection, and question preservation.
+- Browser-verified `?fixture=research-partial-success` through the real intake,
+  confirmation, path-selection, question, polling, and render flow. Two retained
+  research nodes rendered and the invalid middle node stayed absent. One student
+  node, three initial branches, three relationships, the Digital product design
+  selection, and “How can I try this before committing?” remained; eight HTTPS
+  link instances were present and browser warnings/errors were empty.
+- The dev server recorded only `GET /intake?fixture=research-partial-success`; no
+  `/api/research` request or paid model call occurred.
+- Verification passed: focused partial-flow tests (5 files, 59 tests), followed by
+  the expanded validator/schema set (3 files, 51 tests); `npm run lint`; `npm run
+  typecheck`; `npm run test` (21 files, 138 tests); network-enabled `npm run build`;
+  and `git diff --check` after restoring Next's generated development route
+  reference.
+- Milestone 4 remains incomplete pending one representative live background
+  request that renders useful source-backed results and is verified in the
+  browser. That request is the exact next Milestone 4 task; refinement remains
+  unimplemented.
+
+### 2026-07-17 — Single post-fix live verification failed safely (Milestone 4 remains open)
+
+- Used `?fixture=research-live` with the deterministic confirmed profile and three
+  deterministic path branches. Selected Digital product design and submitted “How
+  can I try this before committing?” exactly once. No retry control was activated,
+  no manual result modification occurred, and no second model request was made.
+- Server evidence showed exactly one successful `POST /api/research` background
+  creation followed by 22 `PUT /api/research` status polls for that same response.
+  The final poll returned HTTP 502; polling stopped and no later route request was
+  observed.
+- Captured only the bounded safe diagnostic: category `source_processing`, stage
+  `model_output_validation`, reason `citation_not_retrieved`, HTTP status 502.
+  Upstream HTTP status, upstream error code, and request ID were not present. No
+  prompt, raw model output, student data, secret, or rejected URL was logged.
+- The response failed before client rendering. Rendered research nodes: 0. Total
+  factual claims: 0. Claims passed/failed: 0/0 because there was no generated
+  content to audit. Source-link resolution was not applicable, and no generated
+  unsupported clause remained rendered.
+- The failure UI kept one student node, the original Digital product design,
+  Digital communication strategy, and Community program facilitation branches,
+  all three relationships, and the Digital product design selection. It added no
+  research node, retained the exact question, showed the safe malformed-output
+  message and retry control, and produced no browser console error.
+- The requested linked-source audit could not begin because no title, claim, or
+  source directory reached rendered state. Milestone 4 remains incomplete, and
+  refinement remains blocked. The precise remaining boundary is a cited model URL
+  that did not match the provider-retrieved allow-list; the next work must reproduce
+  and repair that mismatch deterministically without another live request.
+- Post-verification checks passed: `npm run lint`; `npm run typecheck`; `npm run
+  test` (21 files, 132 tests); network-enabled `npm run build`; and `git diff
+  --check` after restoring Next's generated development route reference.
+
+### 2026-07-17 — Compound-claim grounding fix (Milestone 4 remains open)
+
+- Traced research output through the model prompt, Structured Outputs schema,
+  provider-URL validation, state boundary, and rendering. The background request,
+  polling, cancellation, and retrieval-source architecture remain unchanged.
+- Tightened the model-facing contract so each independently verifiable assertion
+  is a separate claim. The prompt now requires direct support for every verb,
+  object, qualifier, condition, and scope statement; omits unsupported wording
+  instead of lowering confidence; and uses the audited Figma mockup/prototype
+  claim plus unsupported “without writing code” qualifier as the exact
+  counterexample.
+- Added schema descriptions requiring one concise factual clause per claim and
+  complete direct support from its linked URLs. Node confidence now explicitly
+  represents the directness, authority, specificity, and freshness of source
+  support rather than general plausibility, and rendering labels it as source
+  confidence.
+- Added a deterministic Figma fixture with interface mockups and interactive
+  prototypes as separate claim records and no no-code qualifier. Schema, service,
+  and server-rendered markup regressions cover the clause split, URL attachment,
+  omitted qualifier, and visible source-confidence label.
+- Preserved the runtime URL allow-list and attachment checks. They continue to
+  reject invented, detached, and unused URLs, while semantic entailment still
+  requires a readable linked-source audit because the validator does not receive
+  retrieved page bodies.
+- Focused verification passed with 4 files and 56 tests. Full `npm run lint`,
+  `npm run typecheck`, and `npm run test` passed with 21 files and 132 tests. The
+  first sandboxed `npm run build` failed only because the existing Google Fonts
+  requests were network-blocked; the approved network-enabled rerun compiled and
+  generated every route successfully. `git diff --check` passed.
+- The deterministic `research-success` browser fixture rendered three research
+  nodes and six claims with high/medium source-confidence labels at the default
+  viewport and 390×844. The research expansion contained no “without writing
+  code” qualifier, mobile had no horizontal overflow, and the browser reported no
+  error overlay or console errors.
+- No live `/api/research` request, deployment, refinement, or research-flow change
+  occurred. The grounding fix is implemented, but Milestone 4 remains incomplete
+  pending exactly one fresh live background request and a full audit of every
+  rendered title and claim against its linked source.
+
+### 2026-07-17 — Single live atomic-claim verification (Milestone 4 remains open)
+
+- Used `?fixture=research-live` so the confirmed profile and three original path
+  branches stayed deterministic while only `/api/research` crossed the live
+  boundary. Selected Digital product design and submitted “How can I try this
+  before committing?” exactly once. Retry was never activated.
+- Server evidence showed exactly one successful `POST /api/research` background
+  creation and 17 successful `PUT /api/research` status polls. The result completed
+  and rendered four nodes containing 14 atomic factual claims and seven unique
+  provider-backed source pages.
+- The live browser retained one student node, all three original branch titles,
+  the strongest-fit selection, and one research expansion attached only to
+  `path-product-design`. There was no horizontal overflow and browser warnings and
+  errors were empty.
+- Opened all seven linked pages. Every link resolved to the displayed publisher
+  or document; all displayed titles accurately described their destinations; and
+  the server check date of 2026-07-17 matched the audit date. Figma pricing,
+  education eligibility and K–12 limitations, education-demo schedules and
+  recordings, UX Philippines event history and current absence, and Design Center
+  educational-tour and location claims were supported with proportionate caveats
+  and confidence.
+- Thirteen of fourteen factual claims passed. One high-confidence Figma claim said
+  the tool can create interface mockups and interactive prototypes “without
+  writing code.” The linked Figma education page directly supports mockups and
+  interactive prototypes but does not state the no-code qualifier. The compound
+  claim therefore exceeded its cited source and remained rendered.
+- No claim was softened, no speculative fix was applied, and no second live
+  response was created. Because every displayed factual claim did not pass, the
+  source audit failed and Milestone 4 remains incomplete. The precise next task is
+  a fixture-backed guard against unsupported qualifiers inside otherwise supported
+  compound claims; refinement remains blocked.
+- Required checks passed after documentation: `npm run lint`; `npm run
+  typecheck`; `npm run test` (21 files, 130 tests); network-enabled `npm run
+  build`; and `git diff --check` after restoring Next's generated development
+  route reference.
+
 ### 2026-07-17 — Atomic research claim trust boundary
 
 - Replaced node-level model-authored `summary`, `caveats`, and `supports` prose

@@ -109,6 +109,50 @@ export const DEMO_RESEARCH_NODES: ResearchNode[] = [
 
 export const AUDIT_AFFORDABILITY_QUESTION = "What affordable options exist near Manila?";
 
+const FIGMA_EDUCATION_SOURCE =
+  "https://audit-fixture.steppi.test/figma-education";
+
+/** Regression fixture for the live claim that added an unsupported no-code qualifier. */
+export const AUDIT_FIGMA_PROTOTYPING_NODE: ResearchNode = {
+  id: "audit-figma-prototyping",
+  parentBranchId: "path-product-design",
+  type: "resource",
+  title: "Figma interface prototyping",
+  titleSourceUrls: [FIGMA_EDUCATION_SOURCE],
+  claims: [
+    {
+      id: "figma-interface-mockups",
+      kind: "fact",
+      statement: "Figma supports creating interface mockups.",
+      sourceUrls: [FIGMA_EDUCATION_SOURCE],
+    },
+    {
+      id: "figma-interactive-prototypes",
+      kind: "fact",
+      statement: "Figma supports creating interactive prototypes.",
+      sourceUrls: [FIGMA_EDUCATION_SOURCE],
+    },
+    {
+      id: "figma-evidence-limitation",
+      kind: "limitation",
+      statement:
+        "Access to Figma's education plan depends on meeting its eligibility requirements.",
+      sourceUrls: [FIGMA_EDUCATION_SOURCE],
+    },
+  ],
+  relevanceToStudent:
+    "These capabilities offer a focused way to try interface design before choosing a longer course.",
+  confidence: "medium",
+  sources: [
+    {
+      title: "Figma for Education",
+      publisher: "Figma",
+      url: FIGMA_EDUCATION_SOURCE,
+      dateChecked: "2026-07-17",
+    },
+  ],
+};
+
 const UP_VISUAL_COMMUNICATION_SOURCE =
   "https://audit-fixture.steppi.test/up-visual-communication";
 
@@ -215,3 +259,6 @@ export const DEMO_RETRIEVED_SOURCE_URLS = DEMO_RESEARCH_NODES.flatMap((node) =>
 
 export const AUDIT_CIIT_RETRIEVED_SOURCE_URLS =
   AUDIT_CIIT_AFFORDABILITY_NODE.sources.map((source) => source.url);
+
+export const AUDIT_FIGMA_RETRIEVED_SOURCE_URLS =
+  AUDIT_FIGMA_PROTOTYPING_NODE.sources.map((source) => source.url);

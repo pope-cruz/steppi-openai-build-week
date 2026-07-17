@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
 import { DEMO_RESEARCH_NODES, DEMO_RESEARCH_QUESTION } from "@/lib/demo-research";
+import { createPathMapState, pathMapReducer } from "@/lib/path-map-state";
 import { VALID_PROFILE_FIXTURE } from "@/test/profile-fixture";
 
 import {
@@ -32,6 +33,37 @@ describe("research flow state", () => {
     expect(success.branches).toBe(DEMO_PATH_BRANCHES);
     expect(VALID_PROFILE_FIXTURE).toEqual(profileSnapshot);
     expect(DEMO_PATH_BRANCHES).toEqual(branchSnapshot);
+  });
+
+  it("preserves the selected graph, relationships, and question for partial success", () => {
+    const selectedMap = pathMapReducer(
+      createPathMapState(VALID_PROFILE_FIXTURE, DEMO_PATH_BRANCHES),
+      { type: "select", branchId: DEMO_PATH_BRANCHES[0].id },
+    );
+    const initialResearch = createResearchFlowState(
+      VALID_PROFILE_FIXTURE,
+      DEMO_PATH_BRANCHES,
+    );
+    const partialNodes = [DEMO_RESEARCH_NODES[0], DEMO_RESEARCH_NODES[2]];
+    const partial = researchFlowReducer(initialResearch, {
+      type: "succeed",
+      branchId: DEMO_PATH_BRANCHES[0].id,
+      question: DEMO_RESEARCH_QUESTION,
+      nodes: partialNodes,
+    });
+
+    expect(selectedMap.selectedBranchId).toBe(DEMO_PATH_BRANCHES[0].id);
+    expect(selectedMap.profile).toBe(VALID_PROFILE_FIXTURE);
+    expect(selectedMap.branches).toBe(DEMO_PATH_BRANCHES);
+    expect(selectedMap.branches).toHaveLength(3);
+    expect(partial.profile).toBe(VALID_PROFILE_FIXTURE);
+    expect(partial.branches).toBe(DEMO_PATH_BRANCHES);
+    expect(partial.request).toEqual({
+      status: "success",
+      branchId: DEMO_PATH_BRANCHES[0].id,
+      question: DEMO_RESEARCH_QUESTION,
+      nodes: partialNodes,
+    });
   });
 
   it("preserves the selected branch and question through failure and retry", () => {
