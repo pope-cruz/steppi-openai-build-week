@@ -14,7 +14,7 @@ function generationFixture() {
 }
 
 describe("path generation validation", () => {
-  it("accepts three distinct branches with valid profile evidence", () => {
+  it("accepts seven varied roles with valid profile evidence", () => {
     expect(validatePathGeneration(VALID_PROFILE_FIXTURE, generationFixture())).toEqual(
       DEMO_PATH_BRANCHES,
     );
@@ -52,6 +52,15 @@ describe("path generation validation", () => {
     );
   });
 
+  it("rejects duplicate stable identifiers", () => {
+    const generation = generationFixture();
+    generation.branches[1].id = generation.branches[0].id;
+
+    expect(() => validatePathGeneration(VALID_PROFILE_FIXTURE, generation)).toThrow(
+      "unique stable IDs",
+    );
+  });
+
   it("rejects superficially different explanations for the same direction", () => {
     const generation = generationFixture();
     generation.branches[1].title = "Product experience design";
@@ -65,7 +74,7 @@ describe("path generation validation", () => {
     );
   });
 
-  it("rejects three branches that collapse into one underlying option", () => {
+  it("rejects a role set that collapses into one underlying option", () => {
     const generation = generationFixture();
     for (const branch of generation.branches) {
       branch.relatedOptions.push({

@@ -6,16 +6,12 @@ import { VALID_PROFILE_FIXTURE } from "@/test/profile-fixture";
 import { createPathMapState, pathMapReducer } from "./path-map-state";
 
 describe("path map selection state", () => {
-  it("starts with no branch selected and preserves all required roles", () => {
+  it("starts with no role selected and preserves all generated roles", () => {
     const state = createPathMapState(VALID_PROFILE_FIXTURE, DEMO_PATH_BRANCHES);
 
     expect(state.selectedBranchId).toBeNull();
-    expect(state.branches).toHaveLength(3);
-    expect(state.branches.map((branch) => branch.kind).sort()).toEqual([
-      "adjacent",
-      "strongest-fit",
-      "underexplored",
-    ]);
+    expect(state.branches).toHaveLength(7);
+    expect(new Set(state.branches.map((branch) => branch.id)).size).toBe(7);
   });
 
   it("selects, switches, and clears without mutating profile or branch data", () => {

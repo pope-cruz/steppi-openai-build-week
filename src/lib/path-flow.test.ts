@@ -26,7 +26,7 @@ describe("path flow state", () => {
     expect(retried?.request.status).toBe("loading");
   });
 
-  it("transitions from a confirmed profile to exactly three branch previews", () => {
+  it("transitions from a confirmed profile to the complete role possibility set", () => {
     const confirmed = pathFlowReducer(null, {
       type: "confirm",
       profile: VALID_PROFILE_FIXTURE,

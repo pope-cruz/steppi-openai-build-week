@@ -22,6 +22,10 @@ async function expectGenerationError(
 
 describe("generatePathBranches", () => {
   it("prompts for the complete concise student-facing role explanation", () => {
+    expect(PATH_INSTRUCTIONS).toContain("Target seven roles");
+    expect(PATH_INSTRUCTIONS).toContain("no fewer than six and no more than eight");
+    expect(PATH_INSTRUCTIONS).toContain("Never rank, score, tier, order, or label");
+    expect(PATH_INSTRUCTIONS).toContain("one occupation family");
     expect(PATH_INSTRUCTIONS).toContain("one plain-language sentence");
     expect(PATH_INSTRUCTIONS).toContain("one or two concise, student-facing sentences");
     expect(PATH_INSTRUCTIONS).toContain("why the role may not fit");
@@ -31,7 +35,7 @@ describe("generatePathBranches", () => {
     expect(PATH_INSTRUCTIONS).toContain("under one minute");
   });
 
-  it("returns one validated complete three-branch result", async () => {
+  it("returns one validated complete seven-role result from one request", async () => {
     const requestPaths = vi.fn().mockResolvedValue({
       branches: DEMO_PATH_BRANCHES,
     });
@@ -97,7 +101,7 @@ describe("generatePathBranches", () => {
   });
 
   it("rejects malformed, invalid-evidence, and duplicate output", async () => {
-    const missingBranch = { branches: DEMO_PATH_BRANCHES.slice(0, 2) };
+    const missingBranch = { branches: DEMO_PATH_BRANCHES.slice(0, 5) };
     await expectGenerationError(
       generatePathBranches(VALID_PROFILE_FIXTURE, {
         apiKey: "test-key-not-real",

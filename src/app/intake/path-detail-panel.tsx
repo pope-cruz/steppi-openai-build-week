@@ -4,12 +4,6 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { PathBranch, StudentProfile } from "@/lib/schemas";
 
-const BRANCH_LABELS = {
-  "strongest-fit": "Strongest current fit",
-  adjacent: "Adjacent possibility",
-  underexplored: "Underexplored possibility",
-} as const;
-
 export type ProfileEvidence = {
   id: string;
   label: string;
@@ -84,55 +78,60 @@ export function PathDetailPanel({
   return (
     <section
       aria-labelledby={`path-detail-title-${branch.id}`}
-      className="mt-6 overflow-hidden rounded-[var(--radius-panel)] border border-border-strong bg-surface shadow-[var(--shadow-panel)]"
+      className="mt-5 overflow-hidden rounded-[var(--radius-panel)] border border-border-strong bg-surface"
       data-path-detail={branch.id}
       id={`path-detail-${branch.id}`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-5 border-b border-border bg-surface-muted px-5 py-5 sm:px-7">
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted">
-            {BRANCH_LABELS[branch.kind]} · {branch.confidence} confidence
+      <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:py-5">
+        <div className="min-w-0 max-w-[48rem]">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-muted">
+            Career possibility
           </p>
           <h3
-            className="font-display mt-1 text-balance text-[clamp(1.8rem,4vw,2.7rem)] leading-tight text-ink"
+            className="font-display mt-2 max-w-[24ch] text-balance text-[clamp(1.65rem,3vw,2.35rem)] leading-[1.08] tracking-[-0.025em] text-ink [overflow-wrap:anywhere]"
             id={`path-detail-title-${branch.id}`}
           >
             {branch.title}
           </h3>
         </div>
-        <Button disabled={selectionLocked} onClick={onClear} variant="secondary">
+        <Button
+          className="self-start px-2.5 text-muted hover:text-ink sm:mt-0.5"
+          disabled={selectionLocked}
+          onClick={onClear}
+          variant="ghost"
+        >
           <CornerUpLeft aria-hidden="true" />
           Back to all paths
         </Button>
       </div>
 
-      <div className="px-5 py-7 sm:px-7 sm:py-8">
-        <div className="max-w-[50rem]">
-          <p className="text-xs font-bold uppercase tracking-[0.1em] text-primary">
+      <div className="px-4 py-6 sm:px-6 sm:py-7">
+        <div className="max-w-[54rem]">
+          <p className="text-sm font-semibold text-primary">
             What this role is
           </p>
-          <p className="font-display mt-2 text-balance text-[clamp(1.45rem,3vw,2.05rem)] leading-snug text-ink">
+          <p className="font-display mt-2 text-balance text-[clamp(1.3rem,2.4vw,1.8rem)] leading-snug text-ink">
             {branch.summary}
           </p>
         </div>
 
-        <div className="mt-8 grid border-y border-border lg:grid-cols-2">
-          <section className="py-6 lg:border-e lg:border-border lg:pe-8">
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-primary">
+        <div className="mt-6 grid border-y border-border lg:grid-cols-2">
+          <section className="py-5 lg:border-e lg:border-border lg:pe-7">
+            <p className="text-sm font-semibold text-primary">
               Why it may fit you
             </p>
-            <div className="mt-3 space-y-2 text-sm leading-6 text-graphite sm:text-base sm:leading-7">
+            <div className="mt-2.5 space-y-2 text-sm leading-6 text-graphite sm:text-[0.95rem] sm:leading-6">
               {branch.whyItAppeared.map((reason) => (
                 <p key={reason}>{reason}</p>
               ))}
             </div>
           </section>
 
-          <section className="border-t border-border py-6 lg:border-t-0 lg:ps-8">
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted">
+          <section className="border-t border-border py-5 lg:border-t-0 lg:ps-7">
+            <p className="text-sm font-semibold text-graphite">
               Why it may not fit you
             </p>
-            <div className="mt-3 space-y-2 text-sm leading-6 text-graphite sm:text-base sm:leading-7">
+            <div className="mt-2.5 space-y-2 text-sm leading-6 text-graphite sm:text-[0.95rem] sm:leading-6">
               {branch.drawbacks.map((drawback) => (
                 <p key={drawback}>{drawback}</p>
               ))}
@@ -140,30 +139,30 @@ export function PathDetailPanel({
           </section>
         </div>
 
-        <div className="grid gap-7 py-7 lg:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.65fr)] lg:gap-12">
+        <div className="grid gap-6 py-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)] lg:items-start lg:gap-8">
           <section>
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted">
+            <p className="text-sm font-semibold text-graphite">
               What the day-to-day can feel like
             </p>
-            <div className="mt-3 space-y-2 text-sm leading-6 text-graphite sm:text-base sm:leading-7">
+            <div className="mt-2.5 space-y-2 text-sm leading-6 text-graphite sm:text-[0.95rem] sm:leading-6">
               {branch.dayToDay.map((sentence) => (
                 <p key={sentence}>{sentence}</p>
               ))}
             </div>
           </section>
 
-          <section className="border-s-2 border-primary bg-primary-soft/55 px-5 py-5">
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.1em] text-primary">
+          <section className="border-s-2 border-primary bg-primary-soft/45 px-4 py-4 sm:px-5">
+            <p className="flex items-center gap-2 text-sm font-semibold text-primary">
               <Footprints aria-hidden="true" className="size-4" />
               Try it before committing
             </p>
-            <p className="mt-3 text-sm leading-6 text-graphite">
+            <p className="mt-2.5 text-sm leading-6 text-graphite">
               {branch.lowRiskExploration}
             </p>
           </section>
         </div>
 
-        <details className="group border-t border-border pt-5">
+        <details className="group border-t border-border pt-4">
           <summary className="cursor-pointer list-none rounded-[var(--radius-control)] text-sm font-semibold text-ink outline-none focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] [&::-webkit-details-marker]:hidden">
             <span className="inline-flex items-center gap-2">
               <span aria-hidden="true" className="text-primary group-open:rotate-45">+</span>

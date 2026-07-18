@@ -130,7 +130,7 @@ export function developmentProfileRefinementPayload(
       acknowledgement:
         request.turns.length === 1
           ? "That makes location a real boundary, not just a preference."
-          : "That tradeoff helps Steppi decide how different the three paths should feel.",
+          : "That tradeoff helps Steppi decide how varied the role possibilities should feel.",
       decision: "follow_up",
       nextQuestion: questions[request.turns.length - 1],
     } satisfies ProfileRefinementApiResponse;

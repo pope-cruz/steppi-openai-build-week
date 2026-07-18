@@ -22,7 +22,7 @@ Rules:
 - Use remove, replace, and add operations only when the student's words justify them. Return empty arrays for every unused operation.
 - A replaced or added fact must cite the relevant refinement turn ID in sourceAnswerIds. Preserve still-valid prior source IDs when useful.
 - Direct corrections should usually be applied immediately with decision complete and no follow-up.
-- Ask one follow-up only when its answer would materially change the three paths. Make it concise, contextual, and connected to the latest answer.
+- Ask one follow-up only when its answer would materially change the role possibility set. Make it concise, contextual, and connected to the latest answer.
 - Do not repeat information already present, declined, corrected, or recorded as uncertain.
 - Uncertainty is valid context. Do not force a definite preference or prolong refinement merely to fill profile fields.
 - Use offer_choice when the current patch is useful but the student may reasonably choose between another clarification and building the map.

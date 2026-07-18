@@ -61,26 +61,55 @@ describe("Steppi schemas", () => {
     ).toBe(false);
   });
 
-  it("accepts exactly one path branch for each required role", () => {
+  it("accepts six, seven, and eight complete unranked roles", () => {
+    const eighthRole = {
+      ...structuredClone(DEMO_PATH_BRANCHES[0]),
+      id: "role-public-information-designer",
+      title: "Public information designer",
+    };
+
+    expect(
+      PathGenerationSchema.safeParse({ branches: DEMO_PATH_BRANCHES.slice(0, 6) })
+        .success,
+    ).toBe(true);
     expect(
       PathGenerationSchema.safeParse({ branches: DEMO_PATH_BRANCHES }).success,
     ).toBe(true);
-  });
-
-  it("rejects missing, duplicate, and extra path roles", () => {
-    const duplicateRole = structuredClone(DEMO_PATH_BRANCHES);
-    duplicateRole[2].kind = "adjacent";
-
-    expect(
-      PathGenerationSchema.safeParse({ branches: DEMO_PATH_BRANCHES.slice(0, 2) })
-        .success,
-    ).toBe(false);
-    expect(PathGenerationSchema.safeParse({ branches: duplicateRole }).success).toBe(
-      false,
-    );
     expect(
       PathGenerationSchema.safeParse({
-        branches: [...DEMO_PATH_BRANCHES, DEMO_PATH_BRANCHES[0]],
+        branches: [...DEMO_PATH_BRANCHES, eighthRole],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects fewer than six, more than eight, and ranked-like role fields", () => {
+    const ninthRole = {
+      ...structuredClone(DEMO_PATH_BRANCHES[0]),
+      id: "role-public-information-designer",
+      title: "Public information designer",
+    };
+    const legacyRankedRole = {
+      ...structuredClone(DEMO_PATH_BRANCHES[0]),
+      kind: "strongest-fit",
+      confidence: "high",
+    };
+
+    expect(
+      PathGenerationSchema.safeParse({ branches: DEMO_PATH_BRANCHES.slice(0, 5) })
+        .success,
+    ).toBe(false);
+    expect(
+      PathGenerationSchema.safeParse({
+        branches: [
+          ...DEMO_PATH_BRANCHES,
+          ninthRole,
+          { ...ninthRole, id: "role-ninth", title: "Ninth role" },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      PathGenerationSchema.safeParse({
+        branches: [legacyRankedRole, ...DEMO_PATH_BRANCHES.slice(1)],
       }).success,
     ).toBe(false);
   });

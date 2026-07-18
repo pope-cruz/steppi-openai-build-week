@@ -29,6 +29,91 @@ it is historical evidence, not a second specification.
 
 ## Completed
 
+### 2026-07-18 — Milestone 3 unranked role possibility space
+
+- Replaced the exact-three ranked-like generation contract with one strict 6–8
+  role response targeting seven. Removed `kind` and role-level `confidence` from
+  the normal role schema; retained the existing stable ID, title, profile-grounded
+  fit/mismatch, day-to-day, exploration, evidence, related-option, and research /
+  refinement fields.
+- Updated the single GPT-5.6 path request to ask for one complete, unranked,
+  meaningfully varied role set across occupation families, work rhythms, and
+  environments. All roles still come from one `responses.parse` call with no
+  automatic SDK retry and no per-role request.
+- Generalized deterministic validation to 6–8 roles while preserving unique IDs,
+  normalized-title duplicate detection, pairwise similarity checks, valid profile
+  evidence, unsupported-current-claim rejection, and shared-underlying-direction
+  rejection.
+- Expanded the representative fixture to seven varied roles, including one long
+  title. The existing research fixture keeps its stable selected-role ID, so the
+  validated selected-role research and fixed Manila affordability refinement
+  boundaries continue without migration or regeneration.
+- Replaced the student-and-three-branch graph, edges, detailed cards, and ranked
+  navigator with a title-only role overview. Desktop uses eight deterministic
+  non-overlapping grid slots with restrained title-length width variation; mobile
+  shows every role as one large wrapping capsule row. There is no graph library,
+  physics, dragging, zooming, panning, ranking, score, tier, role icon, or extra
+  model call.
+- Preserved shared selection, complete role/profile object identity, switching,
+  clearing, selected-role explanations, explicit research, and optional
+  refinement. Clearing returns focus to the visible desktop or mobile pill; a
+  browser-discovered hidden-desktop focus defect on mobile was fixed and rechecked.
+- Added and updated focused schema, prompt, service, route, state, rendering,
+  long-title, responsive, research, and refinement coverage. Focused verification
+  passed 11 files and 76 tests; the full suite passed 31 files and 231 tests.
+- Browser-verified fixture success at 1440×1000 and 390×844, all seven roles on
+  both responsive surfaces, deterministic desktop placement with no overlap,
+  title-only nodes, long-title wrapping, pointer selection, Enter and Space,
+  switching, clearing, visible focus, resize/state continuity, selected-role
+  explanation continuity, API failure, malformed output, explicit retry, and
+  zero horizontal overflow. Four fixture consoles and framework overlays were
+  clean.
+- Final checks passed: `npm run lint`, `npm run typecheck`, `npm run test` (31
+  files, 231 tests), the network-enabled `npm run build`, and `git diff --check`.
+  The first sandboxed build attempt failed only because the existing Google Fonts
+  could not be fetched; the identical network-enabled rerun built every route.
+- No live or paid OpenAI request and no deployment occurred. Live seven-role
+  quality, calibration with a materially different profile, persistence across
+  refresh, and anonymous Preview access remain unverified.
+- Exact next task: align the student-facing profile confirmation to exactly three
+  concise natural-language sentences plus “Is there anything we missed or
+  misunderstood?”, **Looks right**, and **Make a correction**, while preserving
+  the 6–8 role space and every downstream behavior.
+
+### 2026-07-18 — Selected-role presentation refinement
+
+- Refined only the existing selected-role brief presentation. The role title is
+  smaller and safely wraps, the back action is visually secondary, the header and
+  reading area are more compact, and the former panel shadow was removed to keep
+  the page lighter and less report-like.
+- Kept the role-first content contract and student-specific wording unchanged.
+  Fit and possible mismatch retain equal prominence with restrained dividers;
+  day-to-day and the low-risk experiment now use a more balanced editorial grid.
+- Replaced student-facing `low confidence` copy with `A possibility to test` and
+  added warm equivalents for the other confidence levels. Internal confidence
+  values, path schemas, prompts, API behavior, model calls, and state were
+  unchanged.
+- Added focused rendering coverage for the warm uncertainty label and a long
+  compound role title. The focused file passed 16 tests; the full suite passed
+  31 files and 230 tests.
+- Real-browser fixture verification covered 1440×1000 desktop and 390×844 mobile,
+  pointer selection, native Enter and Space selection, clearing/back navigation,
+  short and longer role titles, stacked fit/mismatch content, visible focus,
+  selected-path research completion, the optional refinement loading/completion
+  boundary, and zero horizontal overflow. Browser warning/error logs and the
+  framework error overlay were empty.
+- Final checks passed: `npm run lint`, `npm run typecheck`, `npm run test`, the
+  network-enabled `npm run build`, and `git diff --check`. The first sandboxed
+  build attempt failed only because the existing Google Fonts could not be
+  fetched; the identical network-enabled rerun built every route successfully.
+- No live or paid OpenAI request and no deployment occurred. A truly synthetic
+  long compound title was covered deterministically; the longest browser fixture
+  checked was `Digital communication strategy`.
+- Exact next task: implement and deterministically verify the
+  approximately-seven-role overview and floating possibility-space redesign,
+  while preserving the refined selected-role experience and working downstream
+  research/refinement boundaries.
+
 ### 2026-07-18 — Milestone 4 lightweight role understanding
 
 - Enriched the existing exactly-three `PathBranch` generation contract rather

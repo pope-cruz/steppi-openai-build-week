@@ -257,8 +257,8 @@ export function ProfileConfirmation({
               code: developmentPathFixture,
               message:
                 developmentPathFixture === "timeout"
-                  ? "Steppi took too long to explore these paths. Your profile is safe; please try again."
-                  : "Steppi could not explore paths right now. Your profile is safe; please try again.",
+                  ? "Steppi took too long to explore these roles. Your profile is safe; please try again."
+                  : "Steppi could not explore roles right now. Your profile is safe; please try again.",
               retryable: true,
             },
           };
@@ -279,7 +279,7 @@ export function ProfileConfirmation({
           type: "fail",
           code: "malformed_model_output",
           message:
-            "Steppi received paths it could not safely compare. Nothing was shown; please try again.",
+            "Steppi received roles it could not safely compare. Nothing was shown; please try again.",
           retryable: true,
         });
         return;
@@ -304,7 +304,7 @@ export function ProfileConfirmation({
           type: "fail",
           code: "malformed_model_output",
           message:
-            "Steppi received paths it could not safely compare. Nothing was shown; please try again.",
+            "Steppi received roles it could not safely compare. Nothing was shown; please try again.",
           retryable: true,
         });
         return;
@@ -677,7 +677,7 @@ export function ProfileConfirmation({
             >
               <LoaderCircle aria-hidden="true" className="size-5 animate-spin text-primary" />
               <div>
-                <p className="font-semibold text-ink">Building three different directions…</p>
+                <p className="font-semibold text-ink">Building a varied role space…</p>
                 <p className="mt-1 text-sm leading-6 text-muted">
                   Steppi is using this profile without making you review every field.
                 </p>

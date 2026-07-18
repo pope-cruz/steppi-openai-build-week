@@ -126,13 +126,13 @@ function assertMeaningfullyDifferent(branches: PathBranch[]) {
   }
 
   const optionSets = branches.map(primaryOptionLabels);
-  const sharedAcrossAll = Array.from(optionSets[0]).some(
-    (label) => optionSets[1].has(label) && optionSets[2].has(label),
+  const sharedAcrossAll = Array.from(optionSets[0] ?? []).some((label) =>
+    optionSets.every((options) => options.has(label)),
   );
 
   if (sharedAcrossAll) {
     throw new PathValidationError(
-      "All path branches collapse into the same underlying direction.",
+      "All career roles collapse into the same underlying direction.",
     );
   }
 }

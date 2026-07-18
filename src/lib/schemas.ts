@@ -123,7 +123,6 @@ export const ProfilePatchSchema = z
 export const PathBranchSchema = z
   .object({
     id: identifierSchema,
-    kind: z.enum(["strongest-fit", "adjacent", "underexplored"]),
     title: z.string().trim().min(1).max(120),
     summary: pathSentenceSchema.describe(
       "One plain-language sentence explaining what this role or direction is.",
@@ -168,32 +167,14 @@ export const PathBranchSchema = z
           .strict(),
       )
       .max(8),
-    confidence: z.enum(["low", "medium", "high"]),
   })
   .strict();
 
 export const PathGenerationSchema = z
   .object({
-    branches: z.array(PathBranchSchema).length(3),
+    branches: z.array(PathBranchSchema).min(6).max(8),
   })
-  .strict()
-  .superRefine(({ branches }, context) => {
-    const requiredKinds = [
-      "strongest-fit",
-      "adjacent",
-      "underexplored",
-    ] as const;
-
-    for (const kind of requiredKinds) {
-      if (branches.filter((branch) => branch.kind === kind).length !== 1) {
-        context.addIssue({
-          code: "custom",
-          message: `Exactly one ${kind} branch is required.`,
-          path: ["branches"],
-        });
-      }
-    }
-  });
+  .strict();
 
 export const ResearchQuestionSchema = z.string().trim().min(6).max(300);
 

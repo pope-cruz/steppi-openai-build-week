@@ -142,7 +142,7 @@ describe("profile refinement generation", () => {
       "Direct corrections should usually be applied immediately",
     );
     expect(PROFILE_REFINEMENT_INSTRUCTIONS).toContain(
-      "Ask one follow-up only when its answer would materially change the three paths",
+      "Ask one follow-up only when its answer would materially change the role possibility set",
     );
     expect(PROFILE_REFINEMENT_INSTRUCTIONS).toContain(
       "Never recommend careers, majors, colleges, programs, or paths",

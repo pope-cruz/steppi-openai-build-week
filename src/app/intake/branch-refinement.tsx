@@ -103,7 +103,7 @@ export function BranchRefinementPanel({
                     What stayed the same
                   </dt>
                   <dd className="mt-1">
-                    Your profile, all three starting paths, this branch’s
+                    Your profile, the complete starting role set, this branch’s
                     identity, and {originalFindingCount} original{" "}
                     {originalFindingCount === 1 ? "finding" : "findings"} remain
                     unchanged.

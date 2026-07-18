@@ -29,17 +29,17 @@ const ERROR_DETAILS: Record<
     status: 503,
   },
   timeout: {
-    message: "Steppi took too long to explore these paths. Your confirmed profile is safe; please try again.",
+    message: "Steppi took too long to explore these roles. Your confirmed profile is safe; please try again.",
     retryable: true,
     status: 504,
   },
   api_failure: {
-    message: "Steppi could not explore paths right now. Your confirmed profile is safe; please try again.",
+    message: "Steppi could not explore roles right now. Your confirmed profile is safe; please try again.",
     retryable: true,
     status: 502,
   },
   malformed_model_output: {
-    message: "Steppi received paths it could not safely compare. Nothing was shown; please try again.",
+    message: "Steppi received roles it could not safely compare. Nothing was shown; please try again.",
     retryable: true,
     status: 502,
   },
@@ -82,7 +82,7 @@ export async function handlePathRequest(
         ok: false,
         error: {
           code: "invalid_input",
-          message: "The confirmed profile is incomplete or invalid. Please review it before exploring paths.",
+          message: "The confirmed profile is incomplete or invalid. Please review it before exploring roles.",
           retryable: false,
         },
       },

@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowRight, Check, UserRound } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 
 import { BranchRefinementPanel } from "@/app/intake/branch-refinement";
@@ -43,32 +42,33 @@ import {
   type StudentProfile,
 } from "@/lib/schemas";
 
-const BRANCH_PRESENTATION = {
-  "strongest-fit": {
-    label: "Strongest current fit",
-    index: "01",
-    nodeClass: "border-[var(--color-branch-blue-edge)] bg-[var(--color-branch-blue)]",
-    positionClass: "lg:left-[4%] lg:top-[11%]",
-  },
-  adjacent: {
-    label: "Adjacent possibility",
-    index: "02",
-    nodeClass: "border-[var(--color-branch-peach-edge)] bg-[var(--color-branch-peach)]",
-    positionClass: "lg:right-[4%] lg:top-[11%]",
-  },
-  underexplored: {
-    label: "Underexplored possibility",
-    index: "03",
-    nodeClass: "border-[var(--color-branch-green-edge)] bg-[var(--color-branch-green)]",
-    positionClass: "lg:bottom-[8%] lg:left-1/2 lg:-translate-x-1/2",
-  },
-} as const;
+export const DESKTOP_ROLE_SLOTS = [
+  "col-start-1 col-span-4 row-start-1 self-end justify-self-start",
+  "col-start-5 col-span-4 row-start-1 self-start justify-self-center",
+  "col-start-9 col-span-4 row-start-1 self-end justify-self-end",
+  "col-start-2 col-span-4 row-start-2 self-center justify-self-center",
+  "col-start-7 col-span-5 row-start-2 self-end justify-self-center",
+  "col-start-1 col-span-4 row-start-3 self-start justify-self-end",
+  "col-start-5 col-span-5 row-start-4 self-start justify-self-center",
+  "col-start-9 col-span-4 row-start-3 self-end justify-self-start",
+] as const;
 
-const EDGE_PATHS = {
-  "strongest-fit": "M 360 270 C 305 245, 250 178, 150 145",
-  adjacent: "M 360 270 C 415 245, 470 178, 570 145",
-  underexplored: "M 360 270 C 360 335, 360 385, 360 455",
-} as const;
+export function rolePillWidthClass(title: string) {
+  if (title.length <= 22) {
+    return "w-[12rem]";
+  }
+  if (title.length <= 34) {
+    return "w-[15.5rem]";
+  }
+  return "w-[19rem]";
+}
+
+export function desktopRoleSlot(index: number) {
+  return (
+    DESKTOP_ROLE_SLOTS[index % DESKTOP_ROLE_SLOTS.length] ??
+    DESKTOP_ROLE_SLOTS[0]
+  );
+}
 
 export type DevelopmentResearchFixture =
   | "success"
@@ -100,7 +100,9 @@ export function InitialPathMap({
     pathMapReducer,
     createPathMapState(profile, branches),
   );
-  const branchButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const roleButtonRefs = useRef(
+    new Map<string, { desktop?: HTMLButtonElement; mobile?: HTMLButtonElement }>(),
+  );
   const [researchFlow, dispatchResearch] = useReducer(
     researchFlowReducer,
     createResearchFlowState(profile, branches),
@@ -717,7 +719,33 @@ export function InitialPathMap({
     const branchId = state.selectedBranchId;
     dispatch({ type: "clear" });
     if (branchId) {
-      window.requestAnimationFrame(() => branchButtonRefs.current.get(branchId)?.focus());
+      window.requestAnimationFrame(() => {
+        const buttons = roleButtonRefs.current.get(branchId);
+        const visibleButton = [buttons?.desktop, buttons?.mobile].find(
+          (button) => (button?.getBoundingClientRect().width ?? 0) > 0,
+        );
+        visibleButton?.focus();
+      });
+    }
+  }
+
+  function registerRoleButton(
+    branchId: string,
+    surface: "desktop" | "mobile",
+    node: HTMLButtonElement | null,
+  ) {
+    const current = roleButtonRefs.current.get(branchId) ?? {};
+    if (node) {
+      roleButtonRefs.current.set(branchId, { ...current, [surface]: node });
+      return;
+    }
+
+    const next = { ...current };
+    delete next[surface];
+    if (next.desktop || next.mobile) {
+      roleButtonRefs.current.set(branchId, next);
+    } else {
+      roleButtonRefs.current.delete(branchId);
     }
   }
 
@@ -735,16 +763,16 @@ export function InitialPathMap({
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-[47rem]">
           <p className="text-xs font-bold uppercase tracking-[0.11em] text-primary">
-            Your first path map
+            Your role space
           </p>
           <h1
             className="font-display mt-2 text-balance text-[clamp(2.35rem,6vw,4.5rem)] leading-[1.02] text-ink"
             id="path-map-title"
           >
-            Three directions. One place to explore them.
+            A field of possibilities. Start anywhere.
           </h1>
           <p className="mt-4 max-w-[40rem] text-sm leading-6 text-muted sm:text-base">
-            Choose a connected direction to see why it surfaced. These are hypotheses—not a ranking or prediction.
+            Scan the role titles first, then open any possibility that catches your attention. Nothing here is ranked or predicted.
           </p>
         </div>
         <p className="max-w-[17rem] text-xs leading-5 text-muted">
@@ -754,75 +782,32 @@ export function InitialPathMap({
 
       <div
         aria-describedby="path-map-instructions"
-        aria-label="Your confirmed profile connected to three path directions"
+        aria-label="Career role possibilities based on your confirmed profile"
         className="relative mt-8 isolate overflow-hidden rounded-[1.75rem] border border-border-strong bg-surface"
-        data-mobile-fallback="path-list"
-        data-relationship-count="3"
+        data-mobile-fallback="role-list"
+        data-role-count={state.branches.length}
       >
-        <div className="grid lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.75fr)]">
-          <div
-            aria-label="Interactive path graph"
-            className="relative hidden min-h-[35rem] overflow-hidden bg-surface-muted lg:block"
-            data-path-graph="primary"
-          >
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 opacity-70 [background-image:radial-gradient(circle,rgba(30,33,31,0.09)_1px,transparent_1.5px)] [background-size:32px_32px]"
-            />
-            <svg
-              aria-hidden="true"
-              className="absolute inset-0 size-full"
-              preserveAspectRatio="none"
-              viewBox="0 0 720 560"
-            >
-              {state.branches.map((branch) => (
-                <path
-                  className={
-                    state.selectedBranchId === branch.id
-                      ? "fill-none stroke-ink [stroke-width:2.5]"
-                      : "fill-none stroke-border-strong [stroke-width:1.5]"
-                  }
-                  d={EDGE_PATHS[branch.kind]}
-                  data-path-edge={branch.kind}
-                  key={branch.id}
-                  vectorEffect="non-scaling-stroke"
-                />
-              ))}
-            </svg>
+        <div
+          aria-label="Floating career role possibilities"
+          className="relative hidden min-h-[34rem] grid-cols-12 grid-rows-4 gap-x-4 gap-y-5 bg-surface-muted/55 px-8 py-8 lg:grid xl:px-12 xl:py-10"
+          data-role-overview="desktop"
+        >
+          {state.branches.map((branch, index) => {
+            const selected = state.selectedBranchId === branch.id;
 
-            <div
-              className="absolute top-1/2 left-1/2 z-10 flex size-36 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-full border border-primary bg-surface px-4 text-center shadow-[var(--shadow-card)]"
-              data-path-node="student"
-            >
-              <span className="flex size-9 items-center justify-center rounded-full bg-primary-soft text-primary">
-                <UserRound aria-hidden="true" className="size-5" />
-              </span>
-              <strong className="font-display block text-[1.6rem] font-medium text-ink">
-                You
-              </strong>
-              <span className="block text-[0.68rem] leading-4 text-muted">
-                {state.profile.facts.length} {state.profile.facts.length === 1 ? "fact" : "facts"} ·{" "}
-                {state.profile.constraints.length} {state.profile.constraints.length === 1 ? "constraint" : "constraints"}
-              </span>
-            </div>
-
-            {state.branches.map((branch) => {
-              const presentation = BRANCH_PRESENTATION[branch.kind];
-              const selected = state.selectedBranchId === branch.id;
-
-              return (
-                <button
+            return (
+              <button
                   aria-controls={selected ? `path-detail-${branch.id}` : undefined}
-                  aria-label={`Explore ${presentation.label}: ${branch.title}`}
+                  aria-label={`Explore ${branch.title}`}
                   aria-pressed={selected}
-                  className={`absolute z-10 w-[38%] max-w-[17rem] min-h-36 rounded-[var(--radius-card)] border px-5 py-5 text-left outline-none hover:border-ink focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted ${presentation.nodeClass} ${presentation.positionClass} ${
+                  className={`min-h-14 max-w-full rounded-full border px-5 py-3 text-center text-sm font-semibold leading-5 text-ink outline-none transition-[border-color,background-color,box-shadow] [overflow-wrap:anywhere] hover:border-primary hover:bg-surface focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted ${rolePillWidthClass(branch.title)} ${desktopRoleSlot(index)} ${
                     selected
-                      ? "ring-2 ring-ink ring-offset-4 ring-offset-surface-muted shadow-[var(--shadow-panel)]"
-                      : "shadow-[var(--shadow-card)]"
+                      ? "border-ink bg-primary-soft ring-2 ring-ink ring-offset-3 ring-offset-surface-muted"
+                      : "border-border-strong bg-surface"
                   }`}
-                  data-focused={selected ? "true" : undefined}
-                  data-path-node="branch"
-                  data-path-role={branch.kind}
+                  data-role-pill={branch.id}
+                  data-role-slot={index}
+                  data-role-surface="desktop"
                   disabled={isAnyResearchRequestActive(researchFlow)}
                   key={branch.id}
                   onClick={() => dispatch({ type: "select", branchId: branch.id })}
@@ -832,67 +817,36 @@ export function InitialPathMap({
                       dispatch({ type: "select", branchId: branch.id });
                     }
                   }}
+                  ref={(node) => registerRoleButton(branch.id, "desktop", node)}
                   type="button"
                 >
-                  <span className="flex items-start justify-between gap-3">
-                    <span className="text-[0.65rem] font-bold uppercase tracking-[0.09em] text-graphite">
-                      {presentation.label}
-                    </span>
-                    {selected ? (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-ink bg-surface px-2 py-1 text-[0.6rem] font-bold uppercase tracking-[0.08em] text-ink">
-                        <Check aria-hidden="true" className="size-3" />
-                        Focused
-                      </span>
-                    ) : null}
-                  </span>
-                  <strong className="mt-2 block text-base font-semibold leading-5 text-ink">
-                    {branch.title}
-                  </strong>
-                  <span className="mt-2 block text-xs leading-5 text-graphite">
-                    {branch.summary}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  {branch.title}
+              </button>
+            );
+          })}
+        </div>
 
-          <aside
-            aria-labelledby="path-browser-title"
-            className="relative border-border-strong bg-surface px-4 py-5 sm:px-6 sm:py-7 lg:border-s lg:px-7"
-            data-path-browser="index"
-          >
-            <div className="flex items-start gap-3 border-b border-border pb-5 lg:block">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary bg-primary-soft text-primary lg:hidden">
-                <UserRound aria-hidden="true" className="size-5" />
-              </span>
-              <div>
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.11em] text-primary">
-                  Paths connected to you
-                </p>
-                <h2 className="font-display mt-1 text-2xl leading-tight text-ink" id="path-browser-title">
-                  Browse your directions
-                </h2>
-                <p className="mt-2 text-xs leading-5 text-muted">
-                  Start anywhere. Each path opens its own evidence, tradeoffs, and questions.
-                </p>
-              </div>
-            </div>
+        <ul
+          aria-label="Career role possibilities"
+          className="space-y-3 bg-surface-muted/40 p-4 sm:p-6 lg:hidden"
+          data-role-overview="mobile"
+        >
+          {state.branches.map((branch) => {
+            const selected = state.selectedBranchId === branch.id;
 
-            <ol className="relative mt-1 before:absolute before:top-0 before:bottom-0 before:left-[0.68rem] before:w-px before:bg-border-strong before:content-[''] lg:before:hidden">
-              {state.branches.map((branch) => {
-                const presentation = BRANCH_PRESENTATION[branch.kind];
-                const selected = state.selectedBranchId === branch.id;
-
-                return (
-                  <li className="relative border-b border-border last:border-b-0" key={branch.id}>
+            return (
+              <li key={branch.id}>
                     <button
                       aria-controls={selected ? `path-detail-${branch.id}` : undefined}
-                      aria-label={`Browse ${presentation.label}: ${branch.title}`}
+                      aria-label={`Explore ${branch.title}`}
                       aria-pressed={selected}
-                      className={`group relative w-full py-5 ps-9 pe-1 text-left outline-none transition-colors before:absolute before:top-7 before:left-[0.35rem] before:size-[0.7rem] before:rounded-full before:border-2 before:border-surface before:bg-border-strong before:ring-1 before:ring-border-strong before:content-[''] hover:bg-surface-muted focus-visible:rounded-[var(--radius-control)] focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] lg:px-3 lg:before:hidden ${
-                        selected ? "bg-surface-muted before:bg-ink before:ring-ink" : ""
+                      className={`min-h-16 w-full rounded-[2rem] border px-5 py-3.5 text-center text-base font-semibold leading-6 text-ink outline-none transition-[border-color,background-color,box-shadow] [overflow-wrap:anywhere] hover:border-primary hover:bg-surface focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] ${
+                        selected
+                          ? "border-ink bg-primary-soft ring-2 ring-ink"
+                          : "border-border-strong bg-surface"
                       }`}
-                      data-path-browser-item={branch.kind}
+                      data-role-pill={branch.id}
+                      data-role-surface="mobile"
                       disabled={isAnyResearchRequestActive(researchFlow)}
                       onClick={() => dispatch({ type: "select", branchId: branch.id })}
                       onKeyDown={(event) => {
@@ -901,47 +855,19 @@ export function InitialPathMap({
                           dispatch({ type: "select", branchId: branch.id });
                         }
                       }}
-                      ref={(node) => {
-                        if (node) {
-                          branchButtonRefs.current.set(branch.id, node);
-                        } else {
-                          branchButtonRefs.current.delete(branch.id);
-                        }
-                      }}
+                      ref={(node) => registerRoleButton(branch.id, "mobile", node)}
                       type="button"
                     >
-                      <span className="flex items-center justify-between gap-3">
-                        <span className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-muted">
-                          {presentation.index} · {presentation.label}
-                        </span>
-                        {selected ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-ink">
-                            <Check aria-hidden="true" className="size-3" />
-                            Open now
-                          </span>
-                        ) : null}
-                      </span>
-                      <strong className="mt-2 block text-[1.05rem] font-semibold leading-6 text-ink">
-                        {branch.title}
-                      </strong>
-                      <span className="mt-1.5 block text-sm leading-5 text-graphite">
-                        {branch.summary}
-                      </span>
-                      <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-                        {selected ? "Viewing this path" : "Explore this path"}
-                        <ArrowRight aria-hidden="true" className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                      </span>
+                      {branch.title}
                     </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </aside>
-        </div>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
       <p className="mt-3 text-xs leading-5 text-muted" id="path-map-instructions">
-        Select a path with a pointer, or focus a path and press Enter or Space. The graph does not require dragging.
+        Select a role with a pointer, or focus a role and press Enter or Space. No dragging is required.
       </p>
 
       {selectedBranch && visibleResearch ? (
@@ -1001,7 +927,7 @@ export function InitialPathMap({
           aria-live="polite"
           className="mt-6 border-y border-border px-4 py-4 text-center text-sm text-muted"
         >
-          No direction selected. Your three paths remain equally open for exploration.
+          No role selected. Every possibility remains open for exploration.
         </p>
       )}
     </section>

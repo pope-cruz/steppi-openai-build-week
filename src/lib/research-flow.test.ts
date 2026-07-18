@@ -62,7 +62,7 @@ describe("research flow state", () => {
     expect(selectedMap.selectedBranchId).toBe(DEMO_PATH_BRANCHES[0].id);
     expect(selectedMap.profile).toBe(VALID_PROFILE_FIXTURE);
     expect(selectedMap.branches).toBe(DEMO_PATH_BRANCHES);
-    expect(selectedMap.branches).toHaveLength(3);
+    expect(selectedMap.branches).toHaveLength(7);
     expect(partial.profile).toBe(VALID_PROFILE_FIXTURE);
     expect(partial.branches).toBe(DEMO_PATH_BRANCHES);
     expect(partial.request).toEqual({

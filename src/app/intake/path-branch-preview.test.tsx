@@ -6,7 +6,12 @@ import {
   profileEvidence,
 } from "@/app/intake/path-detail-panel";
 import { BranchRefinementPanel } from "@/app/intake/branch-refinement";
-import { InitialPathMap } from "@/app/intake/path-branch-preview";
+import {
+  DESKTOP_ROLE_SLOTS,
+  InitialPathMap,
+  desktopRoleSlot,
+  rolePillWidthClass,
+} from "@/app/intake/path-branch-preview";
 import { ResearchComposer } from "@/app/intake/path-research";
 import { ResearchExpansion } from "@/app/intake/research-expansion";
 import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
@@ -21,7 +26,7 @@ import { VALID_PROFILE_FIXTURE } from "@/test/profile-fixture";
 import { BRANCH_REFINEMENT_CONSTRAINT } from "@/lib/branch-refinement";
 
 describe("initial path map markup", () => {
-  it("renders one student node, three graph controls, three browse controls, and no initial detail", () => {
+  it("renders every role as one desktop and one mobile title-only pill", () => {
     const markup = renderToStaticMarkup(
       <InitialPathMap
         branches={DEMO_PATH_BRANCHES}
@@ -29,48 +34,65 @@ describe("initial path map markup", () => {
       />,
     );
 
-    expect(markup.match(/data-path-node="student"/g)).toHaveLength(1);
-    expect(markup.match(/data-path-node="branch"/g)).toHaveLength(3);
-    expect(markup.match(/data-path-edge=/g)).toHaveLength(3);
-    expect(markup.match(/aria-pressed="false"/g)).toHaveLength(6);
-    expect(markup.match(/<button[^>]*type="button"/g)).toHaveLength(6);
-    expect(markup).not.toContain("data-path-detail=");
-  });
-
-  it("preserves every required branch role and adds the mobile path-list fallback", () => {
-    const markup = renderToStaticMarkup(
-      <InitialPathMap
-        branches={DEMO_PATH_BRANCHES}
-        profile={VALID_PROFILE_FIXTURE}
-      />,
-    );
-
-    expect(markup).toContain('data-path-role="strongest-fit"');
-    expect(markup).toContain('data-path-role="adjacent"');
-    expect(markup).toContain('data-path-role="underexplored"');
-    expect(markup.match(/data-path-browser-item=/g)).toHaveLength(3);
-    expect(markup).toContain('data-mobile-fallback="path-list"');
-    expect(markup).toContain('data-path-graph="primary"');
-    expect(markup).toContain("Browse your directions");
-    expect(markup).toContain('data-relationship-count="3"');
-    expect(markup).toContain("press Enter or Space");
-  });
-
-  it("uses existing concise path data in the browseable index", () => {
-    const markup = renderToStaticMarkup(
-      <InitialPathMap
-        branches={DEMO_PATH_BRANCHES}
-        profile={VALID_PROFILE_FIXTURE}
-      />,
-    );
-
+    expect(markup.match(/data-role-surface="desktop"/g)).toHaveLength(7);
+    expect(markup.match(/data-role-surface="mobile"/g)).toHaveLength(7);
+    expect(markup.match(/aria-pressed="false"/g)).toHaveLength(14);
+    expect(markup.match(/<button[^>]*type="button"/g)).toHaveLength(14);
     for (const branch of DEMO_PATH_BRANCHES) {
-      expect(markup).toContain(`data-path-browser-item="${branch.kind}"`);
-      expect(markup).toContain(branch.title);
-      expect(markup).toContain(branch.summary);
+      expect(markup.match(new RegExp(branch.title, "g"))).toHaveLength(4);
+      expect(markup).not.toContain(branch.summary);
+      expect(markup).not.toContain(branch.whyItAppeared[0]);
+      expect(markup).not.toContain(branch.drawbacks[0]);
     }
-    expect(markup.match(/aria-pressed="false"/g)).toHaveLength(6);
+    expect(markup).not.toContain("Strongest current fit");
+    expect(markup).not.toContain("Adjacent possibility");
+    expect(markup).not.toContain("Underexplored possibility");
     expect(markup).not.toContain("data-path-detail=");
+  });
+
+  it("uses a deterministic floating desktop composition and complete mobile list", () => {
+    const markup = renderToStaticMarkup(
+      <InitialPathMap
+        branches={DEMO_PATH_BRANCHES}
+        profile={VALID_PROFILE_FIXTURE}
+      />,
+    );
+
+    expect(DESKTOP_ROLE_SLOTS).toHaveLength(8);
+    DEMO_PATH_BRANCHES.forEach((branch, index) => {
+      expect(markup).toContain(`data-role-pill="${branch.id}"`);
+      expect(markup).toContain(`data-role-slot="${index}"`);
+      expect(markup).toContain(desktopRoleSlot(index));
+    });
+    expect(markup).toContain('data-mobile-fallback="role-list"');
+    expect(markup).toContain('data-role-overview="desktop"');
+    expect(markup).toContain('data-role-overview="mobile"');
+    expect(markup).toContain("lg:grid");
+    expect(markup).toContain("lg:hidden");
+    expect(markup).toContain("press Enter or Space");
+    expect(markup).not.toContain("data-path-edge=");
+    expect(markup).not.toContain("data-path-graph=");
+  });
+
+  it("varies pill width by title length and wraps long titles safely", () => {
+    const longTitleBranches = structuredClone(DEMO_PATH_BRANCHES);
+    longTitleBranches[0].title =
+      "Human-centered artificial intelligence product and experience designer";
+    const markup = renderToStaticMarkup(
+      <InitialPathMap
+        branches={longTitleBranches}
+        profile={VALID_PROFILE_FIXTURE}
+      />,
+    );
+
+    expect(rolePillWidthClass("Archivist")).toBe("w-[12rem]");
+    expect(rolePillWidthClass("Science communication producer")).toBe(
+      "w-[15.5rem]",
+    );
+    expect(rolePillWidthClass(longTitleBranches[0].title)).toBe("w-[19rem]");
+    expect(markup).toContain(longTitleBranches[0].title);
+    expect(markup).toContain("[overflow-wrap:anywhere]");
+    expect(markup).toContain("max-w-full");
   });
 
   it("renders full details for only the selected branch", () => {
@@ -101,6 +123,41 @@ describe("initial path map markup", () => {
     expect(markup).toContain("Steppi inference");
     expect(markup).not.toContain(DEMO_PATH_BRANCHES[1].title);
     expect(markup).not.toContain(DEMO_PATH_BRANCHES[2].title);
+  });
+
+  it("uses neutral selected-role framing without ranked-like metadata", () => {
+    const role = DEMO_PATH_BRANCHES[2];
+    const markup = renderToStaticMarkup(
+      <PathDetailPanel
+        branch={role}
+        evidence={profileEvidence(VALID_PROFILE_FIXTURE)}
+        onClear={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("Career possibility");
+    expect(markup).not.toContain("Strongest current fit");
+    expect(markup).not.toContain("Adjacent possibility");
+    expect(markup).not.toContain("Underexplored possibility");
+    expect(markup.toLowerCase()).not.toContain("confidence");
+  });
+
+  it("keeps a long compound role title within the responsive header contract", () => {
+    const longTitleBranch = {
+      ...DEMO_PATH_BRANCHES[1],
+      title: "Human-centered artificial intelligence product and experience designer",
+    };
+    const markup = renderToStaticMarkup(
+      <PathDetailPanel
+        branch={longTitleBranch}
+        evidence={profileEvidence(VALID_PROFILE_FIXTURE)}
+        onClear={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain(longTitleBranch.title);
+    expect(markup).toContain("overflow-wrap:anywhere");
+    expect(markup).toContain("Back to all paths");
   });
 
   it("offers three suggested questions and a branch-labeled free-text input", () => {
@@ -264,7 +321,7 @@ describe("initial path map markup", () => {
     expect(markup).toContain("What changed");
     expect(markup).toContain("Why");
     expect(markup).toContain("What stayed the same");
-    expect(markup).toContain("all three starting paths");
+    expect(markup).toContain("complete starting role set");
     expect(markup).toContain("3 original findings");
   });
 
