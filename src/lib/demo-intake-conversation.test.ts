@@ -4,70 +4,136 @@ import { developmentIntakeTurnPayload } from "@/lib/demo-intake-conversation";
 import {
   EMPTY_CONVERSATION_STATE,
   IntakeTurnApiResponseSchema,
-  MAX_CONVERSATION_TURNS,
   applyConversationPatch,
-  prepareConversationPatchForPacing,
+  firstConversationQuestion,
+  nextControllerQuestion,
+  prepareConversationPatchForController,
+  type ConversationQuestion,
+  type ConversationState,
   type ConversationTurn,
 } from "@/lib/intake-conversation";
 
-const turn: ConversationTurn = {
-  id: "starting-point",
-  acknowledgement: null,
-  question: "What are you trying to figure out about college or work right now?",
-  answer:
-    "I am in Grade 11, liked designing our publication, and need affordable options near Manila with a manageable commute. My family hopes I choose something stable.",
-  answeredAt: "2026-07-17T02:00:00.000Z",
-};
+const answeredAt = "2026-07-17T02:00:00.000Z";
 
-function fixturePatch(fixture: "intake-success" | "intake-practical") {
-  const payload = IntakeTurnApiResponseSchema.parse(
-    developmentIntakeTurnPayload({
-      fixture,
-      state: EMPTY_CONVERSATION_STATE,
-      turns: [turn],
-      attempt: 1,
-    }),
-  );
-  if (!payload.ok) throw new Error("expected fixture success");
-  return payload.patch;
+function answer(
+  question: ConversationQuestion,
+  text = "A detailed fixture answer.",
+): ConversationTurn {
+  return {
+    id: question.id,
+    stage: question.stage,
+    purpose: question.purpose,
+    acknowledgement: question.acknowledgement,
+    question: question.prompt,
+    answer: text,
+    answeredAt,
+  };
 }
 
-describe("deterministic intake pacing fixtures", () => {
-  it("can complete after one detailed answer spanning several dimensions", () => {
-    const patch = fixturePatch("intake-success");
-    const state = applyConversationPatch(EMPTY_CONVERSATION_STATE, patch, [turn]);
+function fixtureResult({
+  attempt,
+  fixture,
+  state,
+  turns,
+}: {
+  attempt: number;
+  fixture: "intake-success" | "intake-alternate" | "intake-uncertain";
+  state: ConversationState;
+  turns: ConversationTurn[];
+}) {
+  const payload = IntakeTurnApiResponseSchema.parse(
+    developmentIntakeTurnPayload({ fixture, state, turns, attempt }),
+  );
+  if (!payload.ok) throw new Error("expected fixture success");
+  const patch = prepareConversationPatchForController(
+    state,
+    payload.patch,
+    turns,
+  );
+  return {
+    patch,
+    state: applyConversationPatch(state, patch, turns),
+  };
+}
 
-    expect(patch.enoughContext).toBe(true);
-    expect(patch.nextQuestion).toBeNull();
-    expect(state.suppliedFacts).toHaveLength(1);
-    expect(state.interpretedInterests).toHaveLength(1);
-    expect(state.experiences).toHaveLength(1);
-    expect(state.preferences).toHaveLength(1);
-    expect(state.dislikes).toHaveLength(1);
-    expect(state.constraints).toHaveLength(1);
-    expect(state.consideredPaths).toHaveLength(1);
-    expect(state.uncertainty).toHaveLength(1);
+function runAnchors(
+  fixture: "intake-success" | "intake-alternate" | "intake-uncertain",
+) {
+  let state = EMPTY_CONVERSATION_STATE;
+  const turns: ConversationTurn[] = [];
+  let question: ConversationQuestion = firstConversationQuestion();
+  let lastPatch = null;
+
+  for (let index = 0; index < 3; index += 1) {
+    turns.push(answer(question));
+    const result = fixtureResult({
+      fixture,
+      state,
+      turns: [...turns],
+      attempt: index + 1,
+    });
+    state = result.state;
+    lastPatch = result.patch;
+    question = nextControllerQuestion({
+      completedTurn: turns.at(-1)!,
+      patch: result.patch,
+      turns,
+    })!;
+  }
+
+  return { lastPatch: lastPatch!, question, state, turns };
+}
+
+describe("deterministic intake fixtures", () => {
+  it("always reaches a first follow-up after the three anchors", () => {
+    const result = runAnchors("intake-success");
+    expect(result.turns.map((turn) => turn.stage)).toEqual([
+      "anchor-existing",
+      "anchor-school",
+      "anchor-outside",
+    ]);
+    expect(result.question).toMatchObject({
+      stage: "follow-up-1",
+      purpose: "distinguish-directions",
+    });
   });
 
-  it("keeps affordability, Manila, transport, and family influence explicit without asking for them again", () => {
-    const patch = fixturePatch("intake-practical");
-    const state = applyConversationPatch(EMPTY_CONVERSATION_STATE, patch, [turn]);
-    const constraintText = state.constraints.map((item) => item.text).join(" ");
-
-    expect(constraintText).toMatch(/costs manageable/i);
-    expect(constraintText).toMatch(/Manila/i);
-    expect(constraintText).toMatch(/family/i);
-    expect(constraintText).toMatch(/commute/i);
-    expect(patch.nextQuestion).toMatch(/publication/i);
-    expect(patch.nextQuestion).not.toMatch(/income|afford|Manila|commute/i);
+  it("uses a second follow-up only when a distinct need remains", () => {
+    const result = runAnchors("intake-alternate");
+    const followUpTurn = answer(result.question);
+    const turns = [...result.turns, followUpTurn];
+    const interpreted = fixtureResult({
+      fixture: "intake-alternate",
+      state: result.state,
+      turns,
+      attempt: 4,
+    });
+    expect(
+      nextControllerQuestion({
+        completedTurn: followUpTurn,
+        patch: interpreted.patch,
+        turns,
+      }),
+    ).toMatchObject({
+      stage: "follow-up-2",
+      purpose: "clarify-practical-constraint",
+    });
   });
 
-  it("exposes a failed first attempt for user-initiated retry without an automatic second request", () => {
+  it("preserves uncertainty while still progressing", () => {
+    const result = runAnchors("intake-uncertain");
+    expect(result.state.uncertainty).toHaveLength(3);
+    expect(result.question.stage).toBe("follow-up-1");
+    expect(result.question.purpose).toBe("material-evidence-gap");
+  });
+
+  it("exposes a failed first attempt for user-initiated retry", () => {
+    const firstTurn = answer(firstConversationQuestion());
     const first = IntakeTurnApiResponseSchema.parse(
       developmentIntakeTurnPayload({
         fixture: "intake-retry",
         state: EMPTY_CONVERSATION_STATE,
-        turns: [turn],
+        turns: [firstTurn],
         attempt: 1,
       }),
     );
@@ -75,47 +141,25 @@ describe("deterministic intake pacing fixtures", () => {
       developmentIntakeTurnPayload({
         fixture: "intake-retry",
         state: EMPTY_CONVERSATION_STATE,
-        turns: [turn],
+        turns: [firstTurn],
         attempt: 2,
       }),
     );
-
     expect(first).toMatchObject({ ok: false, error: { retryable: true } });
     expect(retry.ok).toBe(true);
   });
 
-  it("keeps malformed fixture output outside the validated state boundary", () => {
+  it("keeps malformed fixture output outside the validated boundary", () => {
+    const firstTurn = answer(firstConversationQuestion());
     expect(
       IntakeTurnApiResponseSchema.safeParse(
         developmentIntakeTurnPayload({
           fixture: "intake-malformed",
           state: EMPTY_CONVERSATION_STATE,
-          turns: [turn],
+          turns: [firstTurn],
           attempt: 1,
         }),
       ).success,
     ).toBe(false);
-  });
-
-  it("turns repeated uncertainty into completion at the final supported answer", () => {
-    const turns = Array.from({ length: MAX_CONVERSATION_TURNS }, (_, index) => ({
-      ...turn,
-      id: `turn-${index + 1}`,
-      question: `Question ${index + 1}?`,
-      answer: "I still do not know; I have not had much exposure.",
-    }));
-    const payload = IntakeTurnApiResponseSchema.parse(
-      developmentIntakeTurnPayload({
-        fixture: "intake-max-turns",
-        state: EMPTY_CONVERSATION_STATE,
-        turns,
-        attempt: MAX_CONVERSATION_TURNS,
-      }),
-    );
-    if (!payload.ok) throw new Error("expected fixture success");
-
-    const paced = prepareConversationPatchForPacing(payload.patch, turns);
-    expect(paced.enoughContext).toBe(true);
-    expect(paced.nextQuestion).toBeNull();
   });
 });

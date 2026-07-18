@@ -297,9 +297,10 @@ Rules:
 
 - Ask one primary question at a time.
 - Present the three anchors in order, then one or two adaptive follow-ups, then
-  the final consideration question once.
-- Let detailed answers satisfy several dimensions and do not request supplied
-  information again.
+  the exact `final-consideration` question once.
+- Present all three anchors even when answers overlap. Let detailed answers
+  satisfy several dimensions, and do not use adaptive follow-ups to request
+  sufficiently supplied information again.
 - Acknowledge or connect to the previous answer only when useful; avoid repeating
   it or adding generic filler.
 - Accept uncertainty and incomplete answers without blocking completion.
@@ -833,7 +834,8 @@ These are fixed unless explicitly changed:
 - Intake keeps a persistent transcript and shows one primary question per Steppi
   turn.
 - Intake uses three ordered anchors, one or two deterministic-purpose follow-ups,
-  and one final consideration question.
+  and the exact `final-consideration` question, “Before I put this together, is
+  there anything else Steppi should consider?”.
 - The public profile is exactly three sentences with **Looks right** and **Make a
   correction** actions; direct statements and inferences remain separate
   internally.
@@ -879,9 +881,9 @@ Move a question into **Current Build Week Decisions** once resolved.
 
 - One question clearly has focus.
 - All previous Steppi and student messages remain visible and stable.
-- The three anchors, one or two allowed follow-ups, and final consideration
-  question appear in order.
-- Supplied information is not requested twice.
+- The three anchors, one or two allowed follow-ups, and exact
+  `final-consideration` question appear in order.
+- Adaptive follow-ups do not request sufficiently supplied information twice.
 - Uncertainty does not block completion.
 - Back preserves state.
 - Free text is always possible.

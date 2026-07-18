@@ -29,6 +29,58 @@ it is historical evidence, not a second specification.
 
 ## Completed
 
+### 2026-07-17 — Deterministic conversational intake controller
+
+- Replaced the former broad opener, freely paced completion, and shared
+  12-answer policy with explicit controller stages: `anchor-existing`,
+  `anchor-school`, `anchor-outside`, `follow-up-1`, optional `follow-up-2`,
+  `final`, and `profile`. All three anchors now run once in order even when an
+  earlier answer overlaps their subject matter.
+- Moved follow-up sequencing into deterministic application code with the fixed
+  priority contradiction, plausible-direction distinction, practical constraint,
+  then material evidence gap. GPT-5.6 now returns schema-validated state updates,
+  acknowledgements, and bounded candidates; it no longer chooses completion or
+  the active question.
+- Added deterministic candidate rejection for invalid references, repeated
+  questions, already-resolved dimensions, multiple independent topics, and the
+  explicitly prohibited generic personality-test patterns. Related focused
+  contrasts such as enjoy versus avoid remain valid.
+- Added the exact final prompt, “Before I put this together, is there anything
+  else Steppi should consider?”, with stable ID `final-consideration`. Final
+  declines such as `no`, `nothing`, `nothing else`, and `I don’t know` remain
+  genuine transcript answers, pass unchanged into `/api/profile`, skip intake
+  interpretation, and start profile generation immediately.
+- Scoped every interpretation result and retry to a monotonic transcript revision
+  plus source-turn ID. New answers, revisions, and profile generation invalidate
+  stale results and retry controls. Existing synchronous request locks and
+  sequential loading remain in place; no concurrent interpreter requests were
+  introduced. Successful retries may update validated state or acknowledgement
+  but do not rewind the displayed controller stage.
+- Implemented deterministic failure progression: anchor failures advance through
+  the remaining anchors, anchor-three failure uses the approved focused fallback,
+  follow-up failures advance to the final prompt, and final interpretation failure
+  generates the profile from the preserved transcript. Revision still truncates
+  affected later turns and recomputes from the appropriate checkpoint.
+- Updated the intake fixtures and controller, flow, server, route, and fixture
+  tests. Focused verification passed with 5 files and 52 tests; the full suite
+  passed with 30 files and 212 tests.
+- Real-browser verification at 1440×1000 and 390×844 covered ordered anchors,
+  loading/request locking, adaptive follow-up, exact final wording, final-decline
+  profile handoff, retry without stage rewind, malformed-output fallback through
+  final profile generation, empty-answer validation, desktop/mobile layout, and
+  browser console output. No browser warnings or errors were recorded, and only
+  local fixture routes were used; no live or paid model request occurred.
+- `npm run lint`, `npm run typecheck`, `npm run test`, the network-enabled `npm run
+  build`, and `git diff --check` passed. The first sandboxed build failed only
+  because the configured Google Fonts could not be fetched; the permitted rerun
+  compiled successfully and generated all application routes.
+- Remaining limitations: revised intake candidate quality has fixture but not live
+  GPT-5.6 verification; intake duration and screen-reader behavior remain
+  unmeasured. Exact next task: align the public confirmation to exactly three
+  sentences with “Is there anything we missed or misunderstood?” and **Looks
+  right** / **Make a correction** while preserving the validated internal profile
+  and downstream graph/research contracts.
+
 ### 2026-07-17 — Optional profile summary and adaptive refinement fork
 
 - Replaced the mandatory, field-heavy profile review and two-step confirmation

@@ -1,29 +1,39 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ConversationPatchError,
-  ConversationTurnPatchSchema,
   EMPTY_CONVERSATION_STATE,
-  MAX_CONVERSATION_TURNS,
-  TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT,
+  FINAL_CONSIDERATION_QUESTION,
   applyConversationPatch,
-  completeConversationStateAtTurnLimit,
-  fallbackConversationQuestion,
-  prepareConversationPatchForPacing,
-  questionFromPatch,
+  firstConversationQuestion,
+  hasMultipleIndependentQuestions,
+  isFinalDeclineAnswer,
+  isProhibitedGenericQuestion,
+  nextControllerQuestion,
+  prepareConversationPatchForController,
+  questionAfterInterpretationFailure,
+  type ConversationQuestion,
   type ConversationState,
   type ConversationTurn,
   type ConversationTurnPatch,
+  type FollowUpCandidate,
 } from "@/lib/intake-conversation";
 
-const turn: ConversationTurn = {
-  id: "starting-point",
-  acknowledgement: null,
-  question: "What are you trying to figure out?",
-  answer:
-    "I am in Grade 11, coordinated a digital art project, and need affordable options near Manila, but I am unsure about coding.",
-  answeredAt: "2026-07-17T02:00:00.000Z",
-};
+const answeredAt = "2026-07-17T02:00:00.000Z";
+
+function turn(
+  question: ConversationQuestion,
+  answer = "A detailed answer.",
+): ConversationTurn {
+  return {
+    id: question.id,
+    stage: question.stage,
+    purpose: question.purpose,
+    acknowledgement: question.acknowledgement,
+    question: question.prompt,
+    answer,
+    answeredAt,
+  };
+}
 
 function emptyUpdates(): ConversationTurnPatch["updates"] {
   return {
@@ -39,373 +49,407 @@ function emptyUpdates(): ConversationTurnPatch["updates"] {
 }
 
 function patch(
-  overrides: Partial<ConversationTurnPatch> = {},
+  values: Partial<ConversationTurnPatch> = {},
 ): ConversationTurnPatch {
   return {
     updates: emptyUpdates(),
     supersedeItemIds: [],
-    unresolvedDimensions: ["strengths-and-preferences"],
-    enoughContext: false,
-    acknowledgement: "You mentioned coordinating a digital art project.",
-    nextQuestion: "Which part of that project held your attention most?",
-    ...overrides,
+    unresolvedDimensions: [],
+    acknowledgement: "You gave a concrete example.",
+    followUpCandidates: [],
+    ...values,
   };
 }
 
-describe("conversational state patches", () => {
-  it("applies a rich broad answer and yields a personalized follow-up", () => {
-    const richPatch = patch({
-      updates: {
-        ...emptyUpdates(),
-        suppliedFacts: [
-          {
-            id: "grade-11",
-            text: "The student is in Grade 11.",
-            basis: "explicit",
-            sourceTurnIds: [turn.id],
-          },
-        ],
-        interpretedInterests: [
-          {
-            id: "creative-tech",
-            text: "Creative technology may interest the student.",
-            basis: "tentative-interpretation",
-            sourceTurnIds: [turn.id],
-          },
-        ],
-        experiences: [
-          {
-            id: "digital-art-project",
-            text: "The student coordinated a digital art project.",
-            basis: "explicit",
-            sourceTurnIds: [turn.id],
-          },
-        ],
-        constraints: [
-          {
-            id: "affordable-manila",
-            text: "Affordable options near Manila matter.",
-            basis: "explicit",
-            sourceTurnIds: [turn.id],
-          },
-        ],
-        uncertainty: [
-          {
-            id: "coding-uncertainty",
-            text: "The student is unsure how much coding they would enjoy.",
-            basis: "explicit",
-            sourceTurnIds: [turn.id],
-          },
-        ],
-      },
+function candidate(
+  values: Partial<FollowUpCandidate> & Pick<FollowUpCandidate, "purpose">,
+): FollowUpCandidate {
+  return {
+    rationale: "This would materially sharpen the directions.",
+    targetItemIds: [],
+    targetDimensions: [],
+    sourceTurnIds: ["anchor-outside"],
+    question: "Which part would you want a future path to include?",
+    ...values,
+  };
+}
+
+const stateWithDirections: ConversationState = {
+  ...EMPTY_CONVERSATION_STATE,
+  consideredPaths: [
+    {
+      id: "path-design",
+      text: "The student is considering design.",
+      basis: "explicit",
+      sourceTurnIds: ["anchor-existing"],
+    },
+    {
+      id: "path-computing",
+      text: "The student is considering computing.",
+      basis: "explicit",
+      sourceTurnIds: ["anchor-existing"],
+    },
+  ],
+  constraints: [
+    {
+      id: "constraint-cost",
+      text: "Cost may limit the student's options.",
+      basis: "tentative-interpretation",
+      sourceTurnIds: ["anchor-outside"],
+    },
+  ],
+};
+
+describe("deterministic intake controller", () => {
+  it("always presents all three anchors in the required order", () => {
+    const first = firstConversationQuestion();
+    const firstTurn = turn(
+      first,
+      "I already covered my school and outside-school experiences too.",
+    );
+    const second = nextControllerQuestion({
+      completedTurn: firstTurn,
+      patch: patch(),
+      turns: [firstTurn],
     });
-    const state = applyConversationPatch(
-      EMPTY_CONVERSATION_STATE,
-      richPatch,
-      [turn],
-    );
+    expect(first.stage).toBe("anchor-existing");
+    expect(second?.stage).toBe("anchor-school");
 
-    expect(state.suppliedFacts).toHaveLength(1);
-    expect(state.experiences[0].text).toContain("digital art");
-    expect(state.uncertainty).toHaveLength(1);
-    expect(questionFromPatch(richPatch, 1)?.prompt).toContain("project");
+    const secondTurn = turn(second!);
+    const third = nextControllerQuestion({
+      completedTurn: secondTurn,
+      patch: patch(),
+      turns: [firstTurn, secondTurn],
+    });
+    expect(third?.stage).toBe("anchor-outside");
   });
 
-  it("does not require already supplied dimensions in a validated next state", () => {
-    const result = applyConversationPatch(
-      EMPTY_CONVERSATION_STATE,
-      patch({ unresolvedDimensions: ["dislikes"] }),
-      [turn],
+  it("selects follow-ups using the fixed controller priority", () => {
+    const outsideQuestion: ConversationQuestion = {
+      id: "anchor-outside",
+      stage: "anchor-outside",
+      purpose: null,
+      acknowledgement: null,
+      prompt: "Outside-school experiences?",
+      helper: "",
+      placeholder: "",
+    };
+    const outsideTurn = turn(outsideQuestion);
+    const prepared = prepareConversationPatchForController(
+      stateWithDirections,
+      patch({
+        unresolvedDimensions: [
+          "considered-paths",
+          "constraints",
+          "experiences",
+        ],
+        followUpCandidates: [
+          candidate({
+            purpose: "material-evidence-gap",
+            targetDimensions: ["experiences"],
+            question: "Which experience would you most want to repeat?",
+          }),
+          candidate({
+            purpose: "clarify-practical-constraint",
+            targetItemIds: ["constraint-cost"],
+            targetDimensions: ["constraints"],
+            question: "How would cost change what you can explore first?",
+          }),
+          candidate({
+            purpose: "distinguish-directions",
+            targetItemIds: ["path-design", "path-computing"],
+            question: "Which difference between design and computing matters most?",
+          }),
+          candidate({
+            purpose: "resolve-contradiction",
+            targetItemIds: ["path-design", "path-computing"],
+            question: "You described both paths differently; which account is closer?",
+          }),
+        ],
+      }),
+      [outsideTurn],
     );
-    expect(result.unresolvedDimensions).toEqual(["dislikes"]);
+
+    const next = nextControllerQuestion({
+      completedTurn: outsideTurn,
+      patch: prepared,
+      turns: [outsideTurn],
+    });
+    expect(next).toMatchObject({
+      stage: "follow-up-1",
+      purpose: "resolve-contradiction",
+    });
   });
 
-  it("accepts no known constraints and little career exposure as useful context", () => {
+  it("asks a second follow-up only for a distinct remaining purpose", () => {
+    const firstFollowUp: ConversationQuestion = {
+      id: "follow-up-1",
+      stage: "follow-up-1",
+      purpose: "distinguish-directions",
+      acknowledgement: null,
+      prompt: "Which direction difference matters most?",
+      helper: "",
+      placeholder: "",
+    };
+    const firstTurn = turn(firstFollowUp);
+    const distinctPatch = patch({
+      unresolvedDimensions: ["constraints"],
+      followUpCandidates: [
+        candidate({
+          purpose: "distinguish-directions",
+          sourceTurnIds: ["follow-up-1"],
+          targetItemIds: ["path-design", "path-computing"],
+        }),
+        candidate({
+          purpose: "clarify-practical-constraint",
+          sourceTurnIds: ["follow-up-1"],
+          targetItemIds: ["constraint-cost"],
+          targetDimensions: ["constraints"],
+          question: "How would cost change which path you explore first?",
+        }),
+      ],
+    });
+    const prepared = prepareConversationPatchForController(
+      stateWithDirections,
+      distinctPatch,
+      [firstTurn],
+    );
+    expect(
+      nextControllerQuestion({
+        completedTurn: firstTurn,
+        patch: prepared,
+        turns: [firstTurn],
+      }),
+    ).toMatchObject({
+      stage: "follow-up-2",
+      purpose: "clarify-practical-constraint",
+    });
+
+    expect(
+      nextControllerQuestion({
+        completedTurn: firstTurn,
+        patch: patch(),
+        turns: [firstTurn],
+      }),
+    ).toEqual({
+      ...FINAL_CONSIDERATION_QUESTION,
+      acknowledgement: "You gave a concrete example.",
+    });
+  });
+
+  it("uses the exact stable final question and never asks after it", () => {
+    expect(FINAL_CONSIDERATION_QUESTION).toMatchObject({
+      id: "final-consideration",
+      stage: "final",
+      prompt: "Before I put this together, is there anything else Steppi should consider?",
+    });
+    const finalTurn = turn(FINAL_CONSIDERATION_QUESTION, "Nothing");
+    expect(
+      nextControllerQuestion({
+        completedTurn: finalTurn,
+        patch: patch(),
+        turns: [finalTurn],
+      }),
+    ).toBeNull();
+  });
+
+  it("advances deterministically after interpretation failures", () => {
+    const anchor1 = turn(firstConversationQuestion());
+    expect(questionAfterInterpretationFailure(anchor1)?.stage).toBe(
+      "anchor-school",
+    );
+    const anchor2Question = nextControllerQuestion({
+      completedTurn: anchor1,
+      patch: patch(),
+      turns: [anchor1],
+    })!;
+    const anchor2 = turn(anchor2Question);
+    expect(questionAfterInterpretationFailure(anchor2)?.stage).toBe(
+      "anchor-outside",
+    );
+    const anchor3Question = nextControllerQuestion({
+      completedTurn: anchor2,
+      patch: patch(),
+      turns: [anchor1, anchor2],
+    })!;
+    const anchor3 = turn(anchor3Question);
+    expect(questionAfterInterpretationFailure(anchor3)).toMatchObject({
+      stage: "follow-up-1",
+      purpose: "distinguish-directions",
+    });
+    const followUp = turn(questionAfterInterpretationFailure(anchor3)!);
+    expect(questionAfterInterpretationFailure(followUp)?.stage).toBe("final");
+    expect(
+      questionAfterInterpretationFailure(turn(FINAL_CONSIDERATION_QUESTION)),
+    ).toBeNull();
+  });
+});
+
+describe("intake interpretation validation", () => {
+  it("applies validated updates and preserves source-turn references", () => {
+    const firstTurn = turn(firstConversationQuestion());
     const result = applyConversationPatch(
       EMPTY_CONVERSATION_STATE,
       patch({
         updates: {
           ...emptyUpdates(),
-          constraints: [
+          consideredPaths: [
             {
-              id: "no-known-constraints",
-              text: "The student reports no practical constraints they know of yet.",
+              id: "path-design",
+              text: "The student is considering design.",
               basis: "explicit",
-              sourceTurnIds: [turn.id],
-            },
-          ],
-          uncertainty: [
-            {
-              id: "little-career-exposure",
-              text: "The student has had little exposure to different careers.",
-              basis: "explicit",
-              sourceTurnIds: [turn.id],
+              sourceTurnIds: [firstTurn.id],
             },
           ],
         },
       }),
-      [turn],
+      [firstTurn],
     );
-
-    expect(result.constraints[0].id).toBe("no-known-constraints");
-    expect(result.uncertainty[0].id).toBe("little-career-exposure");
+    expect(result.consideredPaths[0]?.sourceTurnIds).toEqual([firstTurn.id]);
   });
 
-  it("accepts explicit uncertainty without forcing completion", () => {
-    const uncertain = patch({
-      updates: {
-        ...emptyUpdates(),
-        uncertainty: [
-          {
-            id: "no-direction-yet",
-            text: "The student does not know which directions to consider yet.",
-            basis: "explicit",
-            sourceTurnIds: [turn.id],
-          },
-        ],
-      },
-    });
-    const result = applyConversationPatch(
-      EMPTY_CONVERSATION_STATE,
-      uncertain,
-      [turn],
-    );
-    expect(result.uncertainty[0].basis).toBe("explicit");
-    expect(result.enoughContext).toBe(false);
-  });
-
-  it("predictably replaces contradicted information and records supersession", () => {
-    const original: ConversationState = {
-      ...EMPTY_CONVERSATION_STATE,
-      suppliedFacts: [
-        {
-          id: "grade-11",
-          text: "The student is in Grade 11.",
-          basis: "explicit",
-          sourceTurnIds: [turn.id],
-        },
-      ],
-      preferences: [
-        {
-          id: "pref-solo",
-          text: "The student prefers working alone.",
-          basis: "explicit",
-          sourceTurnIds: [turn.id],
-        },
-      ],
+  it("rejects invalid update references but drops invalid candidates", () => {
+    const outsideTurn: ConversationTurn = {
+      ...turn(firstConversationQuestion()),
+      id: "anchor-outside",
+      stage: "anchor-outside",
+      question: "Outside experiences?",
     };
-    const correctionTurn: ConversationTurn = {
-      ...turn,
-      id: "follow-up-2",
-      answer:
-        "Correction: I am in Grade 12, and I actually prefer working with a team.",
-    };
-    const correction = patch({
-      updates: {
-        ...emptyUpdates(),
-        suppliedFacts: [
-          {
-            id: "grade-12",
-            text: "The student is in Grade 12.",
-            basis: "explicit",
-            sourceTurnIds: [correctionTurn.id],
-          },
-        ],
-        preferences: [
-          {
-            id: "pref-team",
-            text: "The student prefers working with a team.",
-            basis: "explicit",
-            sourceTurnIds: [correctionTurn.id],
-          },
-        ],
-      },
-      supersedeItemIds: ["grade-11", "pref-solo"],
-    });
-    const result = applyConversationPatch(original, correction, [turn, correctionTurn]);
-
-    expect(result.suppliedFacts.map((item) => item.id)).toEqual(["grade-12"]);
-    expect(result.preferences.map((item) => item.id)).toEqual(["pref-team"]);
-    expect(result.correctedOrSupersededInformation).toEqual([
-      {
-        itemId: "grade-11",
-        text: "The student is in Grade 11.",
-        supersededByTurnId: "follow-up-2",
-      },
-      {
-        itemId: "pref-solo",
-        text: "The student prefers working alone.",
-        supersededByTurnId: "follow-up-2",
-      },
-    ]);
-  });
-
-  it("rejects unknown superseded IDs and ungrounded source-turn IDs", () => {
-    expect(() =>
-      applyConversationPatch(
-        EMPTY_CONVERSATION_STATE,
-        patch({ supersedeItemIds: ["not-active"] }),
-        [turn],
-      ),
-    ).toThrow(ConversationPatchError);
     expect(() =>
       applyConversationPatch(
         EMPTY_CONVERSATION_STATE,
         patch({
           updates: {
             ...emptyUpdates(),
-            suppliedFacts: [
+            experiences: [
               {
-                id: "unlinked",
-                text: "An unlinked fact.",
+                id: "invalid",
+                text: "Invalid source.",
                 basis: "explicit",
                 sourceTurnIds: ["missing-turn"],
               },
             ],
           },
         }),
-        [turn],
+        [outsideTurn],
       ),
-    ).toThrow(ConversationPatchError);
-  });
+    ).toThrow("invalid_conversation_patch");
 
-  it("allows early completion with rich context and continued questioning after shallow turns", () => {
-    const complete = patch({
-      unresolvedDimensions: [],
-      enoughContext: true,
-      nextQuestion: null,
-    });
-    expect(ConversationTurnPatchSchema.safeParse(complete).success).toBe(true);
-    expect(questionFromPatch(complete, 1)).toBeNull();
-
-    const shallowTurns = Array.from({ length: 4 }, (_, index) => ({
-      ...turn,
-      id: `turn-${index + 1}`,
-      answer: "I am not sure yet.",
-    }));
-    const continuing = patch({
-      updates: {
-        ...emptyUpdates(),
-        uncertainty: [
-          {
-            id: "still-unsure",
-            text: "The student remains unsure.",
-            basis: "explicit",
-            sourceTurnIds: ["turn-4"],
-          },
+    const prepared = prepareConversationPatchForController(
+      stateWithDirections,
+      patch({
+        followUpCandidates: [
+          candidate({
+            purpose: "distinguish-directions",
+            sourceTurnIds: ["missing-turn"],
+            targetItemIds: ["path-design", "path-computing"],
+          }),
         ],
-      },
-    });
-    expect(
-      applyConversationPatch(EMPTY_CONVERSATION_STATE, continuing, shallowTurns)
-        .enoughContext,
-    ).toBe(false);
-    expect(questionFromPatch(continuing, 4)).not.toBeNull();
-  });
-
-  it("rejects an exact repeated follow-up before it reaches the student", () => {
-    expect(() =>
-      prepareConversationPatchForPacing(
-        patch({ nextQuestion: turn.question }),
-        [turn],
-      ),
-    ).toThrow(ConversationPatchError);
-  });
-
-  it("completes deterministically on answer twelve without losing context", () => {
-    const turns = Array.from({ length: MAX_CONVERSATION_TURNS }, (_, index) => ({
-      ...turn,
-      id: `turn-${index + 1}`,
-      question: `Context question ${index + 1}?`,
-      answer: "I am still not sure, and I have not had much exposure yet.",
-    }));
-    const priorState: ConversationState = {
-      ...EMPTY_CONVERSATION_STATE,
-      uncertainty: [
-        {
-          id: "uncertainty-before-final-turn",
-          text: "The student remains unsure after limited exposure.",
-          basis: "explicit",
-          sourceTurnIds: ["turn-11"],
-        },
-      ],
-    };
-    const finalPatch = patch({
-      updates: {
-        ...emptyUpdates(),
-        uncertainty: [
-          {
-            id: "uncertainty-final-turn",
-            text: "The student still does not have a definite preference.",
-            basis: "explicit",
-            sourceTurnIds: ["turn-12"],
-          },
-        ],
-      },
-      unresolvedDimensions: ["considered-paths", "constraints"],
-    });
-
-    const paced = prepareConversationPatchForPacing(finalPatch, turns);
-    const completed = applyConversationPatch(priorState, paced, turns);
-
-    expect(paced.enoughContext).toBe(true);
-    expect(paced.nextQuestion).toBeNull();
-    expect(paced.acknowledgement).toBe(TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT);
-    expect(paced.unresolvedDimensions).toEqual([
-      "considered-paths",
-      "constraints",
-    ]);
-    expect(completed.uncertainty.map((item) => item.id)).toEqual([
-      "uncertainty-before-final-turn",
-      "uncertainty-final-turn",
-    ]);
-    expect(completed.enoughContext).toBe(true);
-    expect(questionFromPatch(paced, MAX_CONVERSATION_TURNS)).toBeNull();
-  });
-
-  it("can safely complete preserved state when the final interpretation fails", () => {
-    const state: ConversationState = {
-      ...EMPTY_CONVERSATION_STATE,
-      constraints: [
-        {
-          id: "manila-only",
-          text: "The student needs options near Manila.",
-          basis: "explicit",
-          sourceTurnIds: [turn.id],
-        },
-      ],
-      uncertainty: [
-        {
-          id: "still-exploring",
-          text: "The student is still exploring.",
-          basis: "explicit",
-          sourceTurnIds: [turn.id],
-        },
-      ],
-    };
-
-    expect(
-      completeConversationStateAtTurnLimit(state, MAX_CONVERSATION_TURNS - 1),
-    ).toBeNull();
-    const completed = completeConversationStateAtTurnLimit(
-      state,
-      MAX_CONVERSATION_TURNS,
+      }),
+      [outsideTurn],
     );
-    expect(completed).toMatchObject({
-      enoughContext: true,
-      constraints: state.constraints,
-      uncertainty: state.uncertainty,
-    });
+    expect(prepared.followUpCandidates).toEqual([]);
   });
 
-  it("rejects malformed completion decisions and exposes a safe fallback", () => {
+  it("drops generic acknowledgements without losing the patch", () => {
+    const firstTurn = turn(firstConversationQuestion());
+    const prepared = prepareConversationPatchForController(
+      EMPTY_CONVERSATION_STATE,
+      patch({ acknowledgement: "Thanks for sharing" }),
+      [firstTurn],
+    );
+    expect(prepared.acknowledgement).toBeNull();
+  });
+
+  it.each([
+    "What are your strengths?",
+    "Tell me your strengths.",
+    "Can you tell me what your biggest strengths are?",
+    "What are your weaknesses?",
+    "Describe your weaknesses.",
+    "Which are your main weaknesses?",
+    "What kind of person are you?",
+    "Describe what kind of person you are.",
+    "Do you prefer working alone or with others?",
+    "Would you prefer to work alone or with others?",
+    "Where do you see yourself in five years?",
+    "Where do you see yourself in 5 years' time?",
+  ])("explicitly rejects the generic pattern: %s", (question) => {
+    expect(isProhibitedGenericQuestion(question)).toBe(true);
+  });
+
+  it("does not ask about a practical constraint already marked resolved", () => {
+    const outsideTurn: ConversationTurn = {
+      ...turn(firstConversationQuestion()),
+      id: "anchor-outside",
+      stage: "anchor-outside",
+    };
+    const prepared = prepareConversationPatchForController(
+      stateWithDirections,
+      patch({
+        unresolvedDimensions: [],
+        followUpCandidates: [
+          candidate({
+            purpose: "clarify-practical-constraint",
+            targetItemIds: ["constraint-cost"],
+            targetDimensions: ["constraints"],
+            question: "How would cost change what you can explore first?",
+          }),
+        ],
+      }),
+      [outsideTurn],
+    );
+
+    expect(prepared.followUpCandidates).toEqual([]);
+  });
+
+  it("does not distinguish directions already marked sufficiently resolved", () => {
+    const outsideTurn: ConversationTurn = {
+      ...turn(firstConversationQuestion()),
+      id: "anchor-outside",
+      stage: "anchor-outside",
+    };
+    const prepared = prepareConversationPatchForController(
+      stateWithDirections,
+      patch({
+        unresolvedDimensions: ["constraints"],
+        followUpCandidates: [
+          candidate({
+            purpose: "distinguish-directions",
+            targetItemIds: ["path-design", "path-computing"],
+            question: "Which difference between design and computing matters most?",
+          }),
+        ],
+      }),
+      [outsideTurn],
+    );
+
+    expect(prepared.followUpCandidates).toEqual([]);
+  });
+
+  it("rejects independent questions but allows a focused contrast", () => {
     expect(
-      ConversationTurnPatchSchema.safeParse(
-        patch({ enoughContext: true, nextQuestion: "One more question?" }),
-      ).success,
+      hasMultipleIndependentQuestions(
+        "What class do you like, and where would you want to study?",
+      ),
+    ).toBe(true);
+    expect(
+      hasMultipleIndependentQuestions(
+        "Which parts do you enjoy and which do you avoid?",
+      ),
     ).toBe(false);
-    const fallback = fallbackConversationQuestion(1);
-    expect(fallback.prompt).toContain("most important");
-    expect(fallback.acknowledgement).not.toMatch(/schema|model|category/i);
+    expect(
+      hasMultipleIndependentQuestions(
+        "What would you include and what would you exclude?",
+      ),
+    ).toBe(false);
+  });
+
+  it("recognizes only the required normalized final-decline variants", () => {
+    expect(isFinalDeclineAnswer(" NO. ")).toBe(true);
+    expect(isFinalDeclineAnswer("nothing")).toBe(true);
+    expect(isFinalDeclineAnswer("Nothing else")).toBe(true);
+    expect(isFinalDeclineAnswer("I don’t know")).toBe(true);
+    expect(isFinalDeclineAnswer("I have one more constraint")).toBe(false);
   });
 });

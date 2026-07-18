@@ -24,16 +24,15 @@ import { DEMO_PROFILE_FIXTURE } from "@/lib/demo-profile";
 import {
   EMPTY_CONVERSATION_STATE,
   IntakeTurnApiResponseSchema,
-  TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT,
   applyConversationPatch,
-  completeConversationStateAtTurnLimit,
-  fallbackConversationQuestion,
-  prepareConversationPatchForPacing,
-  questionFromPatch,
+  nextControllerQuestion,
+  prepareConversationPatchForController,
+  questionAfterInterpretationFailure,
   type ConversationQuestion,
   type ConversationState,
   type ConversationTurn,
   type ConversationTurnPatch,
+  type IntakeControllerStage,
 } from "@/lib/intake-conversation";
 import {
   appendConversationTurn,
@@ -41,14 +40,14 @@ import {
   canStartRequest,
   conversationOrientation,
   firstConversationQuestion,
+  interpretationScopeKey,
   reviseConversationTurn,
+  shouldInterpretConversationTurn,
   stateBeforeRevision,
   validateConversationAnswer,
 } from "@/lib/intake-flow";
 import { ProfileApiResponseSchema } from "@/lib/profile-api";
 import type { StudentProfile } from "@/lib/schemas";
-
-type FlowStage = "conversation" | "profile";
 
 type ProfileRequestState =
   | { status: "idle" }
@@ -65,6 +64,8 @@ type InterpretationInput = {
   turns: ConversationTurn[];
   baseState: ConversationState;
   priorCheckpoints: ConversationState[];
+  revision: number;
+  sourceTurnId: string;
 };
 
 function subscribeToFixtureLocation() {
@@ -123,7 +124,6 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
     "intake-alternate",
     "intake-practical",
     "intake-uncertain",
-    "intake-max-turns",
     "intake-retry",
     "intake-malformed",
   ];
@@ -467,7 +467,8 @@ export function IntakeProfileDemo() {
   });
   const [profileRequestState, setProfileRequestState] =
     useState<ProfileRequestState>({ status: "idle" });
-  const [stage, setStage] = useState<FlowStage>("conversation");
+  const [controllerStage, setControllerStage] =
+    useState<IntakeControllerStage>("anchor-existing");
   const [fixtureDismissed, setFixtureDismissed] = useState(false);
   const [turnAttemptCount, setTurnAttemptCount] = useState(0);
   const [profileAttemptCount, setProfileAttemptCount] = useState(0);
@@ -478,6 +479,8 @@ export function IntakeProfileDemo() {
   const messageSubmissionLock = useRef(false);
   const turnSubmissionLock = useRef(false);
   const profileSubmissionLock = useRef(false);
+  const transcriptRevisionRef = useRef(0);
+  const activeInterpretationScopeRef = useRef<string | null>(null);
   const turnAttemptRef = useRef(0);
   const profileAttemptRef = useRef(0);
   const transcriptEnd = useRef<HTMLDivElement>(null);
@@ -526,7 +529,9 @@ export function IntakeProfileDemo() {
     setTurnAttemptCount(0);
     setProfileAttemptCount(0);
     setLastInterpretationInput(null);
-    setStage("conversation");
+    transcriptRevisionRef.current += 1;
+    activeInterpretationScopeRef.current = null;
+    setControllerStage("anchor-existing");
   }
 
   if (
@@ -577,6 +582,13 @@ export function IntakeProfileDemo() {
       return;
     }
 
+    activeInterpretationScopeRef.current = null;
+    setLastInterpretationInput(null);
+    turnRequestController.current?.abort();
+    turnRequestController.current = null;
+    setTurnRequestState({ status: "idle" });
+    setCurrentQuestion(null);
+    setControllerStage("profile");
     profileSubmissionLock.current = true;
     setProfileRequestState({ status: "loading" });
     profileRequestController.current?.abort();
@@ -629,7 +641,6 @@ export function IntakeProfileDemo() {
         status: "success",
         profile: parsedResult.data.profile,
       });
-      setStage("profile");
     } catch {
       if (controller.signal.aborted) {
         return;
@@ -654,30 +665,43 @@ export function IntakeProfileDemo() {
     message: string,
     retryable: boolean,
   ) {
-    const completionState = completeConversationStateAtTurnLimit(
-      input.baseState,
-      input.turns.length,
-    );
+    const scope = interpretationScopeKey(input.revision, input.sourceTurnId);
+    if (activeInterpretationScopeRef.current !== scope) {
+      return;
+    }
 
-    if (completionState) {
-      setConversationState(completionState);
-      setCheckpoints([...input.priorCheckpoints, completionState]);
-      setCurrentQuestion(null);
-      setCompletionAcknowledgement(TURN_LIMIT_COMPLETION_ACKNOWLEDGEMENT);
-      setTurnRequestState({ status: "idle" });
-      void generateProfile(input.turns);
+    const completedTurn = input.turns.at(-1);
+    if (!completedTurn || completedTurn.id !== input.sourceTurnId) {
       return;
     }
 
     setConversationState(input.baseState);
     setCheckpoints([...input.priorCheckpoints, input.baseState]);
-    setCurrentQuestion(fallbackConversationQuestion(input.turns.length));
     setCompletionAcknowledgement(null);
+
+    if (completedTurn.stage === "final") {
+      setCurrentQuestion(null);
+      setTurnRequestState({ status: "idle" });
+      setLastInterpretationInput(null);
+      void generateProfile(input.turns);
+      return;
+    }
+
+    const nextQuestion = questionAfterInterpretationFailure(completedTurn);
+    setCurrentQuestion(nextQuestion);
+    setControllerStage(nextQuestion?.stage ?? "profile");
     setTurnRequestState({ status: "error", message, retryable });
   }
 
-  async function interpretConversation(input: InterpretationInput) {
-    if (turnSubmissionLock.current) {
+  async function interpretConversation(
+    input: InterpretationInput,
+    { isRetry = false }: { isRetry?: boolean } = {},
+  ) {
+    const scope = interpretationScopeKey(input.revision, input.sourceTurnId);
+    if (
+      turnSubmissionLock.current ||
+      activeInterpretationScopeRef.current !== scope
+    ) {
       return;
     }
 
@@ -685,7 +709,9 @@ export function IntakeProfileDemo() {
     setLastInterpretationInput(input);
     setTurnRequestState({ status: "loading" });
     setProfileRequestState({ status: "idle" });
-    setCurrentQuestion(null);
+    if (!isRetry) {
+      setCurrentQuestion(null);
+    }
     turnRequestController.current?.abort();
     const controller = new AbortController();
     turnRequestController.current = controller;
@@ -721,6 +747,9 @@ export function IntakeProfileDemo() {
       }
 
       const parsedResult = IntakeTurnApiResponseSchema.safeParse(payload);
+      if (activeInterpretationScopeRef.current !== scope) {
+        return;
+      }
       if (!parsedResult.success) {
         showSafeFallback(
           input,
@@ -742,7 +771,8 @@ export function IntakeProfileDemo() {
       let nextState: ConversationState;
       let pacedPatch: ConversationTurnPatch;
       try {
-        pacedPatch = prepareConversationPatchForPacing(
+        pacedPatch = prepareConversationPatchForController(
+          input.baseState,
           parsedResult.data.patch,
           input.turns,
         );
@@ -764,18 +794,39 @@ export function IntakeProfileDemo() {
       setCheckpoints([...input.priorCheckpoints, nextState]);
       setTurnRequestState({ status: "idle" });
       setCompletionAcknowledgement(pacedPatch.acknowledgement);
+      setLastInterpretationInput(null);
 
-      const nextQuestion = questionFromPatch(
-        pacedPatch,
-        input.turns.length,
-      );
-      setCurrentQuestion(nextQuestion);
-
-      if (nextState.enoughContext) {
-        void generateProfile(input.turns);
+      if (isRetry) {
+        setCurrentQuestion((question) =>
+          question
+            ? { ...question, acknowledgement: pacedPatch.acknowledgement }
+            : question,
+        );
+        return;
       }
+
+      const completedTurn = input.turns.at(-1);
+      if (!completedTurn || completedTurn.id !== input.sourceTurnId) {
+        return;
+      }
+
+      if (completedTurn.stage === "final") {
+        void generateProfile(input.turns);
+        return;
+      }
+
+      const nextQuestion = nextControllerQuestion({
+        completedTurn,
+        patch: pacedPatch,
+        turns: input.turns,
+      });
+      setCurrentQuestion(nextQuestion);
+      setControllerStage(nextQuestion?.stage ?? "profile");
     } catch {
       if (controller.signal.aborted) {
+        return;
+      }
+      if (activeInterpretationScopeRef.current !== scope) {
         return;
       }
       showSafeFallback(
@@ -848,7 +899,25 @@ export function IntakeProfileDemo() {
       return;
     }
 
-    const input = { turns: nextTurns, baseState, priorCheckpoints };
+    const completedTurn = nextTurns.at(-1);
+    if (!completedTurn) {
+      messageSubmissionLock.current = false;
+      return;
+    }
+
+    transcriptRevisionRef.current += 1;
+    const revision = transcriptRevisionRef.current;
+    const scope = interpretationScopeKey(revision, completedTurn.id);
+    activeInterpretationScopeRef.current = scope;
+    turnRequestController.current?.abort();
+    setLastInterpretationInput(null);
+    const input: InterpretationInput = {
+      turns: nextTurns,
+      baseState,
+      priorCheckpoints,
+      revision,
+      sourceTurnId: completedTurn.id,
+    };
     setTurns(nextTurns);
     setConversationState(baseState);
     setCheckpoints(priorCheckpoints);
@@ -858,7 +927,13 @@ export function IntakeProfileDemo() {
     setTurnRequestState({ status: "idle" });
     setProfileRequestState({ status: "idle" });
     setCompletionAcknowledgement(null);
-    void interpretConversation(input);
+
+    if (!shouldInterpretConversationTurn(completedTurn)) {
+      setCheckpoints([...priorCheckpoints, baseState]);
+      void generateProfile(nextTurns);
+    } else {
+      void interpretConversation(input);
+    }
 
     window.setTimeout(() => {
       messageSubmissionLock.current = false;
@@ -872,13 +947,18 @@ export function IntakeProfileDemo() {
     }
 
     setEditingIndex(index);
+    activeInterpretationScopeRef.current = null;
+    setLastInterpretationInput(null);
     setComposerValue(turn.answer);
     setFieldError(null);
     setTurnRequestState({ status: "idle" });
     setProfileRequestState({ status: "idle" });
   }
 
-  if (stage === "profile" && profileRequestState.status === "success") {
+  if (
+    controllerStage === "profile" &&
+    profileRequestState.status === "success"
+  ) {
     return (
       <div className="mx-auto w-full max-w-[64rem]">
         <ProfileConfirmation
@@ -911,7 +991,7 @@ export function IntakeProfileDemo() {
           </h1>
           <p className="mt-4 text-sm leading-6 text-muted" role="status">
             {conversationOrientation({
-              enoughContext: conversationState.enoughContext,
+              stage: controllerStage,
               isInterpreting: isTurnLoading,
               turnCount: turns.length,
             })}
@@ -952,12 +1032,16 @@ export function IntakeProfileDemo() {
             Your answer is still in the conversation
           </h2>
           <p className="mt-1 text-sm leading-6 text-muted">
-            {turnRequestState.message} Steppi has offered a simple fallback question below.
+            {turnRequestState.message} The required conversation can continue below.
           </p>
           {turnRequestState.retryable && lastInterpretationInput ? (
             <Button
               className="mt-4"
-              onClick={() => void interpretConversation(lastInterpretationInput)}
+              onClick={() =>
+                void interpretConversation(lastInterpretationInput, {
+                  isRetry: true,
+                })
+              }
               variant="secondary"
             >
               <RotateCcw aria-hidden="true" />

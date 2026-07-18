@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   EMPTY_CONVERSATION_STATE,
+  FINAL_CONSIDERATION_QUESTION,
   MAX_CONVERSATION_TURNS,
+  type ConversationQuestion,
+  type ConversationTurn,
 } from "@/lib/intake-conversation";
 import {
   appendConversationTurn,
@@ -10,42 +13,73 @@ import {
   canStartRequest,
   conversationOrientation,
   firstConversationQuestion,
+  interpretationScopeKey,
   reviseConversationTurn,
   shouldSubmitConversationKey,
+  shouldInterpretConversationTurn,
   stateBeforeRevision,
   validateConversationAnswer,
-  type ConversationQuestion,
-  type ConversationTurn,
 } from "@/lib/intake-flow";
 import { IntakeRequestSchema } from "@/lib/schemas";
 
 const answeredAt = "2026-07-17T02:00:00.000Z";
 
-function addTurn(
-  turns: ConversationTurn[],
-  question: ConversationQuestion,
-  answer: string,
-) {
-  return appendConversationTurn(turns, question, answer, answeredAt);
+function question(index: number): ConversationQuestion {
+  if (index === 0) return firstConversationQuestion();
+  if (index === 5) return FINAL_CONSIDERATION_QUESTION;
+  const stage = [
+    "anchor-school",
+    "anchor-outside",
+    "follow-up-1",
+    "follow-up-2",
+  ][index - 1] as ConversationQuestion["stage"];
+  return {
+    id: stage,
+    stage,
+    purpose:
+      stage === "follow-up-1"
+        ? "distinguish-directions"
+        : stage === "follow-up-2"
+          ? "clarify-practical-constraint"
+          : null,
+    acknowledgement: index === 0 ? null : "A useful connection.",
+    prompt: `Question ${index + 1}?`,
+    helper: "",
+    placeholder: "",
+  };
 }
 
-describe("hybrid conversational intake shell", () => {
-  it("opens broadly without exposing a category", () => {
+function addTurn(
+  turns: ConversationTurn[],
+  nextQuestion: ConversationQuestion,
+  answer: string,
+) {
+  return appendConversationTurn(turns, nextQuestion, answer, answeredAt);
+}
+
+describe("deterministic conversational intake shell", () => {
+  it("opens with the existing-possibilities anchor", () => {
     const opening = firstConversationQuestion();
-    expect(opening.prompt).toBe(
-      "What are you trying to figure out about college or work right now?",
-    );
-    expect(opening.prompt).not.toMatch(/category|dimension|assessment/i);
+    expect(opening).toMatchObject({
+      id: "anchor-existing",
+      stage: "anchor-existing",
+      purpose: null,
+    });
+    expect(opening.prompt).toMatch(/programs, majors, careers, or fields/i);
   });
 
   it("rejects empty input and preserves multiline input", () => {
     expect(validateConversationAnswer(" \n ")).toContain("before sending");
-    const turn = addTurn(
+    const turns = addTurn(
       [],
       firstConversationQuestion(),
       "I enjoy visual projects.\nI am unsure about coding.",
     );
-    expect(turn[0].answer).toContain("\n");
+    expect(turns[0].answer).toContain("\n");
+    expect(turns[0]).toMatchObject({
+      stage: "anchor-existing",
+      purpose: null,
+    });
   });
 
   it("uses Enter to send but leaves Shift+Enter for a newline", () => {
@@ -67,7 +101,7 @@ describe("hybrid conversational intake shell", () => {
     ).toBe(false);
   });
 
-  it("prevents duplicate messages and model starts while loading", () => {
+  it("prevents duplicate messages and concurrent request starts", () => {
     const opening = firstConversationQuestion();
     const turns = addTurn([], opening, "I have a few ideas to compare.");
     expect(
@@ -78,54 +112,39 @@ describe("hybrid conversational intake shell", () => {
     expect(canStartRequest("error")).toBe(true);
   });
 
-  it("never appends an unsupported thirteenth answer", () => {
-    const turns = Array.from({ length: MAX_CONVERSATION_TURNS }, (_, index) => ({
-      id: `turn-${index + 1}`,
-      acknowledgement: index === 0 ? null : "Thanks for explaining.",
-      question: `Question ${index + 1}?`,
-      answer: "I am still figuring that out.",
-      answeredAt,
-    }));
-    const unsupportedQuestion: ConversationQuestion = {
-      id: "follow-up-13",
-      acknowledgement: "Thanks for explaining.",
-      prompt: "One more question?",
-      helper: "",
-      placeholder: "",
+  it("never appends more than the six supported genuine answers", () => {
+    let turns: ConversationTurn[] = [];
+    for (let index = 0; index < MAX_CONVERSATION_TURNS; index += 1) {
+      turns = addTurn(turns, question(index), `Answer ${index + 1}`);
+    }
+    const unsupported: ConversationQuestion = {
+      ...FINAL_CONSIDERATION_QUESTION,
+      id: "unsupported-seventh",
     };
-
     expect(
-      appendConversationTurn(
-        turns,
-        unsupportedQuestion,
-        "Another answer",
-        answeredAt,
-      ),
+      appendConversationTurn(turns, unsupported, "Another answer", answeredAt),
     ).toBe(turns);
   });
 
   it("revision replaces the answer and invalidates later turns", () => {
-    const first = addTurn([], firstConversationQuestion(), "I am in Grade 11.");
-    const followUp: ConversationQuestion = {
-      id: "follow-up-2",
-      acknowledgement: "You mentioned Grade 11.",
-      prompt: "What has held your attention lately?",
-      helper: "",
-      placeholder: "",
-    };
-    const turns = addTurn(first, followUp, "Digital art projects.");
+    const first = addTurn(
+      [],
+      firstConversationQuestion(),
+      "I am considering computing.",
+    );
+    const second = addTurn(first, question(1), "I enjoy digital art.");
     const revised = reviseConversationTurn(
-      turns,
+      second,
       0,
-      "Correction: I am in Grade 12.",
+      "Correction: I am considering design.",
       answeredAt,
     );
     expect(revised).toHaveLength(1);
-    expect(revised[0].answer).toContain("Grade 12");
+    expect(revised[0].answer).toContain("design");
   });
 
   it("restores the checkpoint before a revised turn", () => {
-    const afterFirst = { ...EMPTY_CONVERSATION_STATE, enoughContext: false };
+    const afterFirst = { ...EMPTY_CONVERSATION_STATE };
     expect(stateBeforeRevision([afterFirst], 0, EMPTY_CONVERSATION_STATE)).toBe(
       EMPTY_CONVERSATION_STATE,
     );
@@ -134,45 +153,58 @@ describe("hybrid conversational intake shell", () => {
     );
   });
 
-  it("preserves the existing validated IntakeAnswer payload after early completion", () => {
-    const turns = addTurn(
-      [],
-      firstConversationQuestion(),
-      "I am in Grade 11, enjoy digital art, coordinated a school project, dislike programming-heavy work, and need affordable options near Manila.",
-    );
-    const answers = buildConversationIntakeAnswers(turns);
+  it("sends only genuine answers and preserves the final decline unchanged", () => {
+    let turns: ConversationTurn[] = [];
+    for (let index = 0; index < 4; index += 1) {
+      turns = addTurn(turns, question(index), `Answer ${index + 1}`);
+    }
+    turns = addTurn(turns, FINAL_CONSIDERATION_QUESTION, "I don’t know");
 
-    expect(answers).toHaveLength(4);
-    expect(answers[0].questionId).toBe(turns[0].id);
-    expect(answers.slice(1).every((answer) => answer.questionId.includes("context-copy"))).toBe(
-      true,
-    );
-    expect(new Set(answers.map((answer) => answer.answer))).toEqual(
-      new Set([turns[0].answer]),
+    const answers = buildConversationIntakeAnswers(turns);
+    expect(answers).toHaveLength(5);
+    expect(answers.at(-1)).toMatchObject({
+      questionId: "final-consideration",
+      answer: "I don’t know",
+    });
+    expect(answers.some((answer) => answer.questionId.includes("context-copy"))).toBe(
+      false,
     );
     expect(IntakeRequestSchema.safeParse({ answers }).success).toBe(true);
+    expect(shouldInterpretConversationTurn(turns.at(-1)!)).toBe(false);
+  });
+
+  it("scopes interpretation work to both revision and source-turn ID", () => {
+    expect(interpretationScopeKey(3, "anchor-school")).toBe(
+      "3:anchor-school",
+    );
+    expect(interpretationScopeKey(4, "anchor-school")).not.toBe(
+      interpretationScopeKey(3, "anchor-school"),
+    );
+    expect(interpretationScopeKey(3, "anchor-outside")).not.toBe(
+      interpretationScopeKey(3, "anchor-school"),
+    );
   });
 
   it("reports semantic progress without a step count", () => {
     expect(
       conversationOrientation({
-        enoughContext: false,
+        stage: "anchor-existing",
         isInterpreting: false,
         turnCount: 0,
       }),
     ).toContain("conversation");
     expect(
       conversationOrientation({
-        enoughContext: false,
+        stage: "anchor-outside",
         isInterpreting: true,
-        turnCount: 4,
+        turnCount: 3,
       }),
     ).toContain("Taking in");
     expect(
       conversationOrientation({
-        enoughContext: true,
+        stage: "profile",
         isInterpreting: false,
-        turnCount: 2,
+        turnCount: 5,
       }),
     ).toContain("Enough context");
   });

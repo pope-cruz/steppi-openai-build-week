@@ -12,10 +12,12 @@ import {
 } from "@/server/intake-turn";
 
 const turn: ConversationTurn = {
-  id: "starting-point",
+  id: "anchor-existing",
+  stage: "anchor-existing",
+  purpose: null,
   acknowledgement: null,
-  question: "What are you trying to figure out?",
-  answer: "I enjoy digital art and coordinated a group project.",
+  question: "Which directions have you considered?",
+  answer: "I have considered design and computing.",
   answeredAt: "2026-07-17T02:00:00.000Z",
 };
 
@@ -23,37 +25,35 @@ const patch: ConversationTurnPatch = {
   updates: {
     suppliedFacts: [],
     interpretedInterests: [],
-    experiences: [
+    experiences: [],
+    preferences: [],
+    dislikes: [],
+    constraints: [],
+    consideredPaths: [
       {
-        id: "digital-art-project",
-        text: "The student coordinated a digital art project.",
+        id: "path-design",
+        text: "The student has considered design.",
         basis: "explicit",
         sourceTurnIds: [turn.id],
       },
     ],
-    preferences: [],
-    dislikes: [],
-    constraints: [],
-    consideredPaths: [],
     uncertainty: [],
   },
   supersedeItemIds: [],
-  unresolvedDimensions: ["constraints"],
-  enoughContext: false,
-  acknowledgement: "You mentioned coordinating a digital art project.",
-  nextQuestion: "What part of that project held your attention most?",
+  unresolvedDimensions: ["subjects-and-activities", "experiences"],
+  acknowledgement: "You are weighing design alongside computing.",
+  followUpCandidates: [],
 };
 
 describe("server-side intake turn interpreter", () => {
-  it("instructs GPT-5.6 to use high-information pacing and practical context", () => {
-    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/high-information/i);
-    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(
-      /affordability, location, family expectations, access.*transportation/i,
-    );
+  it("limits GPT-5.6 to structured interpretation and allowed candidates", () => {
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/deterministic application code owns/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/resolve-contradiction/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/multiple independent questions/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/information already supplied/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/What are your strengths/i);
     expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/exact household income/i);
-    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/not a checklist/i);
-    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/little exposure/i);
-    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/three meaningfully different/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/zero|return null/i);
   });
 
   it("makes one injected model request and returns a validated patch", async () => {
@@ -76,11 +76,11 @@ describe("server-side intake turn interpreter", () => {
     );
   });
 
-  it("rejects malformed output and invalid source references", async () => {
+  it("rejects malformed output and invalid update source references", async () => {
     await expect(
       interpretIntakeTurn(EMPTY_CONVERSATION_STATE, [turn], {
         apiKey: "test-only",
-        requestTurn: async () => ({ nextQuestion: 42 }),
+        requestTurn: async () => ({ followUpCandidates: 42 }),
       }),
     ).rejects.toMatchObject({ code: "malformed_model_output" });
     await expect(
@@ -91,7 +91,12 @@ describe("server-side intake turn interpreter", () => {
           updates: {
             ...patch.updates,
             experiences: [
-              { ...patch.updates.experiences[0], sourceTurnIds: ["unknown"] },
+              {
+                id: "invalid-source",
+                text: "An invalid item.",
+                basis: "explicit",
+                sourceTurnIds: ["unknown"],
+              },
             ],
           },
         }),
@@ -99,30 +104,29 @@ describe("server-side intake turn interpreter", () => {
     ).rejects.toMatchObject({ code: "malformed_model_output" });
   });
 
-  it("normalizes an incomplete twelfth-turn result to completion after one request", async () => {
-    const turns = Array.from({ length: 12 }, (_, index) => ({
-      ...turn,
-      id: `turn-${index + 1}`,
-      question: `Question ${index + 1}?`,
-    }));
-    const requestTurn = vi.fn().mockResolvedValue({
-      ...patch,
-      updates: {
-        ...patch.updates,
-        experiences: [],
+  it("drops an invalid candidate without discarding valid state updates", async () => {
+    const result = await interpretIntakeTurn(
+      EMPTY_CONVERSATION_STATE,
+      [turn],
+      {
+        apiKey: "test-only",
+        requestTurn: async () => ({
+          ...patch,
+          followUpCandidates: [
+            {
+              purpose: "material-evidence-gap",
+              rationale: "A gap remains.",
+              targetItemIds: [],
+              targetDimensions: ["experiences"],
+              sourceTurnIds: [turn.id],
+              question: "What are your strengths?",
+            },
+          ],
+        }),
       },
-      acknowledgement: "The student is still exploring.",
-      nextQuestion: "What else would help?",
-    });
-
-    const result = await interpretIntakeTurn(EMPTY_CONVERSATION_STATE, turns, {
-      apiKey: "test-only",
-      requestTurn,
-    });
-
-    expect(requestTurn).toHaveBeenCalledOnce();
-    expect(result.enoughContext).toBe(true);
-    expect(result.nextQuestion).toBeNull();
+    );
+    expect(result.updates.consideredPaths).toHaveLength(1);
+    expect(result.followUpCandidates).toEqual([]);
   });
 
   it("does not call the model without configuration", async () => {

@@ -9,7 +9,9 @@ import {
 import { IntakeTurnGenerationError } from "@/server/intake-turn";
 
 const turn: ConversationTurn = {
-  id: "starting-point",
+  id: "anchor-existing",
+  stage: "anchor-existing",
+  purpose: null,
   acknowledgement: null,
   question: "What are you trying to figure out?",
   answer: "I enjoy digital art and coordinated a group project.",
@@ -29,9 +31,8 @@ const patch: ConversationTurnPatch = {
   },
   supersedeItemIds: [],
   unresolvedDimensions: ["constraints"],
-  enoughContext: false,
   acknowledgement: "You mentioned a group project.",
-  nextQuestion: "What part of that project held your attention most?",
+  followUpCandidates: [],
 };
 
 function request(body: unknown) {

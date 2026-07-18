@@ -6,7 +6,7 @@ import {
   ConversationPatchError,
   ConversationTurnPatchSchema,
   applyConversationPatch,
-  prepareConversationPatchForPacing,
+  prepareConversationPatchForController,
   type ConversationState,
   type ConversationTurn,
   type ConversationTurnPatch,
@@ -18,7 +18,7 @@ const REQUEST_TIMEOUT_MS = 25_000;
 export const INTAKE_TURN_INSTRUCTIONS = `You are Steppi's intake turn interpreter for high-school students.
 Interpret only the latest student message in the context of the supplied transcript and structured conversation state.
 
-Return a small validated state patch plus either one concise next question or a completion decision.
+Return a small validated state patch, an optional useful acknowledgement, and zero or more allowed follow-up candidates. Deterministic application code owns the anchor order, follow-up selection, final question, and completion.
 
 Rules:
 - Extract explicit student facts separately from tentative interpretations.
@@ -27,18 +27,19 @@ Rules:
 - When the student corrects or contradicts active information, identify the exact prior item IDs in supersedeItemIds and add the corrected information with new IDs.
 - Every added item must cite one or more exact transcript turn IDs in sourceTurnIds.
 - Never reuse an active item ID. Keep IDs short, descriptive, and unique.
-- Ask only one concise follow-up, and only when the answer would materially improve an honest initial profile or help produce three meaningfully different directions.
-- Make each follow-up high-information and visibly connected to a specific detail in the latest answer. A single natural question may invite two closely related details, but must not read like a checklist.
+- Propose follow-up candidates only for the allowed purposes: resolve-contradiction, distinguish-directions, clarify-practical-constraint, or material-evidence-gap.
+- Give every candidate a concise rationale, exact source turn IDs, valid target item IDs or unresolved dimensions, and one focused question.
+- A candidate may contain a related contrast such as enjoy versus avoid or include versus exclude. It must not combine multiple independent questions or separate topics.
 - Check the full transcript and active structured state before asking. Never repeat a prior question or ask for information already supplied, declined, corrected, or recorded as uncertain.
-- Treat unresolvedDimensions as planning context, not a checklist. Decide enoughContext from the usefulness of the whole picture, not from filling every dimension or reaching a message count.
-- Complete once the conversation supports useful, distinct initial hypotheses with honest uncertainty. Rich context may complete intake after one answer; several shallow answers may still require a follow-up.
+- Treat unresolvedDimensions as planning context, not a checklist. Do not propose a candidate merely to fill every dimension.
 - Treat “I don't know,” mixed feelings, little exposure, and no known constraints as useful answers. Do not keep pushing for a definite preference the student does not have.
 - When practical context would materially change viable options, sensitively invite relevant details such as affordability, location, family expectations, access to devices or programs, or transportation. Do not assume hardship, ask for exact household income, or imply that family influence is negative.
 - If affordability or location is already known, do not ask for it again; explore a different high-value gap or complete.
-- Acknowledge one meaningful detail from the latest answer in plain, restrained language.
+- Return an acknowledgement only when it can name one meaningful detail from the latest answer in plain, restrained language. Otherwise return null. Never use generic filler such as “Thanks for sharing,” “That makes sense,” or “Great answer.”
+- Never propose generic personality-test questions equivalent to “What are your strengths?”, “What are your weaknesses?”, “What kind of person are you?”, “Do you prefer working alone or with others?”, or “Where do you see yourself in five years?”.
 - Do not recommend careers, majors, colleges, programs, or paths during intake.
-- Do not diagnose aptitude or personality, predict outcomes, expose reasoning, or use schema/category language in acknowledgement or nextQuestion.
-- Keep acknowledgement and nextQuestion concise and natural for a high-school student.`;
+- Do not diagnose aptitude or personality, predict outcomes, expose reasoning, or use schema/category language in acknowledgement or candidate questions.
+- Keep acknowledgement and candidate questions concise and natural for a high-school student.`;
 
 type IntakeTurnRequest = (input: {
   state: ConversationState;
@@ -157,7 +158,7 @@ export async function interpretIntakeTurn(
 
   let pacedPatch: ConversationTurnPatch;
   try {
-    pacedPatch = prepareConversationPatchForPacing(parsed.data, turns);
+    pacedPatch = prepareConversationPatchForController(state, parsed.data, turns);
     applyConversationPatch(state, pacedPatch, turns);
   } catch {
     throw new IntakeTurnGenerationError("malformed_model_output");

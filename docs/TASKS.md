@@ -23,8 +23,10 @@ implementation and verification evidence.
   preserves unaffected map areas.
 - The existing intake has a persistent transcript, stable multiline composer,
   keyboard submission, revision, loading, failure, malformed-output, retry, and
-  transcript-preservation behavior. Its hybrid interpreter and deterministic
-  patch/validation boundary are working foundations.
+  transcript-preservation behavior. It now uses the three required anchors,
+  deterministic follow-up purposes, the exact final consideration question,
+  revision/source-turn scoped interpretation, and deterministic failure
+  progression into the existing profile handoff.
 - The existing public profile supports validated profile patches, retry, and
   proceeding with the last valid profile.
 - The map preserves one student node, exactly three meaningfully different initial
@@ -36,15 +38,6 @@ implementation and verification evidence.
   memory.
 
 ## Product and UX Debt
-
-- **Intake question policy:** the current broad opener, freely selected follow-up
-  purposes, early completion, and 12-answer boundary do not match the required
-  sequence of three ordered anchors, one or two deterministic-purpose follow-ups,
-  and one final consideration question.
-- **Intake experience:** the transcript foundation works, but the implementation
-  must be audited against the locked requirements for one clear question per turn,
-  useful acknowledgements, no filler or repeated information, multi-dimension
-  answers, uncertainty, and transcript stability through profile generation.
 - **Profile data contract:** the current validated profile separates facts and
   inferences, but it does not yet express every required direction, appeal,
   concern, school/outside-school experience, concrete activity, priority, and
@@ -66,12 +59,15 @@ implementation and verification evidence.
 
 - Intake asks exactly three anchor questions in this order: existing
   possibilities, school experiences, outside-school experiences.
-- Deterministic code chooses the purpose of one or two follow-ups only for a
-  material gap, contradiction, plausible-direction distinction, or
-  recommendation-changing practical constraint. GPT-5.6 may make that purpose
-  conversational but may not invent arbitrary personality-test topics.
-- Intake then asks the specified final consideration question exactly once.
-  “Nothing,” “no,” and “I don't know” complete intake immediately.
+- Deterministic code chooses the purpose of one or two follow-ups in this fixed
+  priority: resolve a contradiction, distinguish plausible directions, clarify a
+  recommendation-changing practical constraint, then fill a material evidence
+  gap. GPT-5.6 may make that purpose conversational but may not invent arbitrary
+  personality-test topics or request sufficiently supplied information.
+- Intake then asks “Before I put this together, is there anything else Steppi
+  should consider?” exactly once using `final-consideration`. “Nothing,” “no,” and
+  “I don't know” stay unchanged in the transcript and profile payload, skip turn
+  interpretation, and begin profile generation immediately.
 - The transcript remains visible and stable; answers may satisfy several profile
   dimensions; supplied information is not requested again; uncertainty is valid.
 - The internal profile remains detailed. Direct student statements and model
@@ -96,8 +92,8 @@ implementation and verification evidence.
 
 ## Implementation Sequence
 
-1. Conversational intake question-policy and transcript experience.
-2. Three-sentence profile confirmation and correction flow.
+1. Conversational intake question-policy and transcript experience — complete.
+2. Three-sentence profile confirmation and correction flow — next.
 3. Path data contract and path-detail refinement.
 4. Regression verification of graph and research.
 5. Final UX and submission polish.
@@ -107,18 +103,16 @@ presentation are being refined. Verify and preserve them at the regression step.
 
 ## Exact Next Recommended Task
 
-Overhaul the conversational intake to implement the three ordered anchors, one or
-two deterministically purposed adaptive follow-ups, and the exact final
-consideration question. Preserve the working hybrid server-side interpretation,
-validated state patches, persistent transcript, revision, multiline and keyboard
-input, loading, failure, malformed-output, retry, and downstream profile handoff.
-Add deterministic tests and real-browser verification for the intake acceptance
-criteria in `SPEC.md`; do not change the exact-three graph, research architecture,
-or branch-local behavior.
+Implement the exactly three-sentence public profile confirmation and correction
+flow in `SPEC.md`: concise sentence ordering, “Is there anything we missed or
+misunderstood?”, and **Looks right** / **Make a correction** actions. Preserve the
+detailed validated internal profile, transcript references, direct-fact versus
+inference distinction, corrected intake handoff, exact-three graph, research
+architecture, and branch-local behavior.
 
 ## Current Blockers
 
-- No known blocker prevents the conversational intake overhaul.
+- No known blocker prevents the public profile confirmation alignment.
 - Vercel Authentication still blocks anonymous Preview access; the audited flow
   is not yet deployed for judge verification.
 
@@ -131,6 +125,8 @@ or branch-local behavior.
   `api_failure` because those routes still rely on `error.name`.
 - Refresh clears intake, profile, map, selection, and research state.
 - Intake duration and screen-reader behavior remain unmeasured.
+- Intake interpretation has deterministic fixture coverage but no live GPT-5.6
+  verification for the revised candidate contract.
 - Profile refinement has deterministic but not live GPT-5.6 verification.
 - Path browsing has not been calibrated with a materially different persona.
 - The public deployed golden path remains unverified.

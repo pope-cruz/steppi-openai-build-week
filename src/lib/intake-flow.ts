@@ -1,9 +1,11 @@
 import {
   MAX_CONVERSATION_TURNS,
-  STARTING_CONVERSATION_QUESTION,
+  firstConversationQuestion as firstControllerQuestion,
+  isFinalDeclineAnswer,
   type ConversationQuestion,
   type ConversationState,
   type ConversationTurn,
+  type IntakeControllerStage,
 } from "@/lib/intake-conversation";
 import { IntakeRequestSchema, type IntakeAnswer } from "@/lib/schemas";
 
@@ -14,15 +16,15 @@ export type {
 } from "@/lib/intake-conversation";
 
 export function firstConversationQuestion() {
-  return STARTING_CONVERSATION_QUESTION;
+  return firstControllerQuestion();
 }
 
 export function conversationOrientation({
-  enoughContext,
+  stage,
   isInterpreting,
   turnCount,
 }: {
-  enoughContext: boolean;
+  stage: IntakeControllerStage;
   isInterpreting: boolean;
   turnCount: number;
 }) {
@@ -30,7 +32,7 @@ export function conversationOrientation({
     return "Taking in what you shared";
   }
 
-  if (enoughContext) {
+  if (stage === "profile") {
     return "Enough context to build your profile";
   }
 
@@ -81,6 +83,8 @@ export function appendConversationTurn(
     ...turns,
     {
       id: question.id,
+      stage: question.stage,
+      purpose: question.purpose,
       acknowledgement: question.acknowledgement,
       question: question.prompt,
       answer: answer.trim(),
@@ -111,16 +115,6 @@ export function reviseConversationTurn(
   ];
 }
 
-function compatibilityQuestionId(turnId: string, copyNumber: number) {
-  const suffix = `-context-copy-${copyNumber}`;
-  return `${turnId.slice(0, 80 - suffix.length)}${suffix}`;
-}
-
-/**
- * Preserve the existing profile API contract, whose schema requires four answer
- * records, even when the interpreter has enough rich context sooner. Compatibility
- * copies repeat exact student wording and never add inferred content.
- */
 export function buildConversationIntakeAnswers(
   turns: ConversationTurn[],
 ): IntakeAnswer[] {
@@ -130,17 +124,6 @@ export function buildConversationIntakeAnswers(
     answer: turn.answer,
     answeredAt: turn.answeredAt,
   }));
-  const originals = [...answers];
-  let copyNumber = 1;
-
-  while (answers.length < 4 && originals.length > 0) {
-    const original = originals[(answers.length - originals.length) % originals.length];
-    answers.push({
-      ...original,
-      questionId: compatibilityQuestionId(original.questionId, copyNumber),
-    });
-    copyNumber += 1;
-  }
 
   return IntakeRequestSchema.parse({ answers }).answers;
 }
@@ -166,6 +149,17 @@ export function shouldSubmitConversationKey({
 
 export function canStartRequest(status: "idle" | "loading" | "error") {
   return status !== "loading";
+}
+
+export function shouldInterpretConversationTurn(turn: ConversationTurn) {
+  return !(turn.stage === "final" && isFinalDeclineAnswer(turn.answer));
+}
+
+export function interpretationScopeKey(
+  revision: number,
+  sourceTurnId: string,
+) {
+  return `${revision}:${sourceTurnId}`;
 }
 
 export function stateBeforeRevision(

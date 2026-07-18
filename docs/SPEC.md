@@ -213,34 +213,39 @@ The anchor goals are:
    responsibilities, communities, volunteering, and personal projects, including
    which parts the student actually enjoys or avoids.
 
-All three anchors appear once and in that order. An earlier detailed answer may
-satisfy several profile dimensions; later anchors should acknowledge and narrow
-around that supplied context rather than ask for it again.
+All three anchors appear once and in that order even when an earlier detailed
+answer overlaps a later anchor. One answer may satisfy several profile dimensions.
+Adaptive follow-ups, unlike the required anchors, must not request information
+already sufficiently supplied anywhere in the retained transcript.
 
 After the anchors, deterministic application code selects the purpose of one or
-two follow-ups. A follow-up is allowed only to:
+two follow-ups in this fixed priority:
 
-- fill a material evidence gap;
-- resolve a contradiction;
-- distinguish between plausible directions; or
-- clarify a practical constraint that could change the recommendations.
+1. resolve a contradiction;
+2. distinguish between plausible directions;
+3. clarify a practical constraint that could change the recommendations; or
+4. fill a material evidence gap.
 
 GPT-5.6 may word the controller-selected purpose conversationally and reference
 earlier answers, but it must not invent a different question goal or introduce
-arbitrary personality-test topics. Do not ask generic questions such as “What are
-your strengths?”, “Are you creative or analytical?”, “What is your ideal work
-environment?”, “Where do you see yourself in ten years?”, or “Do you prefer
-working alone or with others?”.
+arbitrary personality-test topics. Reject generic questions equivalent to “What
+are your strengths?”, “What are your weaknesses?”, “What kind of person are
+you?”, “Do you prefer working alone or with others?”, or “Where do you see
+yourself in five years?”. Reject candidates containing multiple independent
+questions or separate topics; a related contrast such as enjoy versus avoid or
+include versus exclude remains one focused question.
 
 After the follow-ups, ask exactly once:
 
-> Before I put together your profile, is there anything else Steppi should
-> consider? This could be a concern, practical limitation, family expectation,
-> personal goal, or something we did not ask about.
+> Before I put this together, is there anything else Steppi should consider?
+
+This question has the stable ID `final-consideration`.
 
 “Nothing,” “no,” and “I don't know” are valid answers and move immediately to
-profile generation. Intake must not continue merely to populate every possible
-schema field.
+profile generation. These decline variants remain genuine transcript answers,
+are included unchanged in the `/api/profile` payload, and skip intake-turn
+interpretation. Intake must not continue merely to populate every possible schema
+field.
 
 The intake is a persistent conversation, not a question card whose contents are
 replaced, a formal questionnaire, or a step wizard. It must:
@@ -263,6 +268,20 @@ duplicate prevention, request locking, and completion handoff. The interpreter
 must not recommend careers, majors, colleges, programs, or paths during intake.
 Failure or malformed output preserves the transcript and offers a safe retry or
 controller-approved fallback without changing the required sequence.
+
+The controller stages are `anchor-existing`, `anchor-school`, `anchor-outside`,
+`follow-up-1`, optional `follow-up-2`, `final`, and `profile`. Interpretation
+results and retry controls are scoped to the current transcript revision and
+source-turn ID. Revising an answer, submitting another answer, or starting profile
+generation invalidates stale results and retry controls. Requests remain locked
+and sequential; interpretation requests do not run concurrently.
+
+Failure progression is deterministic: anchor-one failure preserves the answer and
+advances to anchor two; anchor-two failure advances to anchor three; anchor-three
+failure uses the approved fallback follow-up; either follow-up failure advances to
+the final question; and final interpretation failure generates the profile from
+the preserved transcript. A successful retry may update validated state or the
+acknowledgement but never rewinds the active controller stage.
 
 Revising an earlier answer removes later conversational turns before the next
 question is recomputed. Profile-generation failures and retry preserve the full
@@ -799,7 +818,8 @@ Must include:
 - revision of prior answers with predictable later-turn invalidation;
 - clear validation;
 - one concise, contextual question per Steppi turn;
-- no repeated requests for supplied context or abstract personality-test prompts;
+- no adaptive follow-up requests for sufficiently supplied context or abstract
+  personality-test prompts;
 - acceptance of uncertainty and incomplete answers;
 - a stable multiline composer with keyboard submission and clear loading behavior;
 - failure and retry behavior that preserves the transcript; and
@@ -975,12 +995,21 @@ without changing the already working graph or research architecture.
   possibilities, school experiences, then outside-school experiences.
 - One or two follow-ups are selected from actual missing, contradictory,
   differentiating, or recommendation-changing constraint data.
-- The final consideration question appears exactly once after the follow-ups.
+- Follow-up selection uses contradiction, plausible-direction distinction,
+  practical constraint, then material evidence gap as its fixed priority.
+- Follow-up candidates with multiple independent questions, prohibited generic
+  personality-test patterns, or already-supplied information are rejected.
+- The exact `final-consideration` question appears once after the follow-ups.
 - A detailed answer can satisfy several dimensions without causing duplicate
-  questions.
+  adaptive questions; all three anchors still appear in order.
 - Information already supplied is not requested again.
 - “Not sure,” “I don't know,” mixed, and incomplete answers do not block
   completion.
+- Final-decline answers remain unchanged in the profile payload and skip intake
+  interpretation.
+- Stale interpretation results and retries cannot cross transcript revisions or
+  source turns, and a successful retry cannot rewind the active stage.
+- Each failure stage advances according to the deterministic controller policy.
 - The entire transcript remains visible and stable through loading, failure,
   retry, and profile generation.
 
