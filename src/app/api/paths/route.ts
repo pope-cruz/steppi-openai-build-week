@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import type { PathApiFailure, PathApiResponse } from "@/lib/path-api";
-import { StudentProfileSchema } from "@/lib/schemas";
+import { ConfirmedSummarySchema, StudentProfileSchema } from "@/lib/schemas";
 import {
   generatePathBranches,
   PathGenerationError,
@@ -11,7 +11,12 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const PathRequestSchema = z.object({ profile: StudentProfileSchema }).strict();
+const PathRequestSchema = z
+  .object({
+    profile: StudentProfileSchema,
+    confirmedSummary: ConfirmedSummarySchema,
+  })
+  .strict();
 type GeneratePaths = typeof generatePathBranches;
 
 const ERROR_DETAILS: Record<
@@ -91,7 +96,10 @@ export async function handlePathRequest(
   }
 
   try {
-    const branches = await generatePaths(parsedInput.data.profile);
+    const branches = await generatePaths(
+      parsedInput.data.profile,
+      parsedInput.data.confirmedSummary,
+    );
 
     return NextResponse.json<PathApiResponse>(
       { ok: true, branches },

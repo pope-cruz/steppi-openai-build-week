@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ProfileApiResponseSchema } from "@/lib/profile-api";
+import { DEMO_CONFIRMATION_SUMMARY } from "@/lib/demo-profile";
 import { VALID_PROFILE_FIXTURE } from "@/test/profile-fixture";
 
 describe("ProfileApiResponseSchema", () => {
@@ -9,6 +10,7 @@ describe("ProfileApiResponseSchema", () => {
       ProfileApiResponseSchema.safeParse({
         ok: true,
         profile: VALID_PROFILE_FIXTURE,
+        confirmationSummary: DEMO_CONFIRMATION_SUMMARY,
       }).success,
     ).toBe(true);
   });
@@ -18,6 +20,17 @@ describe("ProfileApiResponseSchema", () => {
       ProfileApiResponseSchema.safeParse({
         ok: true,
         profile: { facts: [] },
+        confirmationSummary: DEMO_CONFIRMATION_SUMMARY,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a malformed generated confirmation before client rendering", () => {
+    expect(
+      ProfileApiResponseSchema.safeParse({
+        ok: true,
+        profile: VALID_PROFILE_FIXTURE,
+        confirmationSummary: "You like creative work.",
       }).success,
     ).toBe(false);
   });

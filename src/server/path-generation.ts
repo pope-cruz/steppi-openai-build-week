@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { PathApiErrorCode } from "@/lib/path-api";
 import { PathValidationError, validatePathGeneration } from "@/lib/path-validation";
 import {
+  ConfirmedSummarySchema,
   PathGenerationSchema,
   type PathBranch,
   type StudentProfile,
@@ -18,6 +19,9 @@ Generate one complete unranked set of career-role possibilities from the confirm
 
 Rules:
 - Return all roles together in one response. Never rank, score, tier, order, or label any role as the best fit.
+- The input contains the complete structured profile followed by the student's approved summary. Treat that approved summary as the student's latest clarification.
+- If the approved summary conflicts with an older inference or profile detail, follow the approved summary. If it adds information, incorporate it.
+- Do not treat a stylistic omission from the short approved summary as a rejection of every omitted profile detail. Use the complete profile for breadth and the approved summary to resolve contradictions and priorities.
 - Target seven roles. Six or eight are allowed only when that produces a more honest, varied set.
 - Make the roles meaningfully different across occupation families, work rhythms, environments, and ways of using the student's interests. Do not return minor title variants from one occupation family.
 - Give every role a unique stable id and a distinct career title.
@@ -37,6 +41,7 @@ Rules:
 
 type PathRequest = (input: {
   profile: StudentProfile;
+  confirmedSummary: string;
   apiKey: string;
   model: string;
 }) => Promise<unknown>;
@@ -74,6 +79,7 @@ function isTimeoutError(error: unknown) {
 
 async function requestPathsFromOpenAI({
   profile,
+  confirmedSummary,
   apiKey,
   model,
 }: Parameters<PathRequest>[0]) {
@@ -86,7 +92,7 @@ async function requestPathsFromOpenAI({
   const response = await client.responses.parse({
     model,
     instructions: PATH_INSTRUCTIONS,
-    input: JSON.stringify({ confirmedProfile: profile }),
+    input: JSON.stringify(pathGenerationContext(profile, confirmedSummary)),
     max_output_tokens: 9_000,
     text: {
       format: zodTextFormat(PathGenerationSchema, "path_generation"),
@@ -96,8 +102,19 @@ async function requestPathsFromOpenAI({
   return response.output_parsed;
 }
 
+export function pathGenerationContext(
+  profile: StudentProfile,
+  confirmedSummary: string,
+) {
+  return {
+    confirmedProfile: profile,
+    studentApprovedSummary: ConfirmedSummarySchema.parse(confirmedSummary),
+  };
+}
+
 export async function generatePathBranches(
   profile: StudentProfile,
+  confirmedSummary: string,
   options: GeneratePathsOptions = {},
 ): Promise<PathBranch[]> {
   const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY ?? "";
@@ -111,11 +128,17 @@ export async function generatePathBranches(
     throw new PathGenerationError("invalid_model_configuration");
   }
 
+  const parsedSummary = ConfirmedSummarySchema.safeParse(confirmedSummary);
+  if (!parsedSummary.success) {
+    throw new PathGenerationError("malformed_model_output");
+  }
+
   let output: unknown;
 
   try {
     output = await (options.requestPaths ?? requestPathsFromOpenAI)({
       profile,
+      confirmedSummary: parsedSummary.data,
       apiKey,
       model,
     });

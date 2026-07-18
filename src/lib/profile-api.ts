@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 import {
+  ConfirmationSummarySchema,
   StudentProfileSchema,
-  type StudentProfile,
+  type ProfileGeneration,
 } from "@/lib/schemas";
 
 export type ProfileApiErrorCode =
@@ -13,10 +14,7 @@ export type ProfileApiErrorCode =
   | "api_failure"
   | "malformed_model_output";
 
-export type ProfileApiSuccess = {
-  ok: true;
-  profile: StudentProfile;
-};
+export type ProfileApiSuccess = { ok: true } & ProfileGeneration;
 
 export type ProfileApiFailure = {
   ok: false;
@@ -34,6 +32,7 @@ export const ProfileApiResponseSchema = z.discriminatedUnion("ok", [
     .object({
       ok: z.literal(true),
       profile: StudentProfileSchema,
+      confirmationSummary: ConfirmationSummarySchema,
     })
     .strict(),
   z

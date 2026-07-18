@@ -62,7 +62,8 @@ into a concise answer.
 2. The student completes a short conversation about possibilities, experiences,
    enjoyable and disliked activities, strengths they have noticed, uncertainty,
    and practical considerations.
-3. Steppi creates a validated, concise understanding that the student can correct.
+3. Steppi creates a validated two-sentence understanding that the student can
+   accept, inspect in detail, or directly rewrite before continuing.
 4. Steppi generates approximately seven meaningfully different career-role
    options.
 5. The roles appear as unranked floating nodes in an open visual possibility
@@ -95,7 +96,8 @@ comparison, or post-research refinement.
 - [ ] At least one visibly adaptive follow-up
 - [ ] Server-side GPT-5.6 student-context generation
 - [ ] Structured-output validation before rendering
-- [ ] Concise, correctable student-context confirmation
+- [ ] Exactly two generated confirmation sentences, direct student editing, and
+      secondary detailed-profile disclosure
 - [ ] Approximately seven varied career-role options
 - [ ] Deterministic validation against near-duplicate role sets
 - [ ] Open, unranked floating role-node interface
@@ -203,7 +205,8 @@ GPT-5.6 converts the conversation into a validated internal student context that
 keeps direct student statements, model inferences, constraints, uncertainty, and
 supporting transcript references distinct.
 
-The public confirmation must be concise and human-readable. It should communicate:
+The public confirmation is exactly two concise, direct-address sentences when
+first generated. It should communicate:
 
 - interests and possibilities already in view;
 - the most relevant experiences and concrete activities;
@@ -211,9 +214,19 @@ The public confirmation must be concise and human-readable. It should communicat
   respect.
 
 The confirmation is not a field-by-field report. It must not expose raw schema
-labels, IDs, private reasoning, or an exhaustive inventory. The student can
-accept it or make a focused correction without restarting intake. Corrections
-patch the validated context atomically and preserve unrelated valid information.
+labels, IDs, private reasoning, or an exhaustive inventory. The existing full
+structured profile remains available through a collapsed, secondary disclosure.
+
+The student can accept the generated wording or directly rewrite it on the same
+screen without restarting intake or making another model request. A saved edit
+becomes `confirmedSummary`; student wording is not required to remain exactly two
+sentences. The original validated structured profile remains unchanged.
+
+Role generation receives the complete structured profile followed by the latest
+student-approved `confirmedSummary`. The approved summary resolves genuine
+contradictions and priorities and may add context. Omitted details are not treated
+as rejected merely because the short summary does not repeat them; the complete
+profile continues to provide breadth.
 
 ### Stage C: Career Possibility Space
 
@@ -413,7 +426,9 @@ Within 30 seconds, communicate:
 - Keyboard submission
 - Clear loading and retry behavior
 - Predictable answer revision
-- Concise, correctable student-context confirmation
+- Exactly two concise generated confirmation sentences
+- Direct, same-screen student refinement with no model request on save
+- Collapsed detailed-profile disclosure
 - No mandatory schema-field review
 
 ### 9.3 Possibility Space
@@ -559,8 +574,9 @@ profile generation, validation, and relevant failure states work.
 ### Milestone 2 — Student-context Confirmation
 
 Complete when the student sees a concise human understanding, can accept it or
-make a focused correction, and invalid output never replaces the last valid
-context.
+directly rewrite it, can optionally inspect the preserved structured context,
+and role generation receives both the complete profile and latest approved
+summary without invalid output replacing valid context.
 
 ### Milestone 3 — Role Possibility Space
 
@@ -602,6 +618,9 @@ milestones above and is not required for the definition of done.
 - Initial audience: high-school students beginning college and career exploration
 - Breadth before depth
 - Approximately seven initial career roles for the normal Build Week flow
+- Two generated confirmation sentences with direct student editing
+- Student-approved confirmation wording resolves contradictions and priorities
+  during role generation while the full profile preserves breadth
 - Roughly seven to ten visible roles may be acceptable when context and layout
   justify it
 - Roles are possibilities, not rankings or predictions

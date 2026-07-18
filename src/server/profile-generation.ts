@@ -4,16 +4,16 @@ import { z } from "zod";
 
 import type { ProfileApiErrorCode } from "@/lib/profile-api";
 import {
-  StudentProfileSchema,
+  ProfileGenerationSchema,
   type IntakeAnswer,
-  type StudentProfile,
+  type ProfileGeneration,
 } from "@/lib/schemas";
 
 const DEFAULT_MODEL = "gpt-5.6";
 const REQUEST_TIMEOUT_MS = 45_000;
 
-const PROFILE_INSTRUCTIONS = `You are Steppi, an educational exploration assistant for high-school students.
-Convert the supplied intake answers into a cautious student-profile hypothesis.
+export const PROFILE_INSTRUCTIONS = `You are Steppi, an educational exploration assistant for high-school students.
+Convert the supplied intake answers into a cautious student-profile hypothesis and a warm confirmation summary.
 
 Rules:
 - Preserve the student's meaning and distinguish their facts from your inferences.
@@ -23,7 +23,11 @@ Rules:
 - Use uncertainties for useful open questions and tensions only for genuine conflicts in the supplied answers.
 - Do not diagnose aptitude or personality, predict a correct future, guarantee outcomes, or shame constraints.
 - Do not add current factual claims about careers, colleges, programs, admissions, or costs.
-- Keep the profile concise and useful for later student correction.`;
+- Keep the profile concise and useful for later student correction.
+- Write confirmationSummary as exactly two concise sentences that speak directly to the student using "you".
+- In the first sentence, naturally reflect the interests, experiences, or activities that seem to draw the student in.
+- In the second sentence, naturally reflect what they want from a possible future, including only the most relevant preferences, dislikes, priorities, uncertainty, or practical constraints.
+- Do not mechanically list fields, expose schema language, overstate aptitude or certainty, or try to mention every captured detail.`;
 
 type ProfileRequest = (input: {
   answers: IntakeAnswer[];
@@ -79,7 +83,7 @@ async function requestProfileFromOpenAI({
     input: JSON.stringify({ answers }),
     max_output_tokens: 3_000,
     text: {
-      format: zodTextFormat(StudentProfileSchema, "student_profile"),
+      format: zodTextFormat(ProfileGenerationSchema, "student_profile"),
     },
   });
 
@@ -89,7 +93,7 @@ async function requestProfileFromOpenAI({
 export async function generateStudentProfile(
   answers: IntakeAnswer[],
   options: GenerateStudentProfileOptions = {},
-): Promise<StudentProfile> {
+): Promise<ProfileGeneration> {
   const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY ?? "";
   const model = options.model ?? process.env.OPENAI_MODEL ?? DEFAULT_MODEL;
 
@@ -121,7 +125,7 @@ export async function generateStudentProfile(
     throw new ProfileGenerationError("api_failure");
   }
 
-  const parsed = StudentProfileSchema.safeParse(output);
+  const parsed = ProfileGenerationSchema.safeParse(output);
 
   if (!parsed.success) {
     throw new ProfileGenerationError("malformed_model_output");

@@ -101,6 +101,36 @@ export const StudentProfileSchema = z
   })
   .strict();
 
+function hasExactlyTwoSentences(value: string) {
+  return (
+    (value.match(/[.!?]+(?=\s|$)/g) ?? []).length === 2 &&
+    /[.!?]$/.test(value)
+  );
+}
+
+export const ConfirmationSummarySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(700)
+  .refine(
+    hasExactlyTwoSentences,
+    "The generated confirmation summary must contain exactly two sentences.",
+  )
+  .refine(
+    (value) => /\byou\b/i.test(value),
+    'The generated confirmation summary must address the student using "you".',
+  );
+
+export const ConfirmedSummarySchema = z.string().trim().min(1).max(1_200);
+
+export const ProfileGenerationSchema = z
+  .object({
+    profile: StudentProfileSchema,
+    confirmationSummary: ConfirmationSummarySchema,
+  })
+  .strict();
+
 export const ProfilePatchSchema = z
   .object({
     removeInferenceIds: z.array(identifierSchema).max(8).optional(),
@@ -383,6 +413,7 @@ export const ResearchGenerationCandidateSchema = z
 export type IntakeAnswer = z.infer<typeof IntakeAnswerSchema>;
 export type IntakeRequest = z.infer<typeof IntakeRequestSchema>;
 export type StudentProfile = z.infer<typeof StudentProfileSchema>;
+export type ProfileGeneration = z.infer<typeof ProfileGenerationSchema>;
 export type ProfilePatch = z.infer<typeof ProfilePatchSchema>;
 export type PathBranch = z.infer<typeof PathBranchSchema>;
 export type PathGeneration = z.infer<typeof PathGenerationSchema>;

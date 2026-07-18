@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
+import { DEMO_CONFIRMATION_SUMMARY } from "@/lib/demo-profile";
 import { VALID_PROFILE_FIXTURE } from "@/test/profile-fixture";
 
 import {
   generatePathBranches,
   PATH_INSTRUCTIONS,
+  pathGenerationContext,
   PathGenerationError,
 } from "./path-generation";
 
@@ -25,6 +27,11 @@ describe("generatePathBranches", () => {
     expect(PATH_INSTRUCTIONS).toContain("Target seven roles");
     expect(PATH_INSTRUCTIONS).toContain("no fewer than six and no more than eight");
     expect(PATH_INSTRUCTIONS).toContain("Never rank, score, tier, order, or label");
+    expect(PATH_INSTRUCTIONS).toContain("student's latest clarification");
+    expect(PATH_INSTRUCTIONS).toContain("follow the approved summary");
+    expect(PATH_INSTRUCTIONS).toContain("If it adds information, incorporate it");
+    expect(PATH_INSTRUCTIONS).toContain("stylistic omission");
+    expect(PATH_INSTRUCTIONS).toContain("complete profile for breadth");
     expect(PATH_INSTRUCTIONS).toContain("one occupation family");
     expect(PATH_INSTRUCTIONS).toContain("one plain-language sentence");
     expect(PATH_INSTRUCTIONS).toContain("one or two concise, student-facing sentences");
@@ -41,7 +48,7 @@ describe("generatePathBranches", () => {
     });
 
     await expect(
-      generatePathBranches(VALID_PROFILE_FIXTURE, {
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
         apiKey: "test-key-not-real",
         model: "gpt-5.6",
         requestPaths,
@@ -50,15 +57,56 @@ describe("generatePathBranches", () => {
     expect(requestPaths).toHaveBeenCalledTimes(1);
     expect(requestPaths).toHaveBeenCalledWith({
       profile: VALID_PROFILE_FIXTURE,
+      confirmedSummary: DEMO_CONFIRMATION_SUMMARY,
       apiKey: "test-key-not-real",
       model: "gpt-5.6",
     });
   });
 
+  it("places the approved summary after the complete profile in model context", () => {
+    const additiveSummary =
+      "You want creative teamwork and would also like to explore community projects.";
+    const context = pathGenerationContext(
+      VALID_PROFILE_FIXTURE,
+      additiveSummary,
+    );
+
+    expect(Object.keys(context)).toEqual([
+      "confirmedProfile",
+      "studentApprovedSummary",
+    ]);
+    expect(context.confirmedProfile).toBe(VALID_PROFILE_FIXTURE);
+    expect(context.studentApprovedSummary).toBe(additiveSummary);
+    expect(context.confirmedProfile.constraints).toEqual(
+      VALID_PROFILE_FIXTURE.constraints,
+    );
+  });
+
+  it("passes contradiction and additive clarification without changing the profile", async () => {
+    const clarification =
+      "You are open to programming after all, despite the older hesitation. You also want community impact to be a priority.";
+    const requestPaths = vi.fn().mockImplementation(
+      async ({ profile, confirmedSummary }) => {
+        expect(profile).toBe(VALID_PROFILE_FIXTURE);
+        expect(profile.facts[1].statement).toContain("does not enjoy programming");
+        expect(confirmedSummary).toBe(clarification);
+        return { branches: DEMO_PATH_BRANCHES };
+      },
+    );
+
+    await expect(
+      generatePathBranches(VALID_PROFILE_FIXTURE, clarification, {
+        apiKey: "test-key-not-real",
+        requestPaths,
+      }),
+    ).resolves.toEqual(DEMO_PATH_BRANCHES);
+    expect(requestPaths).toHaveBeenCalledTimes(1);
+  });
+
   it("fails before requesting when configuration is missing or invalid", async () => {
     const requestPaths = vi.fn();
     await expectGenerationError(
-      generatePathBranches(VALID_PROFILE_FIXTURE, {
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
         apiKey: "",
         model: "gpt-5.6",
         requestPaths,
@@ -68,7 +116,7 @@ describe("generatePathBranches", () => {
     expect(requestPaths).not.toHaveBeenCalled();
 
     await expectGenerationError(
-      generatePathBranches(VALID_PROFILE_FIXTURE, {
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
         apiKey: "test-key-not-real",
         model: "gpt-5.5",
         requestPaths,
@@ -80,7 +128,7 @@ describe("generatePathBranches", () => {
 
   it("maps upstream API failures and timeouts to public error classes", async () => {
     await expectGenerationError(
-      generatePathBranches(VALID_PROFILE_FIXTURE, {
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
         apiKey: "test-key-not-real",
         model: "gpt-5.6",
         requestPaths: vi.fn().mockRejectedValue(new Error("private SDK detail")),
@@ -91,7 +139,7 @@ describe("generatePathBranches", () => {
     const timeout = new Error("timed out");
     timeout.name = "APIConnectionTimeoutError";
     await expectGenerationError(
-      generatePathBranches(VALID_PROFILE_FIXTURE, {
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
         apiKey: "test-key-not-real",
         model: "gpt-5.6",
         requestPaths: vi.fn().mockRejectedValue(timeout),
@@ -103,7 +151,7 @@ describe("generatePathBranches", () => {
   it("rejects malformed, invalid-evidence, and duplicate output", async () => {
     const missingBranch = { branches: DEMO_PATH_BRANCHES.slice(0, 5) };
     await expectGenerationError(
-      generatePathBranches(VALID_PROFILE_FIXTURE, {
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
         apiKey: "test-key-not-real",
         requestPaths: vi.fn().mockResolvedValue(missingBranch),
       }),
@@ -113,7 +161,7 @@ describe("generatePathBranches", () => {
     const invalidEvidence = structuredClone(DEMO_PATH_BRANCHES);
     invalidEvidence[0].supportingProfileIds = ["missing-profile-item"];
     await expectGenerationError(
-      generatePathBranches(VALID_PROFILE_FIXTURE, {
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
         apiKey: "test-key-not-real",
         requestPaths: vi.fn().mockResolvedValue({ branches: invalidEvidence }),
       }),
@@ -123,7 +171,7 @@ describe("generatePathBranches", () => {
     const duplicate = structuredClone(DEMO_PATH_BRANCHES);
     duplicate[1].title = "Design in digital products";
     await expectGenerationError(
-      generatePathBranches(VALID_PROFILE_FIXTURE, {
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
         apiKey: "test-key-not-real",
         requestPaths: vi.fn().mockResolvedValue({ branches: duplicate }),
       }),
@@ -135,7 +183,7 @@ describe("generatePathBranches", () => {
       Reflect.deleteProperty(branch, "dayToDay");
     }
     await expectGenerationError(
-      generatePathBranches(VALID_PROFILE_FIXTURE, {
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
         apiKey: "test-key-not-real",
         requestPaths: vi.fn().mockResolvedValue({ branches: incompleteExplanation }),
       }),

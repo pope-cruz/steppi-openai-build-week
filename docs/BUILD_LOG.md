@@ -29,6 +29,52 @@ it is historical evidence, not a second specification.
 
 ## Completed
 
+### 2026-07-18 — Simplified student-approved profile confirmation
+
+- Kept the validated `StudentProfile` schema unchanged and enriched the existing
+  single profile-generation response with a separately validated
+  `confirmationSummary`. The generated summary must contain exactly two concise
+  sentences, address the student as “you”, and reflect meaningful interests /
+  experiences followed by priorities, preferences, uncertainty, or constraints.
+- Replaced the deterministic decision statement and three visible profile lists
+  with one warm two-sentence reflection, **Good to go!**, **Let me refine this**,
+  and the collapsed **See the details Steppi is using** disclosure. The preserved
+  facts, tentative inferences, practical considerations, uncertainty, and tensions
+  remain readable but secondary.
+- Replaced model-backed confirmation refinement in the normal UI with a local
+  multiline editor. It is prefilled, can be saved and edited repeatedly, accepts
+  useful student wording of any sentence count, restores focus after saving, and
+  never restarts intake, calls a model, or mutates the original profile. The
+  existing `/api/profile/refine` implementation remains untouched but is no longer
+  part of the normal confirmation screen.
+- Extended the path request to `{ profile, confirmedSummary }`. The complete
+  profile is serialized first; explicit generation instructions make the approved
+  summary the latest clarification for contradictions, additions, and priorities
+  without treating short-summary omissions as rejection of omitted profile detail.
+  Role generation remains one request and the 6–8 unranked role contract is
+  unchanged.
+- Added schema, profile service/route/API, confirmation rendering, path request,
+  route, service, and prompt-precedence tests. Focused verification passed 10
+  files and 75 tests; the full suite passed 31 files and 239 tests.
+- Real-browser verification covered 1440×1000 and 390×844, the complete
+  intake-to-generated-summary transition, exact two-sentence/direct-address
+  output, accepting without refinement, opening/closing details, repeated edits,
+  a one-sentence student override, correction and additive wording, pointer and
+  Enter/Space activation, visible focus, role-space continuity, loading, API
+  failure, malformed role output, retry, zero horizontal overflow, and a clean
+  console with no framework overlay.
+- Final checks passed: focused tests, `npm run lint`, `npm run typecheck`,
+  `npm run test` (31 files, 239 tests), the network-enabled `npm run build`, and
+  `git diff --check`. The first sandboxed build failed only because the existing
+  Google Fonts could not be fetched; the identical network-enabled build passed.
+- Browser server evidence contained only local fixture page GETs. No live or paid
+  OpenAI request and no deployment occurred. Live summary quality, model adherence
+  to the precedence wording, representative-student comprehension, screen-reader
+  behavior, and persistence across refresh remain unverified.
+- Exact next task: implement and deterministically verify one selected-role
+  extended conversation with natural questions and conditional current-source
+  retrieval.
+
 ### 2026-07-18 — Milestone 3 unranked role possibility space
 
 - Replaced the exact-three ranked-like generation contract with one strict 6–8

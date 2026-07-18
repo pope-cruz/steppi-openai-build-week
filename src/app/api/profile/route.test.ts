@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { DEMO_INTAKE_ANSWERS } from "../../../lib/demo-intake";
+import { DEMO_CONFIRMATION_SUMMARY } from "../../../lib/demo-profile";
 import type { ProfileApiResponse } from "../../../lib/profile-api";
 import { ProfileGenerationError } from "../../../server/profile-generation";
 import { VALID_PROFILE_FIXTURE } from "../../../test/profile-fixture";
@@ -15,16 +16,23 @@ function profileRequest(body: unknown) {
 }
 
 describe("profile API route", () => {
-  it("returns only the validated profile on success", async () => {
+  it("returns the validated profile and confirmation summary on success", async () => {
     const response = await handleProfileRequest(
       profileRequest({ answers: DEMO_INTAKE_ANSWERS }),
-      vi.fn().mockResolvedValue(VALID_PROFILE_FIXTURE),
+      vi.fn().mockResolvedValue({
+        profile: VALID_PROFILE_FIXTURE,
+        confirmationSummary: DEMO_CONFIRMATION_SUMMARY,
+      }),
     );
     const body = (await response.json()) as ProfileApiResponse;
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(body).toEqual({ ok: true, profile: VALID_PROFILE_FIXTURE });
+    expect(body).toEqual({
+      ok: true,
+      profile: VALID_PROFILE_FIXTURE,
+      confirmationSummary: DEMO_CONFIRMATION_SUMMARY,
+    });
     expect(JSON.stringify(body)).not.toContain("test-key");
   });
 

@@ -95,10 +95,10 @@ export async function handleProfileRequest(
   }
 
   try {
-    const profile = await generateProfile(parsedInput.data.answers);
+    const result = await generateProfile(parsedInput.data.answers);
 
     return NextResponse.json<ProfileApiResponse>(
-      { ok: true, profile },
+      { ok: true, ...result },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

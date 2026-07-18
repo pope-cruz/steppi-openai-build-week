@@ -15,12 +15,14 @@ import {
 } from "@/app/intake/profile-confirmation";
 import type { DevelopmentResearchFixture } from "@/app/intake/path-branch-preview";
 import { Button } from "@/components/ui/button";
-import type { DevelopmentProfileRefinementFixture } from "@/lib/demo-profile-refinement";
 import {
   developmentIntakeTurnPayload,
   type DevelopmentIntakeFixture,
 } from "@/lib/demo-intake-conversation";
-import { DEMO_PROFILE_FIXTURE } from "@/lib/demo-profile";
+import {
+  DEMO_CONFIRMATION_SUMMARY,
+  DEMO_PROFILE_FIXTURE,
+} from "@/lib/demo-profile";
 import {
   EMPTY_CONVERSATION_STATE,
   IntakeTurnApiResponseSchema,
@@ -53,7 +55,11 @@ type ProfileRequestState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "error"; message: string; retryable: boolean }
-  | { status: "success"; profile: StudentProfile };
+  | {
+      status: "success";
+      profile: StudentProfile;
+      confirmationSummary: string;
+    };
 
 type TurnRequestState =
   | { status: "idle" }
@@ -141,27 +147,6 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
   return fixtures.includes(fixture as DevelopmentFixtureMode)
     ? (fixture as DevelopmentFixtureMode)
     : null;
-}
-
-function profileRefinementFixtureFor(
-  fixture: DevelopmentFixtureMode,
-): DevelopmentProfileRefinementFixture | undefined {
-  if (isIntakeFixture(fixture) || fixture === "profile-refine-direct") {
-    return "direct";
-  }
-  if (fixture === "profile-refine-follow-up") {
-    return "follow-up";
-  }
-  if (fixture === "profile-refine-several") {
-    return "several";
-  }
-  if (fixture === "profile-refine-failure") {
-    return "failure";
-  }
-  if (fixture === "profile-refine-malformed") {
-    return "malformed";
-  }
-  return undefined;
 }
 
 function isIntakeFixture(
@@ -567,10 +552,8 @@ export function IntakeProfileDemo() {
     return (
       <div className="mx-auto w-full max-w-[64rem]">
         <ProfileConfirmation
+          confirmationSummary={DEMO_CONFIRMATION_SUMMARY}
           developmentPathFixture={pathFixtureFor(developmentFixtureMode)}
-          developmentProfileRefinementFixture={profileRefinementFixtureFor(
-            developmentFixtureMode,
-          )}
           developmentResearchFixture={researchFixtureFor(developmentFixtureMode)}
           onRestart={() => {
             setFixtureDismissed(true);
@@ -631,7 +614,11 @@ export function IntakeProfileDemo() {
         if (controller.signal.aborted) {
           return;
         }
-        payload = { ok: true, profile: DEMO_PROFILE_FIXTURE };
+        payload = {
+          ok: true,
+          profile: DEMO_PROFILE_FIXTURE,
+          confirmationSummary: DEMO_CONFIRMATION_SUMMARY,
+        };
       } else {
         const response = await fetch("/api/profile", {
           method: "POST",
@@ -665,6 +652,7 @@ export function IntakeProfileDemo() {
       setProfileRequestState({
         status: "success",
         profile: parsedResult.data.profile,
+        confirmationSummary: parsedResult.data.confirmationSummary,
       });
     } catch {
       if (controller.signal.aborted) {
@@ -987,13 +975,9 @@ export function IntakeProfileDemo() {
     return (
       <div className="mx-auto w-full max-w-[64rem]">
         <ProfileConfirmation
+          confirmationSummary={profileRequestState.confirmationSummary}
           developmentPathFixture={
             isIntakeFixture(developmentFixtureMode) ? "success" : undefined
-          }
-          developmentProfileRefinementFixture={
-            developmentFixtureMode
-              ? profileRefinementFixtureFor(developmentFixtureMode)
-              : undefined
           }
           onRestart={restart}
           profile={profileRequestState.profile}

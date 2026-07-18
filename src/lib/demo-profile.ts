@@ -53,3 +53,6 @@ export const DEMO_PROFILE_FIXTURE: StudentProfile = {
     },
   ],
 };
+
+export const DEMO_CONFIRMATION_SUMMARY =
+  "You are drawn to visual, practical work that connects art and technology, and you have enjoyed presenting ideas and organizing group projects. You want room to collaborate and create without making heavy programming the center of your day, while keeping options near Manila in view.";

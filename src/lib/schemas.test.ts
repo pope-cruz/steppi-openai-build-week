@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { DEMO_INTAKE_ANSWERS } from "./demo-intake";
 import {
+  ConfirmationSummarySchema,
+  ConfirmedSummarySchema,
   IntakeRequestSchema,
   PathGenerationSchema,
   ProfilePatchSchema,
@@ -9,6 +11,7 @@ import {
   ResearchRequestSchema,
   StudentProfileSchema,
 } from "./schemas";
+import { DEMO_CONFIRMATION_SUMMARY } from "./demo-profile";
 import { VALID_PROFILE_FIXTURE } from "../test/profile-fixture";
 import { VALID_PROFILE_PATCH_FIXTURE } from "../test/profile-patch-fixture";
 import { DEMO_PATH_BRANCHES } from "./demo-paths";
@@ -38,6 +41,34 @@ describe("Steppi schemas", () => {
     invalidProfile.facts[0].sourceAnswerIds = [];
 
     expect(StudentProfileSchema.safeParse(invalidProfile).success).toBe(false);
+  });
+
+  it("accepts only an initial two-sentence summary that addresses the student", () => {
+    expect(ConfirmationSummarySchema.safeParse(DEMO_CONFIRMATION_SUMMARY).success).toBe(
+      true,
+    );
+    expect(
+      ConfirmationSummarySchema.safeParse("You enjoy visual work.").success,
+    ).toBe(false);
+    expect(
+      ConfirmationSummarySchema.safeParse(
+        "The student enjoys visual work. Creative collaboration matters.",
+      ).success,
+    ).toBe(false);
+    expect(
+      ConfirmationSummarySchema.safeParse(
+        "You enjoy visual work. You want creative collaboration. You prefer Manila.",
+      ).success,
+    ).toBe(false);
+  });
+
+  it("lets a student-approved refinement override the two-sentence format", () => {
+    expect(
+      ConfirmedSummarySchema.safeParse(
+        "Actually, I am open to programming now. Please also consider community work. Affordability matters most.",
+      ).success,
+    ).toBe(true);
+    expect(ConfirmedSummarySchema.safeParse("   ").success).toBe(false);
   });
 
   it("accepts every supported ProfilePatch operation", () => {

@@ -40,11 +40,18 @@ living graph that every response must mutate.
   one or two controller-selected follow-ups, one final consideration question,
   multiline composition, revision, request locking, transcript preservation,
   loading, failure, malformed-output, fallback, and retry behavior.
-- Server-only GPT-5.6 profile generation uses structured output and runtime
-  validation. Direct facts, model inferences, constraints, uncertainty, and
-  tensions remain distinct in the current validated profile.
-- Profile correction exists as a separate server-only structured-output boundary.
-  Validated patches apply atomically, and failure preserves the last valid profile.
+- Server-only GPT-5.6 profile generation now returns the unchanged validated
+  structured profile plus an exactly two-sentence, direct-address
+  `confirmationSummary` in the same request.
+- Confirmation leads with only that warm reflection. The complete structured
+  profile is collapsed by default in a secondary disclosure. The student can
+  accept it with **Good to go!** or directly edit it with **Let me refine this**.
+- A saved edit becomes `confirmedSummary` without another model request or a
+  reverse transformation into profile fields. The legacy profile-refinement API
+  remains in the repository but no longer drives the normal confirmation screen.
+- Role generation receives the unchanged profile followed by `confirmedSummary`.
+  The approved wording resolves contradictions and priorities or adds context;
+  stylistic omissions do not discard useful structured details.
 - Path generation now returns one validated set of 6–8 unranked career roles,
   targeting seven, in a single request. Every role includes the complete concise
   selected-role explanation contract and valid profile-evidence references.
@@ -93,12 +100,6 @@ technical evidence and may inform later work.
 
 ## Product-alignment Gaps
 
-### Student-context confirmation
-
-The current confirmation is a deterministic decision statement plus three lists.
-It remains denser than the intended concise human understanding and still uses
-`Build my map` / `Refine this first` language.
-
 ### Extended role conversation
 
 The current product supports one research-question composer for a selected path.
@@ -118,6 +119,11 @@ caveats, with detailed provenance progressively disclosed.
 - The product provides breadth before depth.
 - Initial audience: high-school students beginning college and career exploration.
 - The intake remains conversational, concrete, correctable, and non-diagnostic.
+- The initial confirmation is exactly two generated sentences; direct student
+  edits take precedence over the formatting constraint and do not mutate the
+  original structured profile.
+- Role generation uses the complete profile for breadth and the approved summary
+  to resolve contradictions, additions, and priorities.
 - The normal Build Week target is approximately seven career roles; roughly seven
   to ten may be acceptable when context and layout justify it.
 - Roles must be meaningfully varied and must not be presented as an objective
@@ -139,12 +145,12 @@ caveats, with detailed provenance progressively disclosed.
 
 ## Active Milestone
 
-**Milestone 2 alignment — Concise Student-context Confirmation**
+**Milestone 5 — Extended Role Conversation**
 
-Milestone 3 — Role Possibility Space is implemented and deterministically verified
-with the concrete 6–8-role contract targeting seven. The next smallest alignment
-slice is the concise student-context confirmation in SPEC.md, preserving the new
-role space and every working downstream boundary.
+Milestone 2 — Student-context Confirmation is now implemented and deterministically
+verified with the two-sentence generation contract, direct student refinement,
+secondary details, and approved-summary precedence. The next product gap is one
+role-specific extended conversation with conditional retrieval.
 
 ## Recommended Implementation Sequence
 
@@ -153,9 +159,9 @@ role space and every working downstream boundary.
 3. ~~Replace exact-three branch generation and overview with the
    approximately-seven varied-role contract, unranked floating role space, and
    accessible mobile fallback.~~
-4. **Align the concise student-context confirmation.**
-5. Add one role-specific extended conversation with natural questions and
-   conditional retrieval.
+4. ~~Align the concise student-context confirmation.~~
+5. **Add one role-specific extended conversation with natural questions and
+   conditional retrieval.**
 6. Simplify researched-answer presentation through progressive disclosure while
    preserving source validation.
 7. Run full reliability, accessibility, deployment, and submission verification.
@@ -167,33 +173,34 @@ until the corresponding alignment step explicitly changes it.
 
 ```text
 Read AGENTS.md, docs/VISION.md, docs/SPEC.md, docs/TASKS.md, and the latest
-relevant docs/BUILD_LOG.md entries. Inspect the current StudentProfile contract,
-profile-confirmation UI, correction flow, fixtures, and tests.
+relevant docs/BUILD_LOG.md entries. Inspect the confirmed StudentProfile and
+confirmedSummary flow, selected-role state, existing research boundary, fixtures,
+and tests.
 
-Implement only the concise student-context confirmation alignment in SPEC.md.
-Present exactly three natural-language sentences that communicate what Steppi
-understood, followed by “Is there anything we missed or misunderstood?” and the
-actions “Looks right” and “Make a correction”. Keep the public copy warm,
-tentative, easy to scan, and grounded in the validated profile.
+Implement the smallest complete selected-role extended conversation in SPEC.md.
+Keep one conversation history scoped to one selected role, accept natural
+free-text follow-up questions, and ground each response in the validated profile,
+student-approved confirmedSummary, selected-role explanation, and prior messages.
+Answer interpretive questions without retrieval; use the existing validated
+research boundary only when a question requires unstable external facts.
 
-Preserve the detailed validated StudentProfile, correction API, conversational
-intake, 6–8 unranked role generation, floating role space, selected-role
-explanations, research, and optional fixed Manila affordability refinement. Do
-not implement extended role chat, conditional-research orchestration,
-persistence, authentication, a database, or a new graph system.
+Preserve the conversational intake, two-sentence confirmation and direct editing,
+6–8 unranked role generation, floating role space, selected-role explanation,
+source trust boundary, and optional Manila refinement. Do not add authentication,
+persistence, a database, global search, per-role generation calls, or a general
+agent architecture.
 
-Add focused deterministic tests for the three-sentence contract, correction,
-failure, retry, and downstream state preservation. Verify the normal and error
-flows in a real browser on desktop and mobile, including keyboard use and the
-console. Run lint, typecheck, tests, build, and git diff --check. Update TASKS.md
-and BUILD_LOG.md with verified results and the next smallest alignment task. Do
-not make a live or paid OpenAI request unless strictly necessary, and report
-whether one occurred.
+Use deterministic fixtures and mocked model/retrieval boundaries. Verify role-
+scoped history, natural questions, interpretive no-retrieval answers, conditional
+research, failure/retry, switching without cross-role leakage, desktop/mobile,
+keyboard use, and the console. Run lint, typecheck, tests, build, and
+git diff --check; update TASKS.md and BUILD_LOG.md accurately. Do not make a live
+or paid request unless separately authorized.
 ```
 
 ## Current Blockers
 
-- No known technical blocker prevents the student-context confirmation work.
+- No known technical blocker prevents the selected-role conversation work.
 - Vercel Authentication still blocks anonymous Preview access; the current
   deployed golden path remains unverified for judges.
 
@@ -205,6 +212,9 @@ whether one occurred.
 - Intake duration and screen-reader behavior remain unmeasured.
 - Revised intake interpretation and profile refinement have deterministic but not
   fresh live GPT-5.6 verification.
+- The generated two-sentence confirmation and role-generation precedence rules
+  are deterministically verified but have no fresh live GPT-5.6 quality check or
+  representative-student comprehension study.
 - The 6–8-role generation contract and seven-role fixture have not been calibrated
   through a fresh live GPT-5.6 response or a materially different persona.
 - The enriched path contract and role brief are fixture-verified but have not had

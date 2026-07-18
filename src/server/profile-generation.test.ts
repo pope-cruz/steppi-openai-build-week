@@ -1,11 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { DEMO_INTAKE_ANSWERS } from "../lib/demo-intake";
+import { DEMO_CONFIRMATION_SUMMARY } from "../lib/demo-profile";
 import { VALID_PROFILE_FIXTURE } from "../test/profile-fixture";
 import {
   generateStudentProfile,
+  PROFILE_INSTRUCTIONS,
   ProfileGenerationError,
 } from "./profile-generation";
+
+const VALID_GENERATION = {
+  profile: VALID_PROFILE_FIXTURE,
+  confirmationSummary: DEMO_CONFIRMATION_SUMMARY,
+};
 
 async function expectGenerationError(
   promise: Promise<unknown>,
@@ -19,8 +26,8 @@ async function expectGenerationError(
 }
 
 describe("generateStudentProfile", () => {
-  it("returns a validated profile from the request adapter", async () => {
-    const requestProfile = vi.fn().mockResolvedValue(VALID_PROFILE_FIXTURE);
+  it("returns a validated profile and two-sentence confirmation from one request", async () => {
+    const requestProfile = vi.fn().mockResolvedValue(VALID_GENERATION);
 
     await expect(
       generateStudentProfile(DEMO_INTAKE_ANSWERS, {
@@ -28,12 +35,20 @@ describe("generateStudentProfile", () => {
         model: "gpt-5.6",
         requestProfile,
       }),
-    ).resolves.toEqual(VALID_PROFILE_FIXTURE);
+    ).resolves.toEqual(VALID_GENERATION);
     expect(requestProfile).toHaveBeenCalledWith({
       answers: DEMO_INTAKE_ANSWERS,
       apiKey: "test-key-not-real",
       model: "gpt-5.6",
     });
+  });
+
+  it("asks for a warm, direct, exactly two-sentence confirmation", () => {
+    expect(PROFILE_INSTRUCTIONS).toContain("exactly two concise sentences");
+    expect(PROFILE_INSTRUCTIONS).toContain('using "you"');
+    expect(PROFILE_INSTRUCTIONS).toContain("interests, experiences, or activities");
+    expect(PROFILE_INSTRUCTIONS).toContain("preferences, dislikes, priorities");
+    expect(PROFILE_INSTRUCTIONS).toContain("Do not mechanically list fields");
   });
 
   it("fails before making a request when the API key is missing", async () => {
@@ -91,7 +106,24 @@ describe("generateStudentProfile", () => {
       generateStudentProfile(DEMO_INTAKE_ANSWERS, {
         apiKey: "test-key-not-real",
         model: "gpt-5.6",
-        requestProfile: vi.fn().mockResolvedValue({ facts: [] }),
+        requestProfile: vi.fn().mockResolvedValue({
+          profile: { facts: [] },
+          confirmationSummary: DEMO_CONFIRMATION_SUMMARY,
+        }),
+      }),
+      "malformed_model_output",
+    );
+  });
+
+  it("rejects a summary that is not exactly two direct-address sentences", async () => {
+    await expectGenerationError(
+      generateStudentProfile(DEMO_INTAKE_ANSWERS, {
+        apiKey: "test-key-not-real",
+        model: "gpt-5.6",
+        requestProfile: vi.fn().mockResolvedValue({
+          profile: VALID_PROFILE_FIXTURE,
+          confirmationSummary: "The student likes creative work.",
+        }),
       }),
       "malformed_model_output",
     );

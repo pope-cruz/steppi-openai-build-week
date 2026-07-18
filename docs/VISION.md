@@ -72,6 +72,12 @@ The conversation should feel natural and take only a few minutes.
 Its purpose is not to diagnose the student. It gives Steppi enough context to
 suggest a varied set of roles worth exploring.
 
+Before opening the role space, Steppi reflects that context back in exactly two
+warm, direct sentences. The student can accept the reflection, inspect the full
+structured context in a secondary disclosure, or rewrite the summary in their
+own words. The approved wording becomes their latest clarification without
+discarding useful structured context that the short summary does not repeat.
+
 ### 2. Career possibility space
 
 Steppi generates approximately seven initial career-role options.
@@ -251,7 +257,8 @@ The Build Week version includes:
 
 1. A clear landing page.
 2. A short conversational intake.
-3. A validated student-context summary.
+3. A validated two-sentence student-context reflection that the student can
+   directly refine.
 4. Approximately seven generated career-role options.
 5. A floating role-node interface.
 6. A concise explanation for every role containing:
