@@ -235,7 +235,46 @@ describe("research validation", () => {
         AUDIT_CIIT_RETRIEVED_SOURCE_URLS,
         "2026-07-17",
       ).nodes[0].claims.map((claim) => claim.kind),
-    ).toEqual(["cost", "eligibility", "conditional-aid", "limitation"]);
+    ).toEqual([
+      "cost",
+      "eligibility",
+      "fact",
+      "conditional-aid",
+      "limitation",
+      "limitation",
+    ]);
+  });
+
+  it("rejects an unsupported positive affordability conclusion despite complete claim kinds", () => {
+    const unsupportedConclusion = structuredClone(AUDIT_CIIT_AFFORDABILITY_NODE);
+    unsupportedConclusion.title = "Affordable CIIT degree option";
+
+    expect(() =>
+      validateResearchGeneration(
+        DEMO_PATH_BRANCHES[0],
+        AUDIT_AFFORDABILITY_QUESTION,
+        { status: "success", nodes: [unsupportedConclusion] },
+        AUDIT_CIIT_RETRIEVED_SOURCE_URLS,
+        "2026-07-17",
+      ),
+    ).toThrow("no valid source-backed nodes");
+  });
+
+  it("rejects affordability output without a sourced residency caveat", () => {
+    const missingResidency = structuredClone(AUDIT_CIIT_AFFORDABILITY_NODE);
+    missingResidency.claims = missingResidency.claims.filter(
+      (claim) => claim.id !== "ciit-residency-limitation",
+    );
+
+    expect(() =>
+      validateResearchGeneration(
+        DEMO_PATH_BRANCHES[0],
+        AUDIT_AFFORDABILITY_QUESTION,
+        { status: "success", nodes: [missingResidency] },
+        AUDIT_CIIT_RETRIEVED_SOURCE_URLS,
+        "2026-07-17",
+      ),
+    ).toThrow("no valid source-backed nodes");
   });
 
   it("keeps the audited UP fixture within the cited program-page claims", () => {

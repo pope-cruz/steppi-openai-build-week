@@ -16,6 +16,12 @@ export const DEMO_PATH_BRANCHES: PathBranch[] = [
     drawbacks: [
       "Some roles still require comfort collaborating closely with technical teams and working through detailed feedback.",
     ],
+    dayToDay: [
+      "A typical day may move between learning what people need, sketching possible screens, and refining a prototype.",
+      "Product designers often share unfinished work with teammates, listen to feedback, and revise details several times.",
+    ],
+    lowRiskExploration:
+      "Redesign one confusing screen from an app you use and ask two friends to try your version.",
     unresolvedQuestions: [
       "Would the student enjoy iterative design work when early ideas need substantial revision?",
     ],
@@ -39,6 +45,12 @@ export const DEMO_PATH_BRANCHES: PathBranch[] = [
     drawbacks: [
       "Communication work can involve ambiguous feedback and frequent coordination across different priorities.",
     ],
+    dayToDay: [
+      "The work often involves planning messages, shaping content, and deciding how an idea should reach a particular audience.",
+      "A typical day may include writing, reviewing campaign material, checking audience feedback, and coordinating with creative teammates.",
+    ],
+    lowRiskExploration:
+      "Create a one-week communication plan for a school club event and see which part of the process holds your interest.",
     unresolvedQuestions: [
       "Does the student prefer writing and audience research, or visual planning and presentation?",
     ],
@@ -62,6 +74,12 @@ export const DEMO_PATH_BRANCHES: PathBranch[] = [
     drawbacks: [
       "Program work may involve logistics, stakeholder disagreements, and less time on hands-on visual creation.",
     ],
+    dayToDay: [
+      "A typical day may include organizing sessions, speaking with participants, solving schedule problems, and keeping a small team aligned.",
+      "The rhythm shifts between people-facing facilitation and quieter planning, follow-up, and administrative work.",
+    ],
+    lowRiskExploration:
+      "Help plan one small school or neighborhood activity and notice whether coordinating people feels energizing or draining.",
     unresolvedQuestions: [
       "Would the student enjoy supporting groups over time, including administrative and coordination work?",
     ],

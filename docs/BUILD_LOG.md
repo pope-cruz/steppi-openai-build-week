@@ -4,14 +4,14 @@ project: Steppi
 event: OpenAI Build Week
 status: active
 version: 0.1
-last_updated: 2026-07-17
+last_updated: 2026-07-18
 ---
 
 # Steppi Build Log
 
 This file preserves chronological implementation history, detailed test and
 browser reports, deployment records, command results, decisions, and verification
-evidence through 2026-07-17. Read [TASKS.md](./TASKS.md) for the current handoff
+evidence through 2026-07-18. Read [TASKS.md](./TASKS.md) for the current handoff
 and [SPEC.md](./SPEC.md) for milestone acceptance criteria.
 
 ## Archived Milestone Snapshot
@@ -28,6 +28,158 @@ it is historical evidence, not a second specification.
 - Milestones 4–6 — Research, refinement, reliability, and submission: not complete.
 
 ## Completed
+
+### 2026-07-18 — Milestone 4 lightweight role understanding
+
+- Enriched the existing exactly-three `PathBranch` generation contract rather
+  than adding a selection-time model call. `summary` is now one role-definition
+  sentence; `whyItAppeared` and `drawbacks` accept one or two concise sentences;
+  and every branch includes two or three `dayToDay` sentences plus one
+  `lowRiskExploration` sentence. Runtime validation rejects overlong item counts,
+  multi-sentence role summaries, and missing explanation fields.
+- Updated the single existing GPT-5.6 path-generation instruction set to request
+  plain, student-facing, profile-grounded fit language, uncertainty-aware possible
+  mismatch language, concrete work/collaboration/rhythm descriptions, and one
+  low-cost, low-commitment exploration action. The exactly-three roles, model,
+  one-call request boundary, route, profile IDs, and downstream API contracts were
+  otherwise preserved.
+- Extended the initial-path current-claim guard to cover the new day-to-day and
+  exploration fields, so unsupported salary, cost, admissions, ranking, or other
+  time-sensitive claims still fail before rendering.
+- Reworked only the selected-path detail presentation into a concise editorial
+  role brief: what the role is, why it may fit, why it may not fit, day-to-day,
+  and a purposeful try-before-committing action. Supporting profile evidence,
+  unresolved questions, and related directions remain available through a native
+  keyboard-accessible disclosure; the existing research and optional fixed Manila
+  affordability refinement remain below the same stable selected branch.
+- Compatibility required no persisted-data migration because path state remains
+  in memory and clears on refresh. All deterministic path, research, and
+  refinement fixtures were updated through the shared valid branch fixtures; an
+  incomplete old or malformed model payload fails safely at the existing
+  structured-validation boundary.
+- Added schema-limit, prompt-contract, malformed-output, current-claim, and
+  rendered-role-brief assertions. Focused verification passed with 8 files and 63
+  tests. The full suite passed with 31 files and 228 tests.
+- Real-browser fixture verification covered the selected-path flow on desktop and
+  the 390×844 non-graph mobile fallback. Pointer selection, native Enter and Space
+  selection, branch switching, clearing, profile-evidence disclosure, visible
+  focus, preservation of all three paths, and selected-only progressive disclosure
+  were checked. The development console contained only the expected React DevTools
+  suggestion and HMR connection messages, with no warning or error.
+- Final checks passed: `npm run lint`, `npm run typecheck`, `npm run test` (31
+  files, 228 tests), the network-enabled `npm run build`, and `git diff --check`.
+  The first sandboxed build attempt failed only because the existing Google Fonts
+  could not be fetched; the permitted identical rerun compiled and generated all
+  routes successfully.
+- No live or paid OpenAI request and no deployment occurred. Fresh model quality
+  for the enriched contract and a materially different persona remain unverified.
+  Exact next task: align the student-facing profile confirmation to exactly three
+  concise natural-language sentences plus “Is there anything we missed or
+  misunderstood?”, **Looks right**, and **Make a correction**, while preserving
+  the detailed internal profile and all downstream behavior.
+
+### 2026-07-18 — Breadth-before-depth product contract correction
+
+- Adopted a clarified product identity: Steppi is a guided exploration companion
+  that helps high-school students discover career roles they may not know exist,
+  understand why those roles might or might not suit them, and explore an
+  interesting role through an extended conversation.
+- Reframed the core journey as **discover, understand, explore**. The initial
+  experience should provide breadth before depth rather than immediately leading
+  every student into detailed research, college lists, labor data, or planning.
+- Changed the Build Week target from exactly three ranked-like branch roles to
+  approximately seven meaningfully varied career roles. The visible possibility
+  space may contain roughly seven to ten roles when student context and layout
+  justify it. Roles are possibilities for discovery, not predictions or an
+  objective ranking.
+- Reframed the visualization as an open floating role space for discovery,
+  selection, switching, and orientation. It is not a living knowledge graph, and
+  successful exploration does not require every answer to mutate nodes or edges.
+- Made lightweight role understanding a central product contract. Before deep
+  exploration, every role should concisely explain what it is, why it may fit,
+  why it may not fit, and what its day-to-day work is like.
+- Made natural follow-up questions and one role-specific extended conversation the
+  primary depth mechanism. Interpretive answers grounded in the confirmed student
+  context, role explanation, prior conversation, or already validated research do
+  not require retrieval merely to satisfy an architecture pattern.
+- Kept current-source research mandatory for unstable external claims, including
+  current colleges and programs, tuition and costs, admissions, financial aid,
+  resources, professional requirements, and location-specific opportunities.
+  Researched answers should lead with the answer, relevance, and caveats while
+  retaining detailed claim-to-source provenance through progressive disclosure.
+- Moved the implemented **Prioritize affordable options near Manila** refinement
+  outside the default golden path. Its strict validation, source trust,
+  affordability evidence rules, baseline preservation, safe failure, explicit
+  retry, and unrelated-state preservation remain valuable completed technical
+  work and historical evidence; the implementation and tests were not removed.
+- Rewrote `VISION.md` and `SPEC.md`, corrected the operational handoff in
+  `TASKS.md`, made the smallest corresponding doctrine changes in `AGENTS.md`,
+  and marked the former structural product rules in `DESIGN.md` as superseded
+  while preserving its useful visual-craft guidance. The new active product
+  milestone is the selected-role explanation because the current detail panel
+  remains too thin to make one role genuinely understandable.
+- This entry records a product-contract and documentation correction. It does not
+  claim new application behavior, a new data contract implementation, a fresh
+  downstream browser pass, or new model verification. The latest audit's isolated
+  browser could not complete a hydrated downstream fixture run because Next.js
+  blocked the development origin. No live or paid OpenAI request was made.
+
+### 2026-07-18 — Milestone 5 fixed branch-local affordability refinement
+
+- Corrected the operational status: the repository previously had pre-map profile
+  refinement and selected-branch research, but no post-research branch update.
+  Added the one fixed MVP action, **Prioritize affordable options near Manila**;
+  no general refinement composer, history, persistence, new API route, or new
+  provider architecture was introduced.
+- Reused the existing background `/api/research` POST/PUT/DELETE boundary. A fixed
+  refinement request validates the confirmed profile, selected `PathBranch`, exact
+  constraint literal, and a one-to-five-node snapshot of the original successful
+  research, then maps to the unchanged `{ profile, branch, question }` research
+  request. Completed nodes pass the existing provider-source allow-list, server
+  date, structured parser, parent-branch, source-normalization, and client-boundary
+  validation plus a strict refinement-result schema.
+- Added an explicit state transition: baseline success → refinement pending while
+  baseline remains visible → refinement success replaces only the visible selected-
+  branch research neighborhood. No-useful-source, provider failure, timeout,
+  cancellation, or malformed output leave the last valid baseline visible. The
+  baseline object, confirmed profile, all three original branch objects, selection,
+  branch ID, and unrelated graph state remain unchanged.
+- Added concise UI for the fixed action and for what changed, why it changed, and
+  what stayed the same. Loading disables path switching and repeat submission;
+  manual retry is the only way to create another generation after a terminal
+  failure. There is no automatic model or SDK retry.
+- Tightened affordability trust without changing the Structured Outputs schema:
+  retained options require source-addressable cost, eligibility, residency or
+  location-based eligibility, conditional-aid, and limitation evidence. Positive
+  `affordable`, `low-cost`, or `budget-friendly` labels are rejected; explicit
+  denial/caveat wording remains allowed. The audited fixture displays the PHP
+  135,000–165,000 annual estimate, Quezon City location, admissions dependency,
+  conditional scholarships, lack of established residency discount, and the
+  explicit limitation that these facts do not establish affordability.
+- Added fixed-boundary, reducer, validator, server/provider, and rendered-markup
+  coverage. Focused verification passed with 5 files and 66 tests. The final full
+  suite passed with 31 files and 226 tests.
+- Real-browser fixture verification covered 1440×1000 and 390×844: baseline
+  research, refinement loading, one-create duplicate lock, successful replacement,
+  no useful evidence, malformed output, polling timeout, provider failure, explicit
+  retry, branch switching, clearing/reselecting, Enter/Space selection, visible
+  focus, one student plus exactly three original branches, prior-result preservation,
+  no horizontal overflow/off-screen horizontal controls, and empty warning/error
+  console output. An initial action recorded one research create and one refinement
+  create; the explicit terminal retry alone increased refinement creates to two.
+- Final checks passed: `npm run lint`, `npm run typecheck`, `npm run test` (31
+  files, 226 tests), the network-enabled `npm run build`, and `git diff --check`.
+  The first sandboxed build attempt failed only because the existing Google Fonts
+  could not be fetched; no source or build defect caused that attempt to fail.
+- No live or paid OpenAI request and no deployment occurred. The model, existing
+  Structured Outputs schema, parser, source-normalization rules, profile, initial
+  branches, and graph architecture were unchanged. The fixed action remains
+  in-memory and supports only one selected researched branch, as intended.
+- Milestone 5 is complete. Exact next task: align the student-facing profile
+  confirmation to the SPEC/VISION contract of exactly three natural-language
+  sentences, “Is there anything we missed or misunderstood?”, and **Looks right** /
+  **Make a correction**, while preserving the detailed validated internal profile
+  and all downstream map, research, and refinement behavior.
 
 ### 2026-07-17 — Deterministic conversational intake controller
 

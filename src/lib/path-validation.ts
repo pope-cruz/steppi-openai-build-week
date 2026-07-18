@@ -144,6 +144,8 @@ function assertNoUnsupportedCurrentClaims(branches: PathBranch[]) {
       branch.summary,
       ...branch.whyItAppeared,
       ...branch.drawbacks,
+      ...branch.dayToDay,
+      branch.lowRiskExploration,
     ].join(" ");
 
     if (UNSUPPORTED_CURRENT_CLAIM_PATTERNS.some((pattern) => pattern.test(claimText))) {

@@ -94,6 +94,37 @@ describe("Steppi schemas", () => {
     );
   });
 
+  it("enforces the concise selected-role explanation contract", () => {
+    const tooManyFitSentences = structuredClone(DEMO_PATH_BRANCHES);
+    tooManyFitSentences[0].whyItAppeared = [
+      "The student enjoys visual problem-solving.",
+      "They are curious about digital products.",
+      "They also enjoy presenting ideas.",
+    ];
+    const tooLittleDayToDay = structuredClone(DEMO_PATH_BRANCHES);
+    tooLittleDayToDay[0].dayToDay = ["A designer sketches possible screens."];
+    const multiSentenceSummary = structuredClone(DEMO_PATH_BRANCHES);
+    multiSentenceSummary[0].summary =
+      "Designers shape digital experiences. They work with product teams.";
+    const missingExploration = structuredClone(DEMO_PATH_BRANCHES);
+    for (const branch of missingExploration) {
+      Reflect.deleteProperty(branch, "lowRiskExploration");
+    }
+
+    expect(
+      PathGenerationSchema.safeParse({ branches: tooManyFitSentences }).success,
+    ).toBe(false);
+    expect(
+      PathGenerationSchema.safeParse({ branches: tooLittleDayToDay }).success,
+    ).toBe(false);
+    expect(
+      PathGenerationSchema.safeParse({ branches: multiSentenceSummary }).success,
+    ).toBe(false);
+    expect(
+      PathGenerationSchema.safeParse({ branches: missingExploration }).success,
+    ).toBe(false);
+  });
+
   it("accepts strict research requests and one-to-five sourced nodes", () => {
     expect(
       ResearchRequestSchema.safeParse({

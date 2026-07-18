@@ -1,5 +1,13 @@
 # Steppi Design
 
+> **Product-contract status (2026-07-18):** The visual craft, accessibility,
+> trust, and calm-interaction guidance in this document remains useful. Its
+> exact-three branch layout, central-student graph, mandatory research expansion,
+> and branch-refinement flow describe the former product contract and are
+> superseded by [VISION.md](./VISION.md) and [SPEC.md](./SPEC.md). Do not use those
+> structural sections as current implementation requirements until this design
+> document is realigned to the breadth-before-depth role space.
+
 ## Purpose
 
 This document defines the visual and interaction rules for the Steppi Build Week MVP. It translates `docs/VISION.md` and `docs/SPEC.md` into a consistent product experience Codex can implement and verify.

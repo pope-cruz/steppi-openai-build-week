@@ -2,7 +2,9 @@
 
 ## Project purpose
 
-Steppi helps high-school students explore realistic career and college paths through an adaptive interview and an interactive, source-backed map.
+Steppi helps high-school students discover career roles they may not know exist,
+understand why those roles might or might not suit them, and explore interesting
+options through an extended conversation.
 
 The product must help students explore possibilities. It must not claim to predict the correct career, diagnose aptitude, guarantee outcomes, or replace professional guidance.
 
@@ -47,15 +49,17 @@ Prioritize one polished end-to-end exploration loop:
     
 3. Student confirms or corrects the hypothesis.
     
-4. Steppi generates three meaningfully different path branches.
+4. Steppi generates a broad but manageable set of varied career roles.
     
-5. Student explores one branch.
+5. Student uses the floating role space to choose one role.
     
-6. Steppi performs one source-backed research expansion.
+6. Steppi concisely explains what the role is, why it may or may not fit, and
+   what its day-to-day work is like.
     
-7. Student performs one comparison or refinement.
+7. Student asks a natural follow-up question in an extended role conversation.
     
-8. The relevant branch updates without rebuilding the entire map.
+8. Steppi uses current-source research only when the answer requires unstable
+   external facts and helps the student identify a concrete next step.
     
 
 A complete and reliable core flow is more valuable than additional unfinished features.
@@ -109,7 +113,11 @@ Prefer representative demo data and narrow, working behavior over broad infrastr
     
 - Distinguish user-provided facts, model inferences, uncertainty, and sourced factual claims.
     
-- Current claims about colleges, programs, costs, admissions, or careers must include retrieved sources.
+- Current external claims about colleges, programs, costs, admissions,
+  availability, resources, professional requirements, or financial aid must
+  include retrieved sources. Interpretive responses based on the confirmed
+  student context, role explanation, prior role conversation, and already
+  validated research do not require a new retrieval pass.
     
 - Include source title, URL, date checked, relevance, caveats, and confidence where appropriate.
     
@@ -164,10 +172,12 @@ Avoid:
     
 - Excessive cards
     
-- Too many simultaneously visible graph nodes
+- Too many simultaneously visible role nodes
     
 
-The map should feel like a space for exploration rather than a technical graph editor.
+The floating role space should support discovery, switching, and orientation
+without behaving like a technical graph editor. Do not require every follow-up
+to mutate the visualization.
 
 ## Working process
 

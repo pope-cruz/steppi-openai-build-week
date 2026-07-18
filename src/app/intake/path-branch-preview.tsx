@@ -3,13 +3,23 @@
 import { ArrowRight, Check, UserRound } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 
+import { BranchRefinementPanel } from "@/app/intake/branch-refinement";
 import {
   PathDetailPanel,
   profileEvidence,
 } from "@/app/intake/path-detail-panel";
 import { ResearchComposer } from "@/app/intake/path-research";
 import { ResearchExpansion } from "@/app/intake/research-expansion";
-import { DEMO_RESEARCH_NODES } from "@/lib/demo-research";
+import {
+  AUDIT_CIIT_AFFORDABILITY_NODE,
+  DEMO_RESEARCH_NODES,
+} from "@/lib/demo-research";
+import {
+  BRANCH_REFINEMENT_CONSTRAINT,
+  BranchRefinementRequestSchema,
+  buildBranchRefinementResearchRequest,
+  validateBranchRefinementResult,
+} from "@/lib/branch-refinement";
 import {
   createPathMapState,
   pathMapReducer,
@@ -21,8 +31,10 @@ import {
 import { recordClientResearchDiagnostic } from "@/lib/research-diagnostics";
 import {
   createResearchFlowState,
+  isAnyResearchRequestActive,
   isResearchRequestActive,
   researchFlowReducer,
+  visibleResearchForBranch,
 } from "@/lib/research-flow";
 import { pollResearchJob } from "@/lib/research-polling";
 import {
@@ -66,7 +78,14 @@ export type DevelopmentResearchFixture =
   | "api_failure"
   | "malformed_model_output"
   | "polling_cancel"
-  | "polling_timeout";
+  | "polling_timeout"
+  | "refinement_success"
+  | "refinement_no_useful_sources"
+  | "refinement_retry"
+  | "refinement_malformed_model_output"
+  | "refinement_polling_timeout";
+
+type ResearchPurpose = "research" | "refinement";
 
 export function InitialPathMap({
   branches,
@@ -88,20 +107,26 @@ export function InitialPathMap({
   );
   const [researchQuestion, setResearchQuestion] = useState("");
   const [researchQuestionError, setResearchQuestionError] = useState<string | null>(null);
+  const [researchCreateCount, setResearchCreateCount] = useState(0);
+  const [refinementCreateCount, setRefinementCreateCount] = useState(0);
   const researchController = useRef<AbortController | null>(null);
   const researchActive = useRef(false);
   const cancellationRequested = useRef(false);
   const fixturePollCount = useRef(0);
+  const fixtureRefinementAttempt = useRef(0);
   const evidence = profileEvidence(state.profile);
   const selectedBranch = state.branches.find(
     (branch) => branch.id === state.selectedBranchId,
   );
-  const visibleResearch =
+  const originalResearch =
     selectedBranch &&
     researchFlow.request.status === "success" &&
     researchFlow.request.branchId === selectedBranch.id
       ? researchFlow.request
       : null;
+  const visibleResearch = selectedBranch
+    ? visibleResearchForBranch(researchFlow, selectedBranch.id)
+    : null;
 
   useEffect(
     () => () => {
@@ -114,24 +139,84 @@ export function InitialPathMap({
     method: "POST" | "PUT",
     branch: PathBranch,
     question: string,
+    purpose: ResearchPurpose,
   ): Promise<unknown> {
     await new Promise((resolve) => window.setTimeout(resolve, 350));
     if (method === "POST") {
       fixturePollCount.current = 0;
+      if (purpose === "refinement") {
+        fixtureRefinementAttempt.current += 1;
+      }
       return { ok: true, status: "queued" };
     }
 
     fixturePollCount.current += 1;
     if (
       (developmentResearchFixture === "polling_timeout" ||
-        developmentResearchFixture === "polling_cancel") ||
+        developmentResearchFixture === "polling_cancel" ||
+        (purpose === "refinement" &&
+          developmentResearchFixture === "refinement_polling_timeout")) ||
       fixturePollCount.current === 1
     ) {
       return { ok: true, status: "in_progress" };
     }
+    if (purpose === "refinement") {
+      if (developmentResearchFixture === "refinement_no_useful_sources") {
+        return {
+          ok: true,
+          status: "completed",
+          outcome: "no_useful_sources",
+          question,
+          nodes: [],
+        };
+      }
+      if (developmentResearchFixture === "refinement_malformed_model_output") {
+        return {
+          ok: true,
+          status: "completed",
+          outcome: "success",
+          question,
+          nodes: [
+            {
+              ...AUDIT_CIIT_AFFORDABILITY_NODE,
+              parentBranchId: branch.id,
+              sources: [],
+            },
+          ],
+        };
+      }
+      if (
+        developmentResearchFixture === "refinement_retry" &&
+        fixtureRefinementAttempt.current === 1
+      ) {
+        return {
+          ok: false,
+          status: "failed",
+          error: {
+            code: "api_failure",
+            message:
+              "Steppi could not finish this research right now. Your map and question are safe; please try again.",
+            retryable: true,
+          },
+        };
+      }
+      return {
+        ok: true,
+        status: "completed",
+        outcome: "success",
+        question,
+        nodes: [
+          {
+            ...AUDIT_CIIT_AFFORDABILITY_NODE,
+            parentBranchId: branch.id,
+          },
+        ],
+      };
+    }
     if (
       developmentResearchFixture === "success" ||
-      developmentResearchFixture === "partial_success"
+      developmentResearchFixture === "partial_success" ||
+      developmentResearchFixture?.startsWith("refinement_")
     ) {
       const fixtureNodes =
         developmentResearchFixture === "partial_success"
@@ -197,20 +282,40 @@ export function InitialPathMap({
     response: ResearchApiResponse,
     branch: PathBranch,
     question: string,
+    purpose: ResearchPurpose,
   ) {
     if (!response.ok) {
-      dispatchResearch({
-        type: "fail",
-        branchId: branch.id,
-        question,
-        code: response.error.code,
-        message: response.error.message,
-        retryable: response.error.retryable,
-      });
+      dispatchResearch(
+        purpose === "refinement"
+          ? {
+              type: "refinement_fail",
+              branchId: branch.id,
+              question,
+              code: response.error.code,
+              message: response.error.message,
+              retryable: response.error.retryable,
+            }
+          : {
+              type: "fail",
+              branchId: branch.id,
+              question,
+              code: response.error.code,
+              message: response.error.message,
+              retryable: response.error.retryable,
+            },
+      );
       return;
     }
     if (response.status === "cancelled") {
-      dispatchResearch({ type: "cancelled", branchId: branch.id, question });
+      dispatchResearch(
+        purpose === "refinement"
+          ? {
+              type: "refinement_cancelled",
+              branchId: branch.id,
+              question,
+            }
+          : { type: "cancelled", branchId: branch.id, question },
+      );
       return;
     }
     if (response.status !== "completed") return;
@@ -221,18 +326,39 @@ export function InitialPathMap({
         stage: "client_response_validation",
         reason: "question_mismatch",
       });
-      dispatchResearch({
-        type: "fail",
-        branchId: branch.id,
-        question,
-        code: "malformed_model_output",
-        message: "Steppi received research for a different question. Nothing new was added; please try again.",
-        retryable: true,
-      });
+      dispatchResearch(
+        purpose === "refinement"
+          ? {
+              type: "refinement_fail",
+              branchId: branch.id,
+              question,
+              code: "malformed_model_output",
+              message:
+                "Steppi received research for a different question. Nothing new was added; please try again.",
+              retryable: true,
+            }
+          : {
+              type: "fail",
+              branchId: branch.id,
+              question,
+              code: "malformed_model_output",
+              message:
+                "Steppi received research for a different question. Nothing new was added; please try again.",
+              retryable: true,
+            },
+      );
       return;
     }
     if (response.outcome === "no_useful_sources") {
-      dispatchResearch({ type: "no_useful_sources", branchId: branch.id, question });
+      dispatchResearch(
+        purpose === "refinement"
+          ? {
+              type: "refinement_no_useful_sources",
+              branchId: branch.id,
+              question,
+            }
+          : { type: "no_useful_sources", branchId: branch.id, question },
+      );
       return;
     }
     if (response.nodes.some((node) => node.parentBranchId !== branch.id)) {
@@ -241,14 +367,53 @@ export function InitialPathMap({
         stage: "client_response_validation",
         reason: "parent_branch_mismatch",
       });
-      dispatchResearch({
-        type: "fail",
-        branchId: branch.id,
-        question,
-        code: "malformed_model_output",
-        message: "Steppi received research attached to a different path. Nothing new was added; please try again.",
-        retryable: true,
-      });
+      dispatchResearch(
+        purpose === "refinement"
+          ? {
+              type: "refinement_fail",
+              branchId: branch.id,
+              question,
+              code: "malformed_model_output",
+              message:
+                "Steppi received research attached to a different path. Nothing new was added; please try again.",
+              retryable: true,
+            }
+          : {
+              type: "fail",
+              branchId: branch.id,
+              question,
+              code: "malformed_model_output",
+              message:
+                "Steppi received research attached to a different path. Nothing new was added; please try again.",
+              retryable: true,
+            },
+      );
+      return;
+    }
+    if (purpose === "refinement") {
+      try {
+        const result = validateBranchRefinementResult({
+          branchId: branch.id,
+          constraint: question,
+          nodes: response.nodes,
+        });
+        dispatchResearch({
+          type: "refinement_succeed",
+          branchId: result.branchId,
+          question: result.constraint,
+          nodes: result.nodes,
+        });
+      } catch {
+        dispatchResearch({
+          type: "refinement_fail",
+          branchId: branch.id,
+          question,
+          code: "malformed_model_output",
+          message:
+            "Steppi received a refinement it could not safely attach. Nothing new was added; please try again.",
+          retryable: true,
+        });
+      }
       return;
     }
     dispatchResearch({
@@ -259,37 +424,117 @@ export function InitialPathMap({
     });
   }
 
-  async function researchSelectedBranch(questionOverride?: string) {
+  function dispatchRequestFailure(
+    purpose: ResearchPurpose,
+    branch: PathBranch,
+    question: string,
+    code: string,
+    message: string,
+    retryable = true,
+  ) {
+    dispatchResearch(
+      purpose === "refinement"
+        ? {
+            type: "refinement_fail",
+            branchId: branch.id,
+            question,
+            code,
+            message,
+            retryable,
+          }
+        : {
+            type: "fail",
+            branchId: branch.id,
+            question,
+            code,
+            message,
+            retryable,
+          },
+    );
+  }
+
+  async function runResearchJob(
+    purpose: ResearchPurpose,
+    questionOverride?: string,
+  ) {
     if (!selectedBranch || researchActive.current) {
       return;
     }
 
-    const candidate = questionOverride ?? researchQuestion;
+    const candidate =
+      purpose === "refinement"
+        ? BRANCH_REFINEMENT_CONSTRAINT
+        : (questionOverride ?? researchQuestion);
     const parsedQuestion = ResearchQuestionSchema.safeParse(candidate);
     if (!parsedQuestion.success) {
-      setResearchQuestionError(
-        candidate.trim()
-          ? "Use at least 6 characters and keep the question under 300."
-          : "Enter or choose one focused question first.",
-      );
+      if (purpose === "research") {
+        setResearchQuestionError(
+          candidate.trim()
+            ? "Use at least 6 characters and keep the question under 300."
+            : "Enter or choose one focused question first.",
+        );
+      }
       return;
     }
 
     const question = parsedQuestion.data;
     const branch = selectedBranch;
-    setResearchQuestion(question);
-    setResearchQuestionError(null);
+    let requestBody;
+    if (purpose === "refinement") {
+      if (
+        researchFlow.request.status !== "success" ||
+        researchFlow.request.branchId !== branch.id
+      ) {
+        return;
+      }
+      try {
+        const input = BranchRefinementRequestSchema.parse({
+          profile: state.profile,
+          branch,
+          constraint: BRANCH_REFINEMENT_CONSTRAINT,
+          originalResearch: {
+            branchId: researchFlow.request.branchId,
+            question: researchFlow.request.question,
+            nodes: researchFlow.request.nodes,
+          },
+        });
+        requestBody = buildBranchRefinementResearchRequest(input);
+      } catch {
+        dispatchRequestFailure(
+          purpose,
+          branch,
+          question,
+          "malformed_model_output",
+          "Steppi could not safely prepare this refinement. Your original research remains unchanged.",
+          false,
+        );
+        return;
+      }
+    } else {
+      requestBody = { profile: state.profile, branch, question };
+      setResearchQuestion(question);
+      setResearchQuestionError(null);
+    }
     const controller = new AbortController();
     researchController.current = controller;
     researchActive.current = true;
     cancellationRequested.current = false;
-    dispatchResearch({ type: "start", branchId: branch.id, question });
+    if (purpose === "refinement") {
+      setRefinementCreateCount((count) => count + 1);
+      dispatchResearch({
+        type: "refinement_start",
+        branchId: branch.id,
+        question,
+      });
+    } else {
+      setResearchCreateCount((count) => count + 1);
+      dispatchResearch({ type: "start", branchId: branch.id, question });
+    }
 
     try {
-      const requestBody = { profile: state.profile, branch, question };
       const responseBody =
         process.env.NODE_ENV === "development" && developmentResearchFixture
-          ? await fixtureResponse("POST", branch, question)
+          ? await fixtureResponse("POST", branch, question, purpose)
           : await fetch("/api/research", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -304,14 +549,13 @@ export function InitialPathMap({
           stage: "client_response_validation",
           reason: "api_response_schema",
         });
-        dispatchResearch({
-          type: "fail",
-          branchId: branch.id,
+        dispatchRequestFailure(
+          purpose,
+          branch,
           question,
-          code: "malformed_model_output",
-          message: "Steppi received research it could not safely verify. Nothing new was added; please try again.",
-          retryable: true,
-        });
+          "malformed_model_output",
+          "Steppi received research it could not safely verify. Nothing new was added; please try again.",
+        );
         return;
       }
       if (
@@ -319,25 +563,38 @@ export function InitialPathMap({
         (parsedResponse.data.status !== "queued" &&
           parsedResponse.data.status !== "in_progress")
       ) {
-        applyTerminalResponse(parsedResponse.data, branch, question);
+        applyTerminalResponse(parsedResponse.data, branch, question, purpose);
         return;
       }
-      dispatchResearch({
-        type: "pending",
-        branchId: branch.id,
-        question,
-        status: parsedResponse.data.status,
-      });
+      dispatchResearch(
+        purpose === "refinement"
+          ? {
+              type: "refinement_pending",
+              branchId: branch.id,
+              question,
+              status: parsedResponse.data.status,
+            }
+          : {
+              type: "pending",
+              branchId: branch.id,
+              question,
+              status: parsedResponse.data.status,
+            },
+      );
 
       const polling = await pollResearchJob({
         signal: controller.signal,
         intervalMs: developmentResearchFixture ? 350 : undefined,
         budgetMs:
-          developmentResearchFixture === "polling_timeout" ? 1_200 : undefined,
+          developmentResearchFixture === "polling_timeout" ||
+          (purpose === "refinement" &&
+            developmentResearchFixture === "refinement_polling_timeout")
+            ? 1_200
+            : undefined,
         retrieve: async () => {
           const body =
             process.env.NODE_ENV === "development" && developmentResearchFixture
-              ? await fixtureResponse("PUT", branch, question)
+              ? await fixtureResponse("PUT", branch, question, purpose)
               : await fetch("/api/research", {
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
@@ -365,37 +622,44 @@ export function InitialPathMap({
         },
         cancel: async () => cancelResearchJob("timeout"),
         onPending: (status) =>
-          dispatchResearch({
-            type: "pending",
-            branchId: branch.id,
-            question,
-            status,
-          }),
+          dispatchResearch(
+            purpose === "refinement"
+              ? {
+                  type: "refinement_pending",
+                  branchId: branch.id,
+                  question,
+                  status,
+                }
+              : {
+                  type: "pending",
+                  branchId: branch.id,
+                  question,
+                  status,
+                },
+          ),
       });
       if (polling.kind === "terminal") {
-        applyTerminalResponse(polling.response, branch, question);
+        applyTerminalResponse(polling.response, branch, question, purpose);
       } else if (polling.kind === "timed_out") {
-        dispatchResearch({
-          type: "fail",
-          branchId: branch.id,
+        dispatchRequestFailure(
+          purpose,
+          branch,
           question,
-          code: "timeout",
-          message: "Steppi reached the research time limit. Nothing was added, and your map and question are safe.",
-          retryable: true,
-        });
+          "timeout",
+          "Steppi reached the research time limit. Nothing was added, and your map and question are safe.",
+        );
       }
     } catch {
       if (controller.signal.aborted) {
         return;
       }
-      dispatchResearch({
-        type: "fail",
-        branchId: branch.id,
+      dispatchRequestFailure(
+        purpose,
+        branch,
         question,
-        code: "api_failure",
-        message: "Steppi could not reach the research service. Your map and question are safe; please try again.",
-        retryable: true,
-      });
+        "api_failure",
+        "Steppi could not reach the research service. Your map and question are safe; please try again.",
+      );
     } finally {
       researchActive.current = false;
       if (researchController.current === controller) {
@@ -405,23 +669,47 @@ export function InitialPathMap({
   }
 
   async function cancelSelectedResearch() {
-    const request = researchFlow.request;
+    const purpose: ResearchPurpose = isResearchRequestActive(
+      researchFlow.refinement,
+    )
+      ? "refinement"
+      : "research";
+    const request =
+      purpose === "refinement"
+        ? researchFlow.refinement
+        : researchFlow.request;
     if (!isResearchRequestActive(request) || cancellationRequested.current) return;
-    dispatchResearch({
-      type: "cancelling",
-      branchId: request.branchId,
-      question: request.question,
-    });
+    dispatchResearch(
+      purpose === "refinement"
+        ? {
+            type: "refinement_cancelling",
+            branchId: request.branchId,
+            question: request.question,
+          }
+        : {
+            type: "cancelling",
+            branchId: request.branchId,
+            question: request.question,
+          },
+    );
     researchController.current?.abort();
     try {
       await cancelResearchJob("user");
     } finally {
       researchActive.current = false;
-      dispatchResearch({
-        type: "cancelled",
-        branchId: request.branchId,
-        question: request.question,
-      });
+      dispatchResearch(
+        purpose === "refinement"
+          ? {
+              type: "refinement_cancelled",
+              branchId: request.branchId,
+              question: request.question,
+            }
+          : {
+              type: "cancelled",
+              branchId: request.branchId,
+              question: request.question,
+            },
+      );
     }
   }
 
@@ -434,7 +722,16 @@ export function InitialPathMap({
   }
 
   return (
-    <section aria-labelledby="path-map-title" className="w-full">
+    <section
+      aria-labelledby="path-map-title"
+      className="w-full"
+      data-development-refinement-create-count={
+        process.env.NODE_ENV === "development" ? refinementCreateCount : undefined
+      }
+      data-development-research-create-count={
+        process.env.NODE_ENV === "development" ? researchCreateCount : undefined
+      }
+    >
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-[47rem]">
           <p className="text-xs font-bold uppercase tracking-[0.11em] text-primary">
@@ -526,7 +823,7 @@ export function InitialPathMap({
                   data-focused={selected ? "true" : undefined}
                   data-path-node="branch"
                   data-path-role={branch.kind}
-                  disabled={isResearchRequestActive(researchFlow.request)}
+                  disabled={isAnyResearchRequestActive(researchFlow)}
                   key={branch.id}
                   onClick={() => dispatch({ type: "select", branchId: branch.id })}
                   onKeyDown={(event) => {
@@ -596,7 +893,7 @@ export function InitialPathMap({
                         selected ? "bg-surface-muted before:bg-ink before:ring-ink" : ""
                       }`}
                       data-path-browser-item={branch.kind}
-                      disabled={isResearchRequestActive(researchFlow.request)}
+                      disabled={isAnyResearchRequestActive(researchFlow)}
                       onClick={() => dispatch({ type: "select", branchId: branch.id })}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
@@ -660,25 +957,43 @@ export function InitialPathMap({
           branch={selectedBranch}
           evidence={evidence}
           onClear={clearSelection}
-          selectionLocked={isResearchRequestActive(researchFlow.request)}
+          selectionLocked={isAnyResearchRequestActive(researchFlow)}
           research={
+            originalResearch ? (
+              <BranchRefinementPanel
+                branch={selectedBranch}
+                onCancel={() => void cancelSelectedResearch()}
+                onRetry={() =>
+                  void runResearchJob("refinement", BRANCH_REFINEMENT_CONSTRAINT)
+                }
+                onSubmit={() =>
+                  void runResearchJob("refinement", BRANCH_REFINEMENT_CONSTRAINT)
+                }
+                originalFindingCount={originalResearch.nodes.length}
+                state={researchFlow.refinement}
+              />
+            ) : (
               <ResearchComposer
                 branch={selectedBranch}
                 fieldError={researchQuestionError}
                 onCancel={() => void cancelSelectedResearch()}
                 onQuestionChange={(question) => {
-                setResearchQuestion(question);
-                setResearchQuestionError(null);
-              }}
-              onRetry={() => {
-                if (researchFlow.request.status !== "idle") {
-                  void researchSelectedBranch(researchFlow.request.question);
-                }
-              }}
-              onSubmit={() => void researchSelectedBranch()}
-              question={researchQuestion}
-              request={researchFlow.request}
-            />
+                  setResearchQuestion(question);
+                  setResearchQuestionError(null);
+                }}
+                onRetry={() => {
+                  if (researchFlow.request.status !== "idle") {
+                    void runResearchJob(
+                      "research",
+                      researchFlow.request.question,
+                    );
+                  }
+                }}
+                onSubmit={() => void runResearchJob("research")}
+                question={researchQuestion}
+                request={researchFlow.request}
+              />
+            )
           }
         />
       ) : (

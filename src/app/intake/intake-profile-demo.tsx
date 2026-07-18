@@ -92,6 +92,11 @@ type DevelopmentFixtureMode =
   | "research-malformed"
   | "research-cancel"
   | "research-timeout"
+  | "refinement-success"
+  | "refinement-no-sources"
+  | "refinement-retry"
+  | "refinement-malformed"
+  | "refinement-timeout"
   | DevelopmentIntakeFixture;
 
 function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
@@ -120,6 +125,11 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
     "research-malformed",
     "research-cancel",
     "research-timeout",
+    "refinement-success",
+    "refinement-no-sources",
+    "refinement-retry",
+    "refinement-malformed",
+    "refinement-timeout",
     "intake-success",
     "intake-alternate",
     "intake-practical",
@@ -205,6 +215,21 @@ function researchFixtureFor(
   }
   if (fixture === "research-cancel") {
     return "polling_cancel";
+  }
+  if (fixture === "refinement-success") {
+    return "refinement_success";
+  }
+  if (fixture === "refinement-no-sources") {
+    return "refinement_no_useful_sources";
+  }
+  if (fixture === "refinement-retry") {
+    return "refinement_retry";
+  }
+  if (fixture === "refinement-malformed") {
+    return "refinement_malformed_model_output";
+  }
+  if (fixture === "refinement-timeout") {
+    return "refinement_polling_timeout";
   }
   return undefined;
 }

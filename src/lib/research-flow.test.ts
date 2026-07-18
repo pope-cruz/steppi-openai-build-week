@@ -1,14 +1,21 @@
 import { describe, expect, it } from "vitest";
 
+import { BRANCH_REFINEMENT_CONSTRAINT } from "@/lib/branch-refinement";
 import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
-import { DEMO_RESEARCH_NODES, DEMO_RESEARCH_QUESTION } from "@/lib/demo-research";
+import {
+  AUDIT_CIIT_AFFORDABILITY_NODE,
+  DEMO_RESEARCH_NODES,
+  DEMO_RESEARCH_QUESTION,
+} from "@/lib/demo-research";
 import { createPathMapState, pathMapReducer } from "@/lib/path-map-state";
 import { VALID_PROFILE_FIXTURE } from "@/test/profile-fixture";
 
 import {
   createResearchFlowState,
+  isAnyResearchRequestActive,
   isResearchRequestActive,
   researchFlowReducer,
+  visibleResearchForBranch,
 } from "./research-flow";
 
 describe("research flow state", () => {
@@ -142,5 +149,101 @@ describe("research flow state", () => {
       branchId: DEMO_PATH_BRANCHES[0].id,
       question: DEMO_RESEARCH_QUESTION,
     });
+  });
+
+  it("replaces only the visible selected-branch neighborhood after refinement", () => {
+    const initial = createResearchFlowState(VALID_PROFILE_FIXTURE, DEMO_PATH_BRANCHES);
+    const baseline = researchFlowReducer(initial, {
+      type: "succeed",
+      branchId: DEMO_PATH_BRANCHES[0].id,
+      question: DEMO_RESEARCH_QUESTION,
+      nodes: DEMO_RESEARCH_NODES,
+    });
+    const pending = researchFlowReducer(baseline, {
+      type: "refinement_pending",
+      branchId: DEMO_PATH_BRANCHES[0].id,
+      question: BRANCH_REFINEMENT_CONSTRAINT,
+      status: "in_progress",
+    });
+    const refined = researchFlowReducer(pending, {
+      type: "refinement_succeed",
+      branchId: DEMO_PATH_BRANCHES[0].id,
+      question: BRANCH_REFINEMENT_CONSTRAINT,
+      nodes: [AUDIT_CIIT_AFFORDABILITY_NODE],
+    });
+
+    expect(pending.request).toBe(baseline.request);
+    expect(visibleResearchForBranch(pending, DEMO_PATH_BRANCHES[0].id)?.nodes)
+      .toBe(DEMO_RESEARCH_NODES);
+    expect(refined.request).toBe(baseline.request);
+    expect(refined.profile).toBe(VALID_PROFILE_FIXTURE);
+    expect(refined.branches).toBe(DEMO_PATH_BRANCHES);
+    expect(visibleResearchForBranch(refined, DEMO_PATH_BRANCHES[0].id)).toMatchObject({
+      refined: true,
+      nodes: [AUDIT_CIIT_AFFORDABILITY_NODE],
+    });
+    expect(visibleResearchForBranch(refined, DEMO_PATH_BRANCHES[1].id)).toBeNull();
+  });
+
+  it.each(["no_useful_sources", "fail"] as const)(
+    "keeps the last valid result visible after refinement %s",
+    (terminalState) => {
+      const baseline = researchFlowReducer(
+        createResearchFlowState(VALID_PROFILE_FIXTURE, DEMO_PATH_BRANCHES),
+        {
+          type: "succeed",
+          branchId: DEMO_PATH_BRANCHES[0].id,
+          question: DEMO_RESEARCH_QUESTION,
+          nodes: DEMO_RESEARCH_NODES,
+        },
+      );
+      const terminal = researchFlowReducer(
+        baseline,
+        terminalState === "fail"
+          ? {
+              type: "refinement_fail",
+              branchId: DEMO_PATH_BRANCHES[0].id,
+              question: BRANCH_REFINEMENT_CONSTRAINT,
+              code: "api_failure",
+              message: "The refinement could not be completed.",
+              retryable: true,
+            }
+          : {
+              type: "refinement_no_useful_sources",
+              branchId: DEMO_PATH_BRANCHES[0].id,
+              question: BRANCH_REFINEMENT_CONSTRAINT,
+            },
+      );
+
+      expect(terminal.request).toBe(baseline.request);
+      expect(visibleResearchForBranch(terminal, DEMO_PATH_BRANCHES[0].id)?.nodes)
+        .toBe(DEMO_RESEARCH_NODES);
+    },
+  );
+
+  it("blocks a second active request and ignores refinement for the wrong branch", () => {
+    const baseline = researchFlowReducer(
+      createResearchFlowState(VALID_PROFILE_FIXTURE, DEMO_PATH_BRANCHES),
+      {
+        type: "succeed",
+        branchId: DEMO_PATH_BRANCHES[0].id,
+        question: DEMO_RESEARCH_QUESTION,
+        nodes: DEMO_RESEARCH_NODES,
+      },
+    );
+    const active = researchFlowReducer(baseline, {
+      type: "refinement_start",
+      branchId: DEMO_PATH_BRANCHES[0].id,
+      question: BRANCH_REFINEMENT_CONSTRAINT,
+    });
+    const wrongBranch = researchFlowReducer(active, {
+      type: "refinement_succeed",
+      branchId: DEMO_PATH_BRANCHES[1].id,
+      question: BRANCH_REFINEMENT_CONSTRAINT,
+      nodes: [AUDIT_CIIT_AFFORDABILITY_NODE],
+    });
+
+    expect(isAnyResearchRequestActive(active)).toBe(true);
+    expect(wrongBranch).toBe(active);
   });
 });

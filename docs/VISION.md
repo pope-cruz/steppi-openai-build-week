@@ -1,407 +1,358 @@
-# Steppi
-
-## Build Week context
-
-Steppi is being built for the Education track of OpenAI Build Week.
-
-For the hackathon MVP, it must demonstrate a credible use of GPT-5.6 and Codex to help high-school students explore career and college pathways through transparent reasoning, student correction, and source-backed research.
-
-Hackathon constraints should shape the MVP scope and demo, but should not override Steppi’s longer-term product principles.
+# Steppi Product Vision
 
 ## Product
 
-Steppi helps high-school students explore realistic career and college paths through an adaptive interview and an interactive, source-backed map.
+Steppi helps high-school students discover career roles they may not know exist,
+understand why those roles might or might not suit them, and explore interesting
+options through an extended conversation.
 
 ## Core promise
 
-You do not need to figure out your entire life.  
-You need a clearer view of your options and a useful next step.
+You do not need to choose your career today.
+
+You need to see more possibilities, understand what they are actually like, and
+know which ones are worth exploring further.
 
 ## Target user
 
-Steppi initially focuses on Grade 11 students beginning to make college and career decisions without enough exposure to understand which paths may suit them.
+Steppi initially serves high-school students who are beginning to think about
+college and careers but have limited exposure to the range of roles available.
 
-They may know their interests, preferred subjects, constraints, and a few familiar careers, but lack visibility into less obvious possibilities.
+They may know what subjects, activities, or projects they enjoy without knowing
+how those interests translate into real careers.
 
-## Problem
+They may also know a few familiar professions while remaining unaware of adjacent,
+emerging, interdisciplinary, or less visible roles.
 
-Most career tools:
+## The problem
 
-- rely on abstract personality questions;
-    
-- produce generic occupation lists;
-    
-- present uncertain recommendations too confidently;
-    
-- provide advice without current, practical research.
-    
+Most career tools either:
 
-Guidance counselors are also often responsible for many students and may not have the time, resources, or professional exposure to cover every emerging or nontraditional path.
+- ask abstract personality questions;
+- recommend a small number of broad career categories;
+- produce long reports students do not read;
+- treat career fit as a prediction;
+- assume students already understand what different roles involve.
 
-Students in communities with fewer networks and enrichment opportunities may never encounter suitable options simply because those paths are not visible around them.
+Students often need something simpler.
 
-Steppi does not attempt to predict a student’s future or replace a counselor. It gives students and counselors a grounded starting point for exploration.
+They need to see a broad but manageable set of possibilities, quickly understand
+each one, and explore only the options that catch their attention.
 
 ## Product thesis
 
-Steppi should:
+Steppi should help the student move through three levels of exploration:
 
-1. understand the student’s interests, experiences, and constraints;
-    
-2. form a transparent hypothesis about possible directions;
-    
-3. let the student correct wrong assumptions;
-    
-4. turn those directions into an interactive map;
-    
-5. research selected branches using current sources;
-    
-6. help the student compare and refine their options.
-    
+1. **Discover** several plausible roles.
+2. **Understand** each role at a glance.
+3. **Explore** one role deeply through conversation.
+
+The initial experience should intentionally remain light.
+
+Steppi should not overwhelm the student with detailed research, college lists,
+labor statistics, or complicated planning before the student has identified a
+role they actually want to understand.
 
 ## Core user flow
 
-### 1. Conversational intake
+### 1. Short conversational intake
 
-The intake is a short, persistent conversation organized broad-to-specific around
-three goals:
+The student talks about:
 
-1. understand the college programs, majors, careers, or fields the student has
-   already considered, including their attraction and hesitation;
-2. understand the classes, projects, school activities, and concrete kinds of
-   work the student enjoys or dislikes; and
-3. understand outside-school experiences such as hobbies, games, work, family
-   responsibilities, communities, volunteering, and personal projects, including
-   which parts the student enjoys or avoids.
+- programs, majors, or careers they have considered;
+- classes and school activities they enjoy;
+- projects, hobbies, responsibilities, and experiences outside school;
+- activities they dislike;
+- strengths they have noticed;
+- constraints or considerations that may affect their choices;
+- anything important Steppi may have missed.
 
-After these anchors, Steppi asks only one or two adaptive follow-ups when they
-close a meaningful evidence gap, resolve a contradiction, distinguish plausible
-directions, or clarify a practical constraint that could change the paths. It
-then gives the student one final opportunity to add a concern, limitation, family
-expectation, goal, or omitted context. Uncertainty and incomplete answers are
-valid, and the interview should not continue merely to fill every profile field.
+The conversation should feel natural and take only a few minutes.
 
-The transcript remains visible throughout. Each Steppi turn asks one clear
-question, connects to prior context when useful, and avoids abstract personality-
-test prompts or repeated requests for information the student already supplied.
+Its purpose is not to diagnose the student. It gives Steppi enough context to
+suggest a varied set of roles worth exploring.
 
-### 2. Path hypothesis
+### 2. Career possibility space
 
-Internally, GPT-5.6 forms a detailed, validated profile that keeps separate:
+Steppi generates approximately seven initial career-role options.
 
-- facts provided by the student;
-    
-- reasonable inferences;
-    
-- unresolved uncertainty;
-    
-- constraints affecting recommendations; and
-- transcript evidence supporting each direct statement or inference.
-    
+The roles appear as floating nodes in an open visual space rather than as a
+ranked list.
 
-The student-facing confirmation is a natural-language summary of exactly three
-sentences: current directions and interests; the most relevant evidence from
-school and outside-school experience; and the preferences, constraints, tensions,
-or uncertainty Steppi should respect. The student can accept it or make a
-correction. A correction patches the validated internal profile instead of
-regenerating it from scratch.
+The full space may contain roughly seven to ten visible roles, depending on the
+student's context and the layout.
 
-### 3. Exploration map
+The roles should be meaningfully different from one another. They may include:
 
-Steppi creates an interactive 2D map centered on the student, with three initial directions:
+- a relatively direct option;
+- adjacent roles;
+- interdisciplinary roles;
+- less obvious possibilities;
+- roles connected to the student's interests but unfamiliar to them.
 
-- strongest current fit;
-    
-- adjacent possibility;
-    
-- underexplored possibility.
-    
+The interface must not imply that the first role is objectively the best or that
+Steppi has predicted the student's future.
 
-Each direction primarily explains the path itself: its purpose and contexts,
-common activities, what the work tends to feel like, honest tradeoffs, ways a
-student can explore it, and nearby options with meaningful differences. A short
-personalized explanation and one possible mismatch connect the path to the
-student without repeating the full profile. Current claims about pay, demand,
-degrees, programs, admissions, costs, or locations appear only after retrieval
-from current sources.
+The role space is for discovery, not ranking.
 
-### The graph is the product
+### 3. Lightweight role exploration
 
-Steppi's primary exploration interface is a living personal path graph, not a
-dashboard or a report with a decorative diagram .
+Selecting a role opens a concise explanation.
 
-The student begins as the central node, connected to exactly three initial
-directions. As the student explores, selected branches expand into connected
-careers, majors, questions, constraints, resources, programs, and researched
-findings.
+Each role contains:
 
-New information should visibly extend the existing graph rather than replace it
-with a separate results page. Corrections and refinements should visibly change
-the relevant nodes or relationships while preserving unaffected parts of the
-map.
+#### What the role is
 
-The graph should resemble a focused local knowledge graph rather than an
-unrestricted global graph. Only the currently relevant neighborhood should be
-prominent. Progressive disclosure, restrained node counts, readable labels,
-and branch-local expansion should prevent the map from becoming an
-indecipherable network.
+One clear sentence explaining the role without jargon.
 
-A contextual panel may explain the selected node, but the graph remains the
-primary mental model and main navigation surface.
+#### Why it may fit you
 
-### 4. Explore any node
+Approximately two sentences connecting the role to specific interests,
+experiences, preferences, or strengths the student shared.
 
-The student can click a career, major, college, resource, constraint, or question and ask Steppi to:
+#### Why it may not fit you
 
-- explain it;
-    
-- expand related options;
-    
-- compare it with another node;
-    
-- research it using current sources;
-    
-- prioritize cost, location, accessibility, or fit;
-    
-- save or remove it.
-    
+Approximately two sentences describing realistic tensions, dislikes,
+uncertainties, or working conditions that may conflict with the student's
+preferences.
 
-Example questions:
+This should not discourage the student or present the mismatch as a verdict. It
+should help them notice what they would need to explore.
 
-- “How much coding does this require?”
-    
-- “Which majors lead here?”
-    
-- “Show me affordable options near Manila.”
-    
-- “How is this different from UX research?”
-    
-- “Which colleges offer this program?”
-    
+#### What the day-to-day is like
 
-### 5. Research and expansion
+Two or three sentences describing the common work, responsibilities,
+collaboration, environment, and rhythm of the role.
 
-When a branch is selected, Steppi performs focused research into relevant:
+The explanation should help the student imagine the work rather than merely
+define the job title.
 
-- careers;
-    
-- majors and academic pathways;
-    
-- courses and beginner resources;
-    
-- colleges and programs;
-    
-- costs and geographic fit.
-    
+The initial role view should remain short enough to understand in under one
+minute.
 
-New findings are added as source-backed nodes instead of replacing the entire map.
+### 4. Follow-up questions
 
-Factual nodes should include their source, date checked, relevance, caveats, and confidence.
+After opening a role, the student can ask natural follow-up questions such as:
 
-### 6. Refinement
+- How much coding does this involve?
+- Is this mostly independent or collaborative work?
+- What would I study in college?
+- How creative is the work?
+- Is this similar to product management?
+- What is stressful about this role?
+- How can I test whether I would enjoy it?
+- Are there affordable programs near me?
+- What other roles are similar?
 
-The student can update the map with statements such as:
+The student should not have to choose from a rigid sequence of refinement
+actions.
 
-- “That is too expensive.”
-    
-- “I want to stay in the Philippines.”
-    
-- “I do not enjoy coding.”
-    
-- “Show me more creative paths.”
-    
-- “Prioritize financial aid.”
-    
+They should be able to ask what they genuinely want to know.
 
-Steppi reruns only the relevant research and preserves the rest of the map.
+### 5. Extended role conversation
 
-## GPT-5.6’s role
+Each selected role can open an extended conversation grounded in:
+
+- the confirmed student context;
+- the role explanation;
+- previous messages about that role;
+- any relevant retrieved information.
+
+The conversation should help the student progressively understand the role
+rather than immediately produce a comprehensive report.
+
+Steppi may:
+
+- clarify what the work involves;
+- compare the role with nearby roles;
+- explain common pathways into the role;
+- suggest low-risk ways to try it;
+- surface relevant majors or programs;
+- discuss tradeoffs;
+- answer questions about fit;
+- research current external information when needed.
+
+The extended chat is where deep exploration occurs.
+
+The floating role space remains available so the student can switch between
+roles without losing orientation.
+
+## Role of GPT-5.6
 
 GPT-5.6 should:
 
-- reason across messy student context;
-    
-- identify tensions and contradictions;
-    
-- distinguish facts, inferences, and uncertainty;
-    
-- incorporate corrections;
-    
-- generate the initial map;
-    
-- determine which research is needed;
-    
-- connect careers, majors, resources, colleges, and constraints;
-    
-- synthesize web research into concise nodes;
-    
-- compare options using the student’s priorities;
-    
-- update selected branches without rebuilding everything.
-    
+- synthesize messy student context;
+- identify interests, experiences, dislikes, tensions, and uncertainty;
+- generate a varied set of plausible roles;
+- avoid producing several near-duplicate roles;
+- connect each role to evidence from the student's answers;
+- explain realistic reasons a role may not fit;
+- describe the work in accessible language;
+- maintain context during the extended role conversation;
+- distinguish interpretation from current factual claims;
+- determine when current research is necessary;
+- synthesize retrieved evidence into concise, relevant answers.
 
-GPT-5.6 must not invent current facts about programs, admissions, costs, careers, or resources. Current claims must be grounded in retrieved sources.
+GPT-5.6 must not present its suggestions as predictions, diagnoses, or objective
+rankings.
 
-All model output must be validated against structured schemas before being rendered.
+## Role of research
 
-## MVP
+Research is available inside the extended role conversation.
 
-The MVP includes:
+It is not required for every initial role explanation.
 
-1. A clear landing screen.
-    
+Steppi should use current sources when answering questions involving facts that
+may change, including:
+
+- colleges and degree programs;
+- tuition and mandatory costs;
+- admissions requirements;
+- scholarships and financial aid;
+- current courses and learning resources;
+- professional requirements;
+- location-specific opportunities;
+- current career or industry information.
+
+Interpretive questions about the student's interests, preferences, and existing
+role descriptions do not automatically require research.
+
+Current factual claims must be grounded in retrieved sources before they are
+shown.
+
+## Visual direction
+
+The career-role space should feel:
+
+- open;
+- exploratory;
+- calm;
+- youthful without feeling childish;
+- visually interesting without becoming difficult to navigate.
+
+Roles should appear as floating nodes with readable labels and restrained motion.
+
+The space should encourage curiosity rather than communicate hierarchy.
+
+The student should be able to:
+
+- select a role;
+- move between roles;
+- return to the complete possibility space;
+- identify which role is currently active;
+- continue an existing conversation about a role.
+
+The visualization is a discovery and navigation surface. It is not a technical
+graph editor.
+
+## Build Week MVP
+
+The Build Week version includes:
+
+1. A clear landing page.
 2. A short conversational intake.
-    
-3. A structured student profile generated server-side with GPT-5.6.
-    
-4. A hypothesis confirmation step.
-    
-5. Three initial path branches.
-    
-6. An interactive 2D map.
-    
-7. Click-to-ask and branch expansion.
-    
-8. One source-backed research expansion.
-    
-9. One comparison or refinement action.
-    
-10. Loading, retry, error, empty, and malformed-input states.
-    
-11. A polished desktop experience and usable mobile fallback.
-    
-12. A deployed demo requiring no developer assistance.
-    
+3. A validated student-context summary.
+4. Approximately seven generated career-role options.
+5. A floating role-node interface.
+6. A concise explanation for every role containing:
+   - what it is;
+   - why it may fit;
+   - why it may not fit;
+   - what the day-to-day is like.
+7. Selection and switching between roles.
+8. Natural follow-up questions.
+9. One extended role conversation.
+10. Current-source research when the selected question requires it.
+11. Loading, empty, failure, retry, timeout, and malformed-output handling.
+12. A polished desktop experience and usable mobile fallback.
+13. A deployed demo that requires no developer assistance.
 
-For Build Week, the map only needs one central student node, three initial branches, two expansion levels, and one researched branch.
-
-Persistence and authentication are optional until the main flow works reliably.
-
-## Out of scope
+## Explicitly out of scope
 
 Do not build:
 
-- comprehensive career or university databases;
-    
+- career prediction or aptitude scoring;
+- psychometric testing;
+- ranked “best career” recommendations;
+- an infinite knowledge graph;
+- arbitrary graph mutation;
+- a general-purpose graph editor;
+- comprehensive career databases;
+- comprehensive college databases;
 - admissions probability predictions;
-    
-- scholarship or application management;
-    
-- job-market forecasting;
-    
+- scholarship management;
+- application tracking;
 - counselor dashboards;
-    
-- social or gamification features;
-    
-- complex authentication;
-    
-- notifications;
-    
-- unrestricted web scraping;
-    
-- support for every country;
-    
-- an infinite graph editor;
-    
-- a psychometric assessment.
-    
-
-## Design direction
-
-Steppi should feel warm, youthful, calm, credible, and exploratory.
-
-The map should feel like a space for discovery rather than a technical graph.
-
-Use readable labels, restrained motion, progressive disclosure, clear relationships, and short contextual summaries.
-
-Avoid corporate dashboards, excessive cards, generic AI gradients, childish visuals, raw agent chatter, dense reports, and too many visible nodes.
-
-The visual reference is a calm, curated knowledge graph: connected nodes,
-branch-local clusters, and visible relationships that gradually form a personal
-map of possibilities. Avoid reducing the graph to three static cards or using
-graph visuals merely as decoration.
-
-## Safety and trust
-
-Steppi must not:
-
-- diagnose aptitude;
-    
-- present one path as objectively correct;
-    
-- guarantee career or admissions outcomes;
-    
-- treat inferences as facts;
-    
-- shame students for their grades or constraints;
-    
-- fabricate current information;
-    
-- rank colleges with unsupported precision;
-    
-- imply that it replaces professional guidance.
-    
-
-It should clearly communicate uncertainty, sources, freshness, caveats, and the reasoning behind major recommendations.
+- authentication unless necessary for the demo;
+- long-term persistence unless the core experience already works;
+- automatic career plans covering several years;
+- mandatory research for every interaction;
+- fixed follow-up actions that ignore the student's actual question.
 
 ## Success criteria
 
 Steppi succeeds when:
 
-- its value is understandable within 30 seconds;
-    
-- the interview feels responsive;
-    
-- the hypothesis reflects the student’s answers;
-    
-- correcting an assumption visibly changes the map;
-    
-- the initial paths are meaningfully different;
-    
-- clicking a node produces useful exploration;
-    
-- at least one branch uses current, source-backed research;
-    
-- the map remains understandable after expansion;
-    
-- the student can see why each option was recommended;
-    
-- the full flow works without developer intervention.
-    
+- the student understands its purpose within 30 seconds;
+- the intake feels responsive without becoming exhausting;
+- the generated roles are varied and personally relevant;
+- the student discovers at least one role they had not seriously considered;
+- every role can be understood quickly;
+- the fit explanation refers to actual student context;
+- the mismatch explanation feels honest rather than discouraging;
+- the day-to-day description helps the student imagine the work;
+- the student can ask their own follow-up question;
+- the extended conversation remembers both the student and the selected role;
+- current factual claims are grounded when research is needed;
+- the student can switch roles without becoming lost;
+- the experience helps the student identify what they want to explore next.
 
 ## Demo story
 
-The demo follows a Grade 11 student who likes art, technology, and coordinating projects. They are considering computer science, enjoy digital products, dislike programming, prefer an urban environment, and face financial and geographic constraints.
+The demo follows a high-school student who enjoys visual projects, technology,
+organizing group work, and presenting ideas but is uncertain about programming.
 
-Steppi initially suggests:
+After a short conversation, Steppi presents several floating career-role options,
+such as:
 
-- product design;
-    
-- product management;
-    
-- frontend development.
-    
+- product designer;
+- UX researcher;
+- product manager;
+- service designer;
+- frontend developer;
+- design technologist;
+- digital marketing strategist.
 
-The student clarifies that they do not enjoy coding.
+The student opens product designer.
 
-Steppi lowers frontend development and introduces UX research or service design.
+Steppi briefly explains:
 
-The student opens product design and asks:
-
-> What can I study in college without committing to heavy programming?
-
-Steppi researches relevant majors, resources, and example programs.
+- what a product designer does;
+- why the role may fit the student;
+- why parts of it may not fit;
+- what the work commonly looks like day to day.
 
 The student then asks:
 
-> Prioritize affordable options near Manila.
+> How can I tell whether I would actually enjoy this?
 
-Steppi updates only that branch with a smaller, more realistic set of source-backed options.
+Steppi begins an extended conversation and suggests a small, low-risk
+product-design exercise.
 
-## Build principle
+The student later asks:
 
-One polished exploration loop is more valuable than many incomplete features.
+> What could I study in college for this without committing to heavy programming?
 
-The agent pipeline should improve freshness, relevance, and traceability while remaining mostly invisible to the student.
+Steppi retrieves current, relevant information and answers with appropriate
+sources and caveats.
 
-No feature is complete until it has been tested in a real browser, its structured output has been validated, and its failure states have been verified.
+The demo ends with the student still having several possibilities, but
+understanding one role well enough to take a concrete next step.
+
+## Closing principle
+
+Steppi should provide breadth before depth.
+
+Show the student enough possibilities to become curious, enough context to choose
+what deserves attention, and enough conversational depth to make the next step
+feel possible.

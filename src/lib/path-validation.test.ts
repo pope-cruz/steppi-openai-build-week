@@ -88,5 +88,12 @@ describe("path generation validation", () => {
     expect(() => validatePathGeneration(VALID_PROFILE_FIXTURE, generation)).toThrow(
       "requires research sources",
     );
+
+    const dayToDayClaim = generationFixture();
+    dayToDayClaim.branches[0].dayToDay[0] =
+      "Product designers earn an average salary of $100000.";
+    expect(() =>
+      validatePathGeneration(VALID_PROFILE_FIXTURE, dayToDayClaim),
+    ).toThrow("requires research sources");
   });
 });

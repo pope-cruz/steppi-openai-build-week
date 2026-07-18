@@ -19,13 +19,16 @@ export type ResearchRequestState =
       retryable: boolean;
     };
 
+export type BranchRefinementState = ResearchRequestState;
+
 export type ResearchFlowState = {
   profile: StudentProfile;
   branches: PathBranch[];
   request: ResearchRequestState;
+  refinement: BranchRefinementState;
 };
 
-export type ResearchFlowAction =
+type BaseResearchFlowAction =
   | { type: "start"; branchId: string; question: string }
   | {
       type: "pending";
@@ -46,11 +49,52 @@ export type ResearchFlowAction =
       retryable: boolean;
     };
 
+type BranchRefinementAction =
+  | { type: "refinement_start"; branchId: string; question: string }
+  | {
+      type: "refinement_pending";
+      branchId: string;
+      question: string;
+      status: "queued" | "in_progress";
+    }
+  | { type: "refinement_cancelling"; branchId: string; question: string }
+  | { type: "refinement_cancelled"; branchId: string; question: string }
+  | {
+      type: "refinement_succeed";
+      branchId: string;
+      question: string;
+      nodes: ResearchNode[];
+    }
+  | { type: "refinement_no_useful_sources"; branchId: string; question: string }
+  | {
+      type: "refinement_fail";
+      branchId: string;
+      question: string;
+      code: string;
+      message: string;
+      retryable: boolean;
+    };
+
+export type ResearchFlowAction =
+  | BaseResearchFlowAction
+  | BranchRefinementAction;
+
+function isBranchRefinementAction(
+  action: ResearchFlowAction,
+): action is BranchRefinementAction {
+  return action.type.startsWith("refinement_");
+}
+
 export function createResearchFlowState(
   profile: StudentProfile,
   branches: PathBranch[],
 ): ResearchFlowState {
-  return { profile, branches, request: { status: "idle" } };
+  return {
+    profile,
+    branches,
+    request: { status: "idle" },
+    refinement: { status: "idle" },
+  };
 }
 
 type ActiveResearchRequest = Extract<
@@ -69,12 +113,116 @@ export function isResearchRequestActive(
   );
 }
 
+export function isAnyResearchRequestActive(state: ResearchFlowState) {
+  return (
+    isResearchRequestActive(state.request) ||
+    isResearchRequestActive(state.refinement)
+  );
+}
+
+export function visibleResearchForBranch(
+  state: ResearchFlowState,
+  branchId: string,
+) {
+  if (
+    state.refinement.status === "success" &&
+    state.refinement.branchId === branchId
+  ) {
+    return { ...state.refinement, refined: true as const };
+  }
+  if (state.request.status === "success" && state.request.branchId === branchId) {
+    return { ...state.request, refined: false as const };
+  }
+  return null;
+}
+
 export function researchFlowReducer(
   state: ResearchFlowState,
   action: ResearchFlowAction,
 ): ResearchFlowState {
   if (!state.branches.some((branch) => branch.id === action.branchId)) {
     return state;
+  }
+
+  if (isBranchRefinementAction(action)) {
+    if (
+      state.request.status !== "success" ||
+      state.request.branchId !== action.branchId
+    ) {
+      return state;
+    }
+
+    if (action.type === "refinement_start") {
+      return {
+        ...state,
+        refinement: {
+          status: "starting",
+          branchId: action.branchId,
+          question: action.question,
+        },
+      };
+    }
+    if (action.type === "refinement_pending") {
+      return {
+        ...state,
+        refinement: {
+          status: action.status,
+          branchId: action.branchId,
+          question: action.question,
+        },
+      };
+    }
+    if (
+      action.type === "refinement_cancelling" ||
+      action.type === "refinement_cancelled"
+    ) {
+      return {
+        ...state,
+        refinement: {
+          status:
+            action.type === "refinement_cancelling"
+              ? "cancelling"
+              : "cancelled",
+          branchId: action.branchId,
+          question: action.question,
+        },
+      };
+    }
+    if (action.type === "refinement_succeed") {
+      if (action.nodes.some((node) => node.parentBranchId !== action.branchId)) {
+        return state;
+      }
+      return {
+        ...state,
+        refinement: {
+          status: "success",
+          branchId: action.branchId,
+          question: action.question,
+          nodes: action.nodes,
+        },
+      };
+    }
+    if (action.type === "refinement_no_useful_sources") {
+      return {
+        ...state,
+        refinement: {
+          status: "no_useful_sources",
+          branchId: action.branchId,
+          question: action.question,
+        },
+      };
+    }
+    return {
+      ...state,
+      refinement: {
+        status: "error",
+        branchId: action.branchId,
+        question: action.question,
+        code: action.code,
+        message: action.message,
+        retryable: action.retryable,
+      },
+    };
   }
 
   if (action.type === "start") {

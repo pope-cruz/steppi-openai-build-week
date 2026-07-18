@@ -2,6 +2,15 @@ import { z } from "zod";
 
 const identifierSchema = z.string().trim().min(1).max(80);
 const statementSchema = z.string().trim().min(1).max(600);
+const pathSentenceSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(280)
+  .refine(
+    (value) => (value.match(/[.!?](?=\s|$)/g) ?? []).length <= 1,
+    "Path explanation items must contain no more than one sentence.",
+  );
 
 export const StudentFactSchema = z
   .object({
@@ -116,10 +125,34 @@ export const PathBranchSchema = z
     id: identifierSchema,
     kind: z.enum(["strongest-fit", "adjacent", "underexplored"]),
     title: z.string().trim().min(1).max(120),
-    summary: z.string().trim().min(1).max(500),
-    whyItAppeared: z.array(statementSchema).min(1).max(5),
+    summary: pathSentenceSchema.describe(
+      "One plain-language sentence explaining what this role or direction is.",
+    ),
+    whyItAppeared: z
+      .array(pathSentenceSchema)
+      .min(1)
+      .max(2)
+      .describe(
+        "One or two concise sentences explaining why this may fit the student, grounded in the supplied profile evidence.",
+      ),
     supportingProfileIds: z.array(identifierSchema).min(1).max(10),
-    drawbacks: z.array(statementSchema).min(1).max(4),
+    drawbacks: z
+      .array(pathSentenceSchema)
+      .min(1)
+      .max(2)
+      .describe(
+        "One or two concise sentences explaining why this may not fit, framed as uncertainty to explore rather than a verdict.",
+      ),
+    dayToDay: z
+      .array(pathSentenceSchema)
+      .min(2)
+      .max(3)
+      .describe(
+        "Two or three concrete sentences describing common work, collaboration, environment, and rhythm.",
+      ),
+    lowRiskExploration: pathSentenceSchema.describe(
+      "One concrete, low-risk way the student can explore this role before committing.",
+    ),
     unresolvedQuestions: z
       .array(z.string().trim().min(1).max(300))
       .min(1)

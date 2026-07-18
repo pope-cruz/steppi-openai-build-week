@@ -181,6 +181,30 @@ export function validateResearchGeneration(
       if (requiredKinds.some((kind) => !claimKinds.has(kind))) {
         continue;
       }
+      const hasResidencyCaveat = validClaims.some((claim) =>
+        /\b(?:residen|citizenship|location-based)\w*/i.test(claim.statement),
+      );
+      if (!hasResidencyCaveat) {
+        continue;
+      }
+      const unsupportedAffordabilityLabel = [
+        node.title,
+        node.relevanceToStudent,
+        ...validClaims
+          .filter((claim) => claim.kind !== "limitation")
+          .map((claim) => claim.statement),
+      ].some((value) => {
+        const withoutExplicitDenial = value.replace(
+          /\b(?:not|does not|do not|cannot|can't|without (?:calling|labeling|describing|establishing)(?: it| this option)?(?: as)?)\s+(?:affordable|low[- ]cost|budget[- ]friendly)\b/gi,
+          "",
+        );
+        return /\b(?:affordable|low[- ]cost|budget[- ]friendly)\b/i.test(
+          withoutExplicitDenial,
+        );
+      });
+      if (unsupportedAffordabilityLabel) {
+        continue;
+      }
     }
 
     const validatedNode = ResearchNodeSchema.safeParse({

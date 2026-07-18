@@ -216,6 +216,13 @@ export const AUDIT_CIIT_AFFORDABILITY_NODE: ResearchNode = {
       sourceUrls: [CIIT_ADMISSIONS_SOURCE],
     },
     {
+      id: "ciit-manila-location",
+      kind: "fact",
+      statement:
+        "The cited admissions information identifies CIIT's Quezon City campus.",
+      sourceUrls: [CIIT_ADMISSIONS_SOURCE],
+    },
+    {
       id: "ciit-scholarship-conditions",
       kind: "conditional-aid",
       statement: "CIIT scholarships are conditional on cited eligibility and retention requirements; aid is not guaranteed.",
@@ -227,9 +234,16 @@ export const AUDIT_CIIT_AFFORDABILITY_NODE: ResearchNode = {
       statement: "The annual estimate and conditional aid do not establish that CIIT is affordable for this student.",
       sourceUrls: [CIIT_TUITION_SOURCE, CIIT_SCHOLARSHIP_SOURCE],
     },
+    {
+      id: "ciit-residency-limitation",
+      kind: "limitation",
+      statement:
+        "The cited pages do not establish a Manila-residency discount or residency-based aid eligibility.",
+      sourceUrls: [CIIT_TUITION_SOURCE, CIIT_SCHOLARSHIP_SOURCE],
+    },
   ],
   relevanceToStudent:
-    "The explicit annual estimate and aid conditions let the student compare this option against their financial constraint without labeling it affordable.",
+    "The Quezon City location, explicit annual estimate, and aid conditions let the student compare this option against their practical constraint without labeling it affordable.",
   confidence: "medium",
   sources: [
     {

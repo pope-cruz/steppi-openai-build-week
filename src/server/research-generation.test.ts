@@ -6,6 +6,7 @@ import type {
 import { describe, expect, it, vi } from "vitest";
 
 import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
+import { BRANCH_REFINEMENT_CONSTRAINT } from "@/lib/branch-refinement";
 import {
   AUDIT_AFFORDABILITY_QUESTION,
   AUDIT_CIIT_AFFORDABILITY_NODE,
@@ -131,6 +132,15 @@ describe("generateResearchExpansion", () => {
     );
     expect(params.instructions).toContain(
       "no higher than the weakest-supported title or claim",
+    );
+    expect(params.instructions).toContain(
+      "include mandatory fees or other material costs",
+    );
+    expect(params.instructions).toContain(
+      "residency or location-based eligibility",
+    );
+    expect(params.instructions).toContain(
+      "Do not call an option affordable, low-cost, or budget-friendly",
     );
   });
 
@@ -519,6 +529,24 @@ describe("background research generation", () => {
       name: "research_generation",
       strict: true,
     });
+  });
+
+  it("uses the same single background request boundary for the fixed refinement", async () => {
+    const provider = backgroundProvider();
+    await startBackgroundResearch(
+      VALID_PROFILE_FIXTURE,
+      DEMO_PATH_BRANCHES[0],
+      BRANCH_REFINEMENT_CONSTRAINT,
+      { ...baseOptions, provider },
+    );
+
+    expect(provider.create).toHaveBeenCalledOnce();
+    expect(provider.create.mock.calls[0][0]).toMatchObject({
+      background: true,
+      tool_choice: "required",
+      include: ["web_search_call.action.sources"],
+    });
+    expect(provider.retrieve).not.toHaveBeenCalled();
   });
 
   it("creates exactly one background response and returns its pending state", async () => {

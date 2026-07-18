@@ -5,6 +5,7 @@ import {
   PathDetailPanel,
   profileEvidence,
 } from "@/app/intake/path-detail-panel";
+import { BranchRefinementPanel } from "@/app/intake/branch-refinement";
 import { InitialPathMap } from "@/app/intake/path-branch-preview";
 import { ResearchComposer } from "@/app/intake/path-research";
 import { ResearchExpansion } from "@/app/intake/research-expansion";
@@ -17,6 +18,7 @@ import {
   DEMO_RESEARCH_QUESTION,
 } from "@/lib/demo-research";
 import { VALID_PROFILE_FIXTURE } from "@/test/profile-fixture";
+import { BRANCH_REFINEMENT_CONSTRAINT } from "@/lib/branch-refinement";
 
 describe("initial path map markup", () => {
   it("renders one student node, three graph controls, three browse controls, and no initial detail", () => {
@@ -83,9 +85,18 @@ describe("initial path map markup", () => {
 
     expect(markup).toContain(`data-path-detail="${selected.id}"`);
     expect(markup).toContain(selected.title);
+    expect(markup).toContain("What this role is");
+    expect(markup).toContain(selected.summary);
+    expect(markup).toContain("Why it may fit you");
     expect(markup).toContain(selected.whyItAppeared[0]);
+    expect(markup).toContain("Why it may not fit you");
     expect(markup).toContain(selected.drawbacks[0]);
+    expect(markup).toContain("What the day-to-day can feel like");
+    expect(markup).toContain(selected.dayToDay[0]);
+    expect(markup).toContain("Try it before committing");
+    expect(markup).toContain(selected.lowRiskExploration);
     expect(markup).toContain(selected.unresolvedQuestions[0]);
+    expect(markup).toContain("See what Steppi connected from your profile");
     expect(markup).toContain("Student fact");
     expect(markup).toContain("Steppi inference");
     expect(markup).not.toContain(DEMO_PATH_BRANCHES[1].title);
@@ -161,6 +172,8 @@ describe("initial path map markup", () => {
     );
 
     expect(markup).toContain("PHP 135,000–165,000");
+    expect(markup).toContain("Quezon City campus");
+    expect(markup).toContain("Manila-residency discount");
     expect(markup).toContain("Scholarships");
     expect(markup).toContain("aid is not guaranteed");
     expect(markup).toContain("Cost");
@@ -211,5 +224,84 @@ describe("initial path map markup", () => {
     expect(markup).toContain("Affordability information is unavailable");
     expect(markup).toContain("cost, eligibility, and conditional-aid details");
     expect(markup).toContain("did not label an option affordable");
+  });
+
+  it("offers only the fixed refinement action after successful research", () => {
+    const markup = renderToStaticMarkup(
+      <BranchRefinementPanel
+        branch={DEMO_PATH_BRANCHES[0]}
+        onCancel={() => undefined}
+        onRetry={() => undefined}
+        onSubmit={() => undefined}
+        originalFindingCount={DEMO_RESEARCH_NODES.length}
+        state={{ status: "idle" }}
+      />,
+    );
+
+    expect(markup).toContain(BRANCH_REFINEMENT_CONSTRAINT);
+    expect(markup).toContain("One practical refinement");
+    expect(markup).toContain('data-original-research-count="3"');
+    expect(markup).not.toContain("textarea");
+  });
+
+  it("explains a successful selected-branch-only refinement", () => {
+    const markup = renderToStaticMarkup(
+      <BranchRefinementPanel
+        branch={DEMO_PATH_BRANCHES[0]}
+        onCancel={() => undefined}
+        onRetry={() => undefined}
+        onSubmit={() => undefined}
+        originalFindingCount={DEMO_RESEARCH_NODES.length}
+        state={{
+          status: "success",
+          branchId: DEMO_PATH_BRANCHES[0].id,
+          question: BRANCH_REFINEMENT_CONSTRAINT,
+          nodes: [AUDIT_CIIT_AFFORDABILITY_NODE],
+        }}
+      />,
+    );
+
+    expect(markup).toContain("What changed");
+    expect(markup).toContain("Why");
+    expect(markup).toContain("What stayed the same");
+    expect(markup).toContain("all three starting paths");
+    expect(markup).toContain("3 original findings");
+  });
+
+  it.each([
+    {
+      label: "no useful source",
+      state: {
+        status: "no_useful_sources" as const,
+        branchId: DEMO_PATH_BRANCHES[0].id,
+        question: BRANCH_REFINEMENT_CONSTRAINT,
+      },
+      copy: "Your original findings are still here",
+    },
+    {
+      label: "provider failure",
+      state: {
+        status: "error" as const,
+        branchId: DEMO_PATH_BRANCHES[0].id,
+        question: BRANCH_REFINEMENT_CONSTRAINT,
+        code: "api_failure",
+        message: "Steppi could not finish this research right now.",
+        retryable: true,
+      },
+      copy: "original source-backed findings remain visible",
+    },
+  ])("preserves the prior result copy after $label", ({ copy, state }) => {
+    const markup = renderToStaticMarkup(
+      <BranchRefinementPanel
+        branch={DEMO_PATH_BRANCHES[0]}
+        onCancel={() => undefined}
+        onRetry={() => undefined}
+        onSubmit={() => undefined}
+        originalFindingCount={DEMO_RESEARCH_NODES.length}
+        state={state}
+      />,
+    );
+
+    expect(markup).toContain(copy);
   });
 });
