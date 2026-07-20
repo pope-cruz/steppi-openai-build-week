@@ -7,6 +7,7 @@ import type {
 import { IntakeRequestSchema } from "@/lib/schemas";
 import {
   generateStudentProfile,
+  type ProfileGenerationDiagnostic,
   ProfileGenerationError,
 } from "@/server/profile-generation";
 
@@ -14,6 +15,16 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 type GenerateProfile = typeof generateStudentProfile;
+type ReportDiagnostic = (diagnostic: {
+  code: ProfileGenerationError["code"];
+  stage: ProfileGenerationDiagnostic["stage"];
+  reason: ProfileGenerationDiagnostic["reason"];
+  issuePaths?: string[];
+}) => void;
+
+function reportProfileDiagnostic(diagnostic: Parameters<ReportDiagnostic>[0]) {
+  console.warn("profile_generation_failed", JSON.stringify(diagnostic));
+}
 
 const ERROR_DETAILS: Record<
   ProfileGenerationError["code"],
@@ -59,6 +70,7 @@ function failureResponse(
 export async function handleProfileRequest(
   request: Request,
   generateProfile: GenerateProfile = generateStudentProfile,
+  reportDiagnostic: ReportDiagnostic = reportProfileDiagnostic,
 ) {
   let input: unknown;
 
@@ -107,6 +119,10 @@ export async function handleProfileRequest(
         ? error
         : new ProfileGenerationError("api_failure");
     const details = ERROR_DETAILS[generationError.code];
+    reportDiagnostic({
+      code: generationError.code,
+      ...generationError.diagnostic,
+    });
 
     return failureResponse(
       {

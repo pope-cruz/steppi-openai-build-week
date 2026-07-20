@@ -26,6 +26,9 @@ describe("student-approved profile confirmation", () => {
     expect(markup).toContain("Good to go!");
     expect(markup).toContain("Let me refine this");
     expect(markup).toContain("See the details Steppi is using");
+    expect(markup).toContain("max-w-[55rem]");
+    expect(markup).toContain("text-[clamp(1.4rem,2.8vw,2.5rem)]");
+    expect(markup).toContain("leading-[1.35]");
     expect(markup).not.toContain("Build my map");
     expect(markup).not.toContain("Refine this first");
     expect(markup).not.toContain("data-profile-refinement-transcript");

@@ -41,13 +41,65 @@ type GenerateStudentProfileOptions = {
   requestProfile?: ProfileRequest;
 };
 
+export type ProfileGenerationDiagnostic = {
+  stage: "configuration" | "provider_request" | "provider_response" | "structured_validation";
+  reason:
+    | "missing_api_key"
+    | "invalid_model"
+    | "request_timeout"
+    | "upstream_api_failure"
+    | "incomplete_max_output_tokens"
+    | "incomplete_content_filter"
+    | "parsed_output_missing"
+    | "schema_validation_failed";
+  issuePaths?: string[];
+};
+
+class ProfileProviderOutputError extends Error {
+  readonly reason: ProfileGenerationDiagnostic["reason"];
+
+  constructor(reason: ProfileGenerationDiagnostic["reason"]) {
+    super(reason);
+    this.name = "ProfileProviderOutputError";
+    this.reason = reason;
+  }
+}
+
+export function requireParsedProfileOutput({
+  incompleteReason,
+  output,
+}: {
+  incompleteReason?: "max_output_tokens" | "content_filter" | null;
+  output: unknown;
+}) {
+  if (output !== null) {
+    return output;
+  }
+
+  if (incompleteReason === "max_output_tokens") {
+    throw new ProfileProviderOutputError("incomplete_max_output_tokens");
+  }
+  if (incompleteReason === "content_filter") {
+    throw new ProfileProviderOutputError("incomplete_content_filter");
+  }
+  throw new ProfileProviderOutputError("parsed_output_missing");
+}
+
 export class ProfileGenerationError extends Error {
   readonly code: Exclude<ProfileApiErrorCode, "invalid_input">;
+  readonly diagnostic: ProfileGenerationDiagnostic;
 
-  constructor(code: Exclude<ProfileApiErrorCode, "invalid_input">) {
+  constructor(
+    code: Exclude<ProfileApiErrorCode, "invalid_input">,
+    diagnostic: ProfileGenerationDiagnostic = {
+      stage: "provider_request",
+      reason: "upstream_api_failure",
+    },
+  ) {
     super(code);
     this.name = "ProfileGenerationError";
     this.code = code;
+    this.diagnostic = diagnostic;
   }
 }
 
@@ -87,7 +139,10 @@ async function requestProfileFromOpenAI({
     },
   });
 
-  return response.output_parsed;
+  return requireParsedProfileOutput({
+    output: response.output_parsed,
+    incompleteReason: response.incomplete_details?.reason,
+  });
 }
 
 export async function generateStudentProfile(
@@ -98,11 +153,17 @@ export async function generateStudentProfile(
   const model = options.model ?? process.env.OPENAI_MODEL ?? DEFAULT_MODEL;
 
   if (!apiKey.trim()) {
-    throw new ProfileGenerationError("configuration_missing");
+    throw new ProfileGenerationError("configuration_missing", {
+      stage: "configuration",
+      reason: "missing_api_key",
+    });
   }
 
   if (!/^gpt-5\.6(?:-|$)/.test(model)) {
-    throw new ProfileGenerationError("invalid_model_configuration");
+    throw new ProfileGenerationError("invalid_model_configuration", {
+      stage: "configuration",
+      reason: "invalid_model",
+    });
   }
 
   let output: unknown;
@@ -114,21 +175,44 @@ export async function generateStudentProfile(
       model,
     });
   } catch (error) {
+    if (error instanceof ProfileProviderOutputError) {
+      throw new ProfileGenerationError("malformed_model_output", {
+        stage: "provider_response",
+        reason: error.reason,
+      });
+    }
+
     if (error instanceof z.ZodError) {
-      throw new ProfileGenerationError("malformed_model_output");
+      throw new ProfileGenerationError("malformed_model_output", {
+        stage: "structured_validation",
+        reason: "schema_validation_failed",
+        issuePaths: error.issues.map((issue) => issue.path.join(".")).filter(Boolean),
+      });
     }
 
     if (isTimeoutError(error)) {
-      throw new ProfileGenerationError("timeout");
+      throw new ProfileGenerationError("timeout", {
+        stage: "provider_request",
+        reason: "request_timeout",
+      });
     }
 
-    throw new ProfileGenerationError("api_failure");
+    throw new ProfileGenerationError("api_failure", {
+      stage: "provider_request",
+      reason: "upstream_api_failure",
+    });
   }
 
   const parsed = ProfileGenerationSchema.safeParse(output);
 
   if (!parsed.success) {
-    throw new ProfileGenerationError("malformed_model_output");
+    throw new ProfileGenerationError("malformed_model_output", {
+      stage: "structured_validation",
+      reason: "schema_validation_failed",
+      issuePaths: parsed.error.issues
+        .map((issue) => issue.path.join("."))
+        .filter(Boolean),
+    });
   }
 
   return parsed.data;

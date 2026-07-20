@@ -350,7 +350,7 @@ export function ProfileConfirmation({
   }
 
   return (
-    <section aria-labelledby="profile-title" className="mx-auto max-w-[48rem]">
+    <section aria-labelledby="profile-title" className="mx-auto max-w-[56rem]">
       <header className="border-b border-border pb-6 sm:pb-8">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
@@ -456,7 +456,7 @@ export function ProfileConfirmation({
         ) : (
           <>
             <p
-              className="max-w-[45rem] font-display text-[clamp(1.45rem,3.2vw,2.05rem)] leading-[1.48] text-ink"
+              className="max-w-[55rem] font-display text-[clamp(1.4rem,2.8vw,2.5rem)] leading-[1.35] text-ink"
               data-confirmed-summary=""
             >
               {confirmedSummary}

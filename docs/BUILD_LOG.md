@@ -4,7 +4,7 @@ project: Steppi
 event: OpenAI Build Week
 status: active
 version: 0.1
-last_updated: 2026-07-18
+last_updated: 2026-07-20
 ---
 
 # Steppi Build Log
@@ -28,6 +28,41 @@ it is historical evidence, not a second specification.
 - Milestones 4–6 — Research, refinement, reliability, and submission: not complete.
 
 ## Completed
+
+### 2026-07-20 — Profile-reflection hierarchy and safe failure diagnostics
+
+- Reduced the confirmation reflection's visual dominance while preserving the
+  existing editorial layout: the page title remains 57.6px at the checked desktop
+  viewport, while the reflection caps at 40px with 1.35 line-height and an 880px
+  reading measure. At 390×844 it remains responsive with no horizontal overflow.
+- Added content-safe profile-generation diagnostics that distinguish missing or
+  invalid configuration, provider timeout/upstream failure, incomplete provider
+  output (`max_output_tokens` or content filter), missing parsed output, and
+  structured-schema validation. Public API errors remain unchanged and generic;
+  diagnostics contain no prompts, answers, raw model output, secrets, or raw SDK
+  errors.
+- Added deterministic coverage for incomplete provider states, schema-only issue
+  paths, safe route reporting, and the reflection's typography contract. Focused
+  verification passed 4 files and 26 tests.
+- Used the one authorized live attempt on local `POST /api/profile`. It succeeded
+  in 7.1 seconds with HTTP 200, a validated profile (7 facts, 2 inferences, 4
+  constraints, 2 uncertainties, and 1 tension), and a 284-character validated
+  confirmation summary. No retry occurred and no failure diagnostic fired.
+- Because the failure did not reproduce, no provider or schema root cause is
+  proven and no speculative timeout/schema change was made. Remaining caveats are
+  intermittent incomplete provider responses, now safely classifiable, and the
+  strict runtime sentence/direct-address validation of otherwise valid structured
+  summaries.
+- Real-browser fixture verification covered 1440×1000 and 390×844. The desktop
+  title/reflection hierarchy measured 57.6px/40px, controls remained usable,
+  horizontal overflow was zero, and warning/error console logs were empty.
+- Final checks passed: `npm run lint`, `npm run typecheck`, `npm run test` (31
+  files, 243 tests), the network-enabled `npm run build`, and `git diff --check`.
+  The first sandboxed build failed only because the existing Google Fonts could
+  not be fetched; the identical network-enabled build passed. No deployment
+  occurred.
+- Exact next task remains the selected-role extended conversation with conditional
+  current-source retrieval.
 
 ### 2026-07-18 — Simplified student-approved profile confirmation
 

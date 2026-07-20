@@ -56,14 +56,21 @@ describe("profile API route", () => {
     ["api_failure", 502, true],
     ["malformed_model_output", 502, true],
   ] as const)("maps %s to a safe public response", async (code, status, retryable) => {
+    const reportDiagnostic = vi.fn();
     const response = await handleProfileRequest(
       profileRequest({ answers: DEMO_INTAKE_ANSWERS }),
       vi.fn().mockRejectedValue(new ProfileGenerationError(code)),
+      reportDiagnostic,
     );
     const body = (await response.json()) as ProfileApiResponse;
 
     expect(response.status).toBe(status);
     expect(body).toMatchObject({ ok: false, error: { code, retryable } });
     expect(JSON.stringify(body)).not.toContain("OPENAI_API_KEY");
+    expect(reportDiagnostic).toHaveBeenCalledWith({
+      code,
+      stage: "provider_request",
+      reason: "upstream_api_failure",
+    });
   });
 });

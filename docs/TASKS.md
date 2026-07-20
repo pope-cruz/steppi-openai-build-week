@@ -4,7 +4,7 @@ project: Steppi
 event: OpenAI Build Week
 status: active
 version: 0.2
-last_updated: 2026-07-18
+last_updated: 2026-07-20
 ---
 
 # Steppi Operational Handoff
@@ -46,6 +46,11 @@ living graph that every response must mutate.
 - Confirmation leads with only that warm reflection. The complete structured
   profile is collapsed by default in a secondary disclosure. The student can
   accept it with **Good to go!** or directly edit it with **Let me refine this**.
+- The confirmation hierarchy keeps the page title dominant while the reflection
+  uses a 40px desktop cap, 1.35 line-height, and an 880px reading measure.
+- Profile generation now records content-safe server diagnostics for configuration,
+  provider request, incomplete provider response, and schema-validation failures;
+  public errors remain generic.
 - A saved edit becomes `confirmedSummary` without another model request or a
   reverse transformation into profile fields. The legacy profile-refinement API
   remains in the repository but no longer drives the normal confirmation screen.
@@ -206,15 +211,16 @@ or paid request unless separately authorized.
 
 ## Non-blocking Reliability Debt
 
-- Profile and path timeout classification may report an SDK timeout as generic
-  `api_failure` because those routes still rely on `error.name`.
+- Path timeout classification may report an SDK timeout as generic `api_failure`
+  because that route still relies on `error.name`.
 - Refresh clears all active state.
 - Intake duration and screen-reader behavior remain unmeasured.
 - Revised intake interpretation and profile refinement have deterministic but not
   fresh live GPT-5.6 verification.
-- The generated two-sentence confirmation and role-generation precedence rules
-  are deterministically verified but have no fresh live GPT-5.6 quality check or
-  representative-student comprehension study.
+- One fresh local GPT-5.6 profile request returned HTTP 200 with a complete,
+  schema-valid profile and confirmation summary. The intermittent prior failure
+  was not reproduced; representative-student comprehension and broader output
+  quality remain unverified.
 - The 6–8-role generation contract and seven-role fixture have not been calibrated
   through a fresh live GPT-5.6 response or a materially different persona.
 - The enriched path contract and role brief are fixture-verified but have not had

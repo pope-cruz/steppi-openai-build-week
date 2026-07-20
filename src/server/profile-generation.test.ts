@@ -7,6 +7,7 @@ import {
   generateStudentProfile,
   PROFILE_INSTRUCTIONS,
   ProfileGenerationError,
+  requireParsedProfileOutput,
 } from "./profile-generation";
 
 const VALID_GENERATION = {
@@ -127,5 +128,39 @@ describe("generateStudentProfile", () => {
       }),
       "malformed_model_output",
     );
+  });
+
+  it.each([
+    ["max_output_tokens", "incomplete_max_output_tokens"],
+    ["content_filter", "incomplete_content_filter"],
+    [null, "parsed_output_missing"],
+  ] as const)(
+    "classifies a null parsed provider output with %s safely",
+    (incompleteReason, expectedReason) => {
+      expect(() =>
+        requireParsedProfileOutput({ output: null, incompleteReason }),
+      ).toThrowError(expectedReason);
+    },
+  );
+
+  it("retains only schema paths in malformed-output diagnostics", async () => {
+    try {
+      await generateStudentProfile(DEMO_INTAKE_ANSWERS, {
+        apiKey: "test-key-not-real",
+        model: "gpt-5.6",
+        requestProfile: vi.fn().mockResolvedValue({
+          profile: VALID_PROFILE_FIXTURE,
+          confirmationSummary: "You like creative work.",
+        }),
+      });
+      throw new Error("Expected malformed output");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProfileGenerationError);
+      expect((error as ProfileGenerationError).diagnostic).toEqual({
+        stage: "structured_validation",
+        reason: "schema_validation_failed",
+        issuePaths: ["confirmationSummary"],
+      });
+    }
   });
 });
