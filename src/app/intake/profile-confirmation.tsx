@@ -16,7 +16,7 @@ import {
   type DevelopmentConversationFixture,
 } from "@/app/intake/path-branch-preview";
 import { Button } from "@/components/ui/button";
-import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
+import { DEMO_PATH_BRANCHES, DEMO_PATH_BRANCHES_MAX } from "@/lib/demo-paths";
 import { PathApiResponseSchema } from "@/lib/path-api";
 import { pathFlowReducer } from "@/lib/path-flow";
 import { validatePathGeneration } from "@/lib/path-validation";
@@ -30,6 +30,8 @@ const SUMMARY_LIMIT = 1_200;
 
 export type DevelopmentPathFixture =
   | "success"
+  | "success_12"
+  | "success_15"
   | "api_failure"
   | "timeout"
   | "malformed_model_output";
@@ -209,8 +211,20 @@ export function ProfileConfirmation({
           return;
         }
 
-        if (developmentPathFixture === "success") {
-          responseBody = { ok: true, branches: DEMO_PATH_BRANCHES };
+        if (
+          developmentPathFixture === "success" ||
+          developmentPathFixture === "success_12" ||
+          developmentPathFixture === "success_15"
+        ) {
+          responseBody = {
+            ok: true,
+            branches:
+              developmentPathFixture === "success_12"
+                ? DEMO_PATH_BRANCHES.slice(0, 12)
+                : developmentPathFixture === "success_15"
+                  ? DEMO_PATH_BRANCHES_MAX
+                  : DEMO_PATH_BRANCHES,
+          };
         } else if (developmentPathFixture === "malformed_model_output") {
           responseBody = { ok: true, branches: DEMO_PATH_BRANCHES.slice(0, 2) };
         } else {

@@ -6,13 +6,14 @@ import {
   profileEvidence,
 } from "@/app/intake/path-detail-panel";
 import {
-  DESKTOP_ROLE_SLOTS,
   InitialPathMap,
-  desktopRoleSlot,
+  ROLE_BAND_DISTRIBUTIONS,
+  mobileRoleSpanClass,
+  roleBands,
   rolePillWidthClass,
 } from "@/app/intake/path-branch-preview";
 import { RoleConversationPanel } from "@/app/intake/role-conversation";
-import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
+import { DEMO_PATH_BRANCHES, DEMO_PATH_BRANCHES_MAX } from "@/lib/demo-paths";
 import { DEMO_CONFIRMATION_SUMMARY } from "@/lib/demo-profile";
 import { developmentRoleConversationMessage } from "@/lib/demo-role-conversation";
 import { emptyRoleConversationThread } from "@/lib/role-conversation";
@@ -28,9 +29,9 @@ describe("initial path map markup", () => {
       />,
     );
 
-    expect(markup.match(/data-role-surface="desktop"/g)).toHaveLength(7);
-    expect(markup.match(/data-role-surface="mobile"/g)).toHaveLength(7);
-    expect(markup.match(/aria-pressed="false"/g)).toHaveLength(14);
+    expect(markup.match(/data-role-surface="desktop"/g)).toHaveLength(13);
+    expect(markup.match(/data-role-surface="mobile"/g)).toHaveLength(13);
+    expect(markup.match(/aria-pressed="false"/g)).toHaveLength(26);
     for (const branch of DEMO_PATH_BRANCHES) {
       expect(markup.match(new RegExp(branch.title, "g"))).toHaveLength(4);
       expect(markup).not.toContain(branch.summary);
@@ -38,7 +39,7 @@ describe("initial path map markup", () => {
     expect(markup).not.toContain("data-path-detail=");
   });
 
-  it("uses a deterministic floating desktop composition and complete mobile list", () => {
+  it("uses deterministic constellation bands and a complete mobile cloud", () => {
     const markup = renderToStaticMarkup(
       <InitialPathMap
         branches={DEMO_PATH_BRANCHES}
@@ -47,27 +48,72 @@ describe("initial path map markup", () => {
       />,
     );
 
-    expect(DESKTOP_ROLE_SLOTS).toHaveLength(8);
-    DEMO_PATH_BRANCHES.forEach((branch, index) => {
+    expect(roleBands(DEMO_PATH_BRANCHES).map((band) => band.length)).toEqual([
+      3, 4, 3, 3,
+    ]);
+    DEMO_PATH_BRANCHES.forEach((branch) => {
       expect(markup).toContain(`data-role-pill="${branch.id}"`);
-      expect(markup).toContain(desktopRoleSlot(index));
     });
-    expect(markup).toContain('data-mobile-fallback="role-list"');
+    expect(markup.match(/data-role-band=/g)).toHaveLength(4);
+    expect(markup).toContain('data-mobile-fallback="role-cloud"');
     expect(markup).toContain('data-role-overview="desktop"');
     expect(markup).toContain('data-role-overview="mobile"');
     expect(markup).not.toContain("data-path-graph=");
   });
 
+  it.each([
+    [12, [3, 3, 3, 3]],
+    [13, [3, 4, 3, 3]],
+    [14, [3, 4, 4, 3]],
+    [15, [4, 4, 4, 3]],
+  ])("packs %i roles into the approved band distribution", (count, expected) => {
+    const roles = Array.from({ length: count }, (_, index) => index);
+
+    expect(ROLE_BAND_DISTRIBUTIONS[count as 12 | 13 | 14 | 15]).toEqual(
+      expected,
+    );
+    expect(roleBands(roles).map((band) => band.length)).toEqual(expected);
+    expect(roleBands(roles).flat()).toEqual(roles);
+  });
+
+  it.each([
+    [12, DEMO_PATH_BRANCHES_MAX.slice(0, 12)],
+    [13, DEMO_PATH_BRANCHES_MAX.slice(0, 13)],
+    [14, DEMO_PATH_BRANCHES_MAX.slice(0, 14)],
+    [15, DEMO_PATH_BRANCHES_MAX],
+  ])("renders every role in a complete %i-role assignment", (count, branches) => {
+    const markup = renderToStaticMarkup(
+      <InitialPathMap
+        branches={branches}
+        confirmedSummary={DEMO_CONFIRMATION_SUMMARY}
+        profile={VALID_PROFILE_FIXTURE}
+      />,
+    );
+
+    expect(markup).toContain(`data-role-count="${count}"`);
+    expect(markup.match(/data-role-surface="desktop"/g)).toHaveLength(count);
+    expect(markup.match(/data-role-surface="mobile"/g)).toHaveLength(count);
+    expect(markup.match(/data-role-band=/g)).toHaveLength(4);
+  });
+
   it("varies pill width by title length", () => {
-    expect(rolePillWidthClass("Archivist")).toBe("w-[12rem]");
+    expect(rolePillWidthClass("Archivist")).toBe(
+      "flex-[0_1_11rem] lg:max-w-[13rem]",
+    );
     expect(rolePillWidthClass("Science communication producer")).toBe(
-      "w-[15.5rem]",
+      "flex-[0_1_14rem] lg:max-w-[16rem]",
     );
     expect(
       rolePillWidthClass(
         "Human-centered artificial intelligence product and experience designer",
       ),
-    ).toBe("w-[19rem]");
+    ).toBe("flex-[0_1_17rem] lg:max-w-[18rem]");
+    expect(mobileRoleSpanClass("Archivist")).toBe(
+      "min-[370px]:col-span-1",
+    );
+    expect(mobileRoleSpanClass("Human-centered learning experience designer")).toBe(
+      "min-[370px]:col-span-2",
+    );
   });
 
   it("keeps the complete role brief intact", () => {

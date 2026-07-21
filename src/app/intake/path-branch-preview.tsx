@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 
 import {
   PathDetailPanel,
@@ -21,25 +21,51 @@ import {
 } from "@/lib/role-conversation";
 import type { PathBranch, StudentProfile } from "@/lib/schemas";
 
-export const DESKTOP_ROLE_SLOTS = [
-  "col-start-1 col-span-4 row-start-1 self-end justify-self-start",
-  "col-start-5 col-span-4 row-start-1 self-start justify-self-center",
-  "col-start-9 col-span-4 row-start-1 self-end justify-self-end",
-  "col-start-2 col-span-4 row-start-2 self-center justify-self-center",
-  "col-start-7 col-span-5 row-start-2 self-end justify-self-center",
-  "col-start-1 col-span-4 row-start-3 self-start justify-self-end",
-  "col-start-5 col-span-5 row-start-4 self-start justify-self-center",
-  "col-start-9 col-span-4 row-start-3 self-end justify-self-start",
+export const ROLE_BAND_DISTRIBUTIONS = {
+  12: [3, 3, 3, 3],
+  13: [3, 4, 3, 3],
+  14: [3, 4, 4, 3],
+  15: [4, 4, 4, 3],
+} as const;
+
+const ROLE_BAND_ALIGNMENT_CLASSES = [
+  "justify-around",
+  "justify-between",
+  "justify-evenly",
+  "justify-center",
 ] as const;
 
-export function rolePillWidthClass(title: string) {
-  if (title.length <= 22) return "w-[12rem]";
-  if (title.length <= 34) return "w-[15.5rem]";
-  return "w-[19rem]";
+const ROLE_NODE_OFFSET_CLASSES = ["-mt-3", "mt-4", "mt-0", "-mt-1"] as const;
+
+export function roleBands<T>(roles: T[]) {
+  const distribution = ROLE_BAND_DISTRIBUTIONS[
+    roles.length as keyof typeof ROLE_BAND_DISTRIBUTIONS
+  ];
+
+  if (!distribution) return [roles];
+
+  let offset = 0;
+  return distribution.map((size) => {
+    const band = roles.slice(offset, offset + size);
+    offset += size;
+    return band;
+  });
 }
 
-export function desktopRoleSlot(index: number) {
-  return DESKTOP_ROLE_SLOTS[index % DESKTOP_ROLE_SLOTS.length] ?? DESKTOP_ROLE_SLOTS[0];
+export function rolePillWidthClass(title: string) {
+  if (title.length <= 22) return "flex-[0_1_11rem] lg:max-w-[13rem]";
+  if (title.length <= 34) return "flex-[0_1_14rem] lg:max-w-[16rem]";
+  return "flex-[0_1_17rem] lg:max-w-[18rem]";
+}
+
+export function mobileRoleSpanClass(title: string) {
+  return title.length <= 30
+    ? "min-[370px]:col-span-1"
+    : "min-[370px]:col-span-2";
+}
+
+export function roleNodeOffsetClass(index: number) {
+  return ROLE_NODE_OFFSET_CLASSES[index % ROLE_NODE_OFFSET_CLASSES.length];
 }
 
 export type DevelopmentConversationFixture =
@@ -91,6 +117,7 @@ export function InitialPathMap({
   );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [requestCount, setRequestCount] = useState(0);
+  const [roleSpaceEntered, setRoleSpaceEntered] = useState(false);
   const roleButtonRefs = useRef(
     new Map<string, { desktop?: HTMLButtonElement; mobile?: HTMLButtonElement }>(),
   );
@@ -114,6 +141,11 @@ export function InitialPathMap({
 
   useEffect(() => {
     safetyIdentifier.current = `steppi-session-${crypto.randomUUID()}`;
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setRoleSpaceEntered(true), 900);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   function threadFor(branchId: string) {
@@ -309,6 +341,11 @@ export function InitialPathMap({
     }
   }
 
+  function selectRole(branchId: string) {
+    setRoleSpaceEntered(true);
+    dispatch({ type: "select", branchId });
+  }
+
   function registerRoleButton(
     branchId: string,
     surface: "desktop" | "mobile",
@@ -352,47 +389,66 @@ export function InitialPathMap({
         aria-describedby="path-map-instructions"
         aria-label="Career role possibilities based on your confirmed profile"
         className="relative mt-8 isolate overflow-hidden rounded-[1.75rem] border border-border-strong bg-surface"
-        data-mobile-fallback="role-list"
+        data-mobile-fallback="role-cloud"
         data-role-count={state.branches.length}
       >
-        <div aria-label="Floating career role possibilities" className="relative hidden min-h-[34rem] grid-cols-12 grid-rows-4 gap-x-4 gap-y-5 bg-surface-muted/55 px-8 py-8 lg:grid xl:px-12 xl:py-10" data-role-overview="desktop">
+        <div aria-label="Constellation of career role possibilities" className="relative hidden min-h-[36rem] flex-col justify-between bg-surface-muted/55 px-8 py-7 lg:flex xl:px-12 xl:py-9" data-role-overview="desktop">
+          {roleBands(state.branches).map((band, bandIndex) => (
+            <div
+              className={`flex min-h-[7rem] w-full items-center gap-3 px-1 xl:gap-5 ${ROLE_BAND_ALIGNMENT_CLASSES[bandIndex]}`}
+              data-role-band={bandIndex}
+              key={`role-band-${bandIndex}`}
+            >
+              {band.map((branch) => {
+                const index = state.branches.findIndex((candidate) => candidate.id === branch.id);
+                const selected = state.selectedBranchId === branch.id;
+                return (
+                  <div
+                    className={`${roleSpaceEntered ? "" : "role-constellation-node"} min-w-0 ${rolePillWidthClass(branch.title)} ${roleNodeOffsetClass(index)}`}
+                    data-role-index={index}
+                    key={branch.id}
+                    style={{ "--role-index": index } as CSSProperties}
+                  >
+                    <button
+                      aria-controls={selected ? `path-detail-${branch.id}` : undefined}
+                      aria-label={`Explore ${branch.title}`}
+                      aria-pressed={selected}
+                      className={`min-h-14 w-full rounded-full border px-4 py-3 text-center text-sm font-semibold leading-5 text-ink outline-none transition-[transform,border-color,background-color,box-shadow] [overflow-wrap:anywhere] hover:border-primary hover:bg-surface active:scale-[0.98] focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted ${selected ? "border-ink bg-primary-soft ring-2 ring-ink ring-offset-3 ring-offset-surface-muted" : "border-border-strong bg-surface"}`}
+                      data-role-pill={branch.id}
+                      data-role-surface="desktop"
+                      disabled={conversationActive}
+                      onClick={() => selectRole(branch.id)}
+                      ref={(node) => registerRoleButton(branch.id, "desktop", node)}
+                      type="button"
+                    >
+                      {branch.title}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        <ul aria-label="Career role possibilities" className="grid grid-cols-1 gap-3 bg-surface-muted/40 p-4 min-[370px]:grid-cols-2 sm:p-6 lg:hidden" data-role-overview="mobile">
           {state.branches.map((branch, index) => {
             const selected = state.selectedBranchId === branch.id;
             return (
-              <button
-                aria-controls={selected ? `path-detail-${branch.id}` : undefined}
-                aria-label={`Explore ${branch.title}`}
-                aria-pressed={selected}
-                className={`min-h-14 max-w-full rounded-full border px-5 py-3 text-center text-sm font-semibold leading-5 text-ink outline-none transition-[border-color,background-color,box-shadow] [overflow-wrap:anywhere] hover:border-primary hover:bg-surface focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted ${rolePillWidthClass(branch.title)} ${desktopRoleSlot(index)} ${selected ? "border-ink bg-primary-soft ring-2 ring-ink ring-offset-3 ring-offset-surface-muted" : "border-border-strong bg-surface"}`}
-                data-role-pill={branch.id}
-                data-role-slot={index}
-                data-role-surface="desktop"
-                disabled={conversationActive}
+              <li
+                className={`${roleSpaceEntered ? "" : "role-constellation-node"} ${mobileRoleSpanClass(branch.title)}`}
+                data-role-index={index}
                 key={branch.id}
-                onClick={() => dispatch({ type: "select", branchId: branch.id })}
-                ref={(node) => registerRoleButton(branch.id, "desktop", node)}
-                type="button"
+                style={{ "--role-index": index } as CSSProperties}
               >
-                {branch.title}
-              </button>
-            );
-          })}
-        </div>
-
-        <ul aria-label="Career role possibilities" className="space-y-3 bg-surface-muted/40 p-4 sm:p-6 lg:hidden" data-role-overview="mobile">
-          {state.branches.map((branch) => {
-            const selected = state.selectedBranchId === branch.id;
-            return (
-              <li key={branch.id}>
                 <button
                   aria-controls={selected ? `path-detail-${branch.id}` : undefined}
                   aria-label={`Explore ${branch.title}`}
                   aria-pressed={selected}
-                  className={`min-h-16 w-full rounded-[2rem] border px-5 py-3.5 text-center text-base font-semibold leading-6 text-ink outline-none transition-[border-color,background-color,box-shadow] [overflow-wrap:anywhere] hover:border-primary hover:bg-surface focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] ${selected ? "border-ink bg-primary-soft ring-2 ring-ink" : "border-border-strong bg-surface"}`}
+                  className={`min-h-16 w-full rounded-[2rem] border px-4 py-3.5 text-center text-sm font-semibold leading-5 text-ink outline-none transition-[transform,border-color,background-color,box-shadow] [overflow-wrap:anywhere] hover:border-primary hover:bg-surface active:scale-[0.98] focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] sm:text-base sm:leading-6 ${selected ? "border-ink bg-primary-soft ring-2 ring-ink" : "border-border-strong bg-surface"}`}
                   data-role-pill={branch.id}
                   data-role-surface="mobile"
                   disabled={conversationActive}
-                  onClick={() => dispatch({ type: "select", branchId: branch.id })}
+                  onClick={() => selectRole(branch.id)}
                   ref={(node) => registerRoleButton(branch.id, "mobile", node)}
                   type="button"
                 >

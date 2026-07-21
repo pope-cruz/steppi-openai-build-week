@@ -5,7 +5,7 @@ import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
 import { PathApiResponseSchema } from "./path-api";
 
 describe("PathApiResponseSchema", () => {
-  it("accepts a structurally valid seven-role result", () => {
+  it("accepts a structurally valid thirteen-role result", () => {
     expect(
       PathApiResponseSchema.safeParse({
         ok: true,
@@ -18,7 +18,7 @@ describe("PathApiResponseSchema", () => {
     expect(
       PathApiResponseSchema.safeParse({
         ok: true,
-        branches: DEMO_PATH_BRANCHES.slice(0, 5),
+        branches: DEMO_PATH_BRANCHES.slice(0, 11),
       }).success,
     ).toBe(false);
   });

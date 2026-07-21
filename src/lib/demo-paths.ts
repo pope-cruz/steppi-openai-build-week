@@ -1,7 +1,7 @@
 import type { PathBranch } from "@/lib/schemas";
 
-/** Representative seven-role output used only by deterministic tests and local UI verification. */
-export const DEMO_PATH_BRANCHES: PathBranch[] = [
+/** Fifteen-role pool used only by deterministic tests and local UI verification. */
+const DEMO_PATH_BRANCH_POOL: PathBranch[] = [
   {
     id: "path-product-design",
     title: "Digital product designer",
@@ -191,4 +191,226 @@ export const DEMO_PATH_BRANCHES: PathBranch[] = [
       { id: "option-project-management", label: "Project management", type: "major" },
     ],
   },
+  {
+    id: "role-digital-collections-archivist",
+    title: "Digital collections archivist",
+    summary:
+      "Digital collections archivists organize and preserve photographs, recordings, documents, and other materials so people can find and understand them.",
+    whyItAppeared: [
+      "This could connect your visual interests with careful storytelling and technology that supports access rather than programming-heavy work.",
+      "The role also offers a mix of independent organization and collaboration with researchers, librarians, or community partners.",
+    ],
+    supportingProfileIds: ["fact-interests", "fact-programming"],
+    drawbacks: [
+      "A large part of the work is methodical naming, checking, and documenting, which may feel slow if you want constant creative output.",
+    ],
+    dayToDay: [
+      "A day may include reviewing a group of materials, describing what each item contains, and deciding how it should be organized.",
+      "Archivists also check file quality, research missing context, and help other people locate useful material.",
+    ],
+    lowRiskExploration:
+      "Organize a small collection of family or school photographs with clear titles, dates, and short descriptions that someone else can navigate.",
+    unresolvedQuestions: [
+      "Would the satisfaction of making information discoverable balance the repetitive care this work can require?",
+    ],
+    relatedOptions: [
+      { id: "option-digital-archivist", label: "Digital archivist", type: "career" },
+      { id: "option-library-information-science", label: "Library and information science", type: "major" },
+    ],
+  },
+  {
+    id: "role-digital-accessibility-tester",
+    title: "Digital accessibility tester",
+    summary:
+      "Digital accessibility testers check whether websites and apps can be understood and used by people with different access needs.",
+    whyItAppeared: [
+      "This role could use your interest in digital products and clear communication while keeping the focus on how real people experience a design.",
+      "It offers structured problem-solving without requiring programming to be the main activity.",
+    ],
+    supportingProfileIds: ["fact-interests", "fact-programming"],
+    drawbacks: [
+      "Testing can be repetitive and requires careful attention to standards, documentation, and small interaction details.",
+    ],
+    dayToDay: [
+      "A tester may navigate a product by keyboard, review text and color choices, and document barriers in a form a product team can act on.",
+      "The work often includes explaining findings, retesting changes, and learning from people who use different assistive tools.",
+    ],
+    lowRiskExploration:
+      "Try using a familiar website with only a keyboard and write down every point where the next action becomes unclear.",
+    unresolvedQuestions: [
+      "Would you enjoy finding and documenting small usability barriers repeatedly?",
+    ],
+    relatedOptions: [
+      { id: "option-accessibility-specialist", label: "Accessibility specialist", type: "career" },
+      { id: "option-human-computer-interaction", label: "Human-computer interaction", type: "major" },
+    ],
+  },
+  {
+    id: "role-wayfinding-designer",
+    title: "Wayfinding designer",
+    summary:
+      "Wayfinding designers create signs, maps, and visual systems that help people move through buildings and public spaces.",
+    whyItAppeared: [
+      "This could turn your visual problem-solving into practical work that people encounter in schools, hospitals, transport spaces, or events.",
+      "It combines presentation, spatial thinking, and collaboration with people who plan or operate a place.",
+    ],
+    supportingProfileIds: ["inference-visual-thinking", "inference-collaboration"],
+    drawbacks: [
+      "The design must work within physical, safety, language, and installation constraints, so creative choices are rarely open-ended.",
+    ],
+    dayToDay: [
+      "A day may include walking through a space, noticing where people hesitate, sketching a sign system, and testing whether directions are understood quickly.",
+      "Designers coordinate with architects, printers, operators, and clients to make sure the system works in its real environment.",
+    ],
+    lowRiskExploration:
+      "Redesign the directions for one confusing route around your school and test them with someone who does not usually take that route.",
+    unresolvedQuestions: [
+      "Would solving navigation problems within strict physical constraints feel creatively satisfying?",
+    ],
+    relatedOptions: [
+      { id: "option-environmental-graphic-designer", label: "Environmental graphic designer", type: "career" },
+      { id: "option-communication-design", label: "Communication design", type: "major" },
+    ],
+  },
+  {
+    id: "role-consumer-insights-analyst",
+    title: "Consumer insights analyst",
+    summary:
+      "Consumer insights analysts study what people say and do, then explain patterns that can guide a product, service, or campaign.",
+    whyItAppeared: [
+      "This could use your interest in presenting ideas and collaborative work while giving you a clear question to investigate.",
+      "It stays connected to products and communication without requiring you to make the final design yourself.",
+    ],
+    supportingProfileIds: ["fact-interests", "inference-collaboration"],
+    drawbacks: [
+      "The role can involve spreadsheets, careful sampling, and ambiguous evidence that does not always lead to a neat conclusion.",
+    ],
+    dayToDay: [
+      "An analyst may review survey responses, interview notes, or purchasing patterns and look for themes that answer a specific business question.",
+      "They turn those findings into a short explanation or presentation and discuss what the team should investigate next.",
+    ],
+    lowRiskExploration:
+      "Ask ten classmates the same focused question about a school service, group their answers into themes, and present the two strongest patterns.",
+    unresolvedQuestions: [
+      "Would working with incomplete patterns feel interesting or frustrating when there is no single correct answer?",
+    ],
+    relatedOptions: [
+      { id: "option-insights-analyst", label: "Insights analyst", type: "career" },
+      { id: "option-market-research", label: "Market research", type: "major" },
+    ],
+  },
+  {
+    id: "role-technical-documentation-specialist",
+    title: "Technical documentation specialist",
+    summary:
+      "Technical documentation specialists create clear guides and reference material that help people understand a tool, process, or system.",
+    whyItAppeared: [
+      "Your interest in presenting ideas and making technology understandable could make this a practical form of communication work.",
+      "The role often involves working with technical teammates without requiring you to spend most of the day programming.",
+    ],
+    supportingProfileIds: ["fact-interests", "fact-programming"],
+    drawbacks: [
+      "The work requires precise revisions and sustained attention to details that may be invisible when the document works well.",
+    ],
+    dayToDay: [
+      "A specialist may test a process, interview someone who built it, draft instructions, and check whether a new user can follow them.",
+      "They also update older material when a product changes and negotiate wording with subject experts.",
+    ],
+    lowRiskExploration:
+      "Write a one-page guide for a school tool or process, then watch a classmate use it without giving them extra instructions.",
+    unresolvedQuestions: [
+      "Would precise explanatory writing hold your attention when the subject is not already familiar?",
+    ],
+    relatedOptions: [
+      { id: "option-technical-writer", label: "Technical writer", type: "career" },
+      { id: "option-professional-writing", label: "Professional writing", type: "major" },
+    ],
+  },
+  {
+    id: "role-event-experience-producer",
+    title: "Event experience producer",
+    summary:
+      "Event experience producers coordinate the people, spaces, content, and timing that shape how an audience experiences an event.",
+    whyItAppeared: [
+      "This could combine your interest in presenting, visual outcomes, and collaborative work in a role with a clear public result.",
+      "It also gives organizing strengths a creative setting rather than making administration the whole story.",
+    ],
+    supportingProfileIds: ["inference-collaboration", "inference-visual-thinking"],
+    drawbacks: [
+      "Event work can become deadline-heavy, and unexpected logistical problems may take priority over the creative parts.",
+    ],
+    dayToDay: [
+      "A producer may review a run sheet, coordinate speakers or performers, check visual materials, and solve changes with venue and technical teams.",
+      "Planning is spread over many weeks, while event days can be fast, social, and highly time-sensitive.",
+    ],
+    lowRiskExploration:
+      "Help produce one school presentation or club event and take responsibility for the audience journey from arrival to the final activity.",
+    unresolvedQuestions: [
+      "Would the pressure of a fixed event date energize you or make the creative work less enjoyable?",
+    ],
+    relatedOptions: [
+      { id: "option-event-producer", label: "Event producer", type: "career" },
+      { id: "option-events-management", label: "Events management", type: "major" },
+    ],
+  },
+  {
+    id: "role-documentary-researcher",
+    title: "Documentary researcher",
+    summary:
+      "Documentary researchers find people, records, images, and context that help a factual story become accurate and understandable.",
+    whyItAppeared: [
+      "This could connect your interest in explaining ideas with visual storytelling and collaborative creative production.",
+      "It offers a way to shape the substance of a story even when you are not the person filming or presenting it.",
+    ],
+    supportingProfileIds: ["fact-interests", "inference-visual-thinking"],
+    drawbacks: [
+      "Research can involve long searches, unanswered messages, and careful fact-checking before any visible creative output appears.",
+    ],
+    dayToDay: [
+      "A researcher may search archives, contact possible interviewees, verify a claim, and organize material for a writer, director, or editor.",
+      "The work moves between independent investigation and frequent conversations about what the developing story still needs.",
+    ],
+    lowRiskExploration:
+      "Research a three-minute factual video about a local story and create a source list, interview plan, and visual reference folder.",
+    unresolvedQuestions: [
+      "Would you enjoy the behind-the-scenes investigation even when someone else shapes the final story?",
+    ],
+    relatedOptions: [
+      { id: "option-documentary-researcher", label: "Documentary researcher", type: "career" },
+      { id: "option-media-studies", label: "Media studies", type: "major" },
+    ],
+  },
+  {
+    id: "role-gis-technician",
+    title: "Geographic information systems technician",
+    summary:
+      "Geographic information systems technicians organize location-based information and turn it into maps that help people understand places and patterns.",
+    whyItAppeared: [
+      "This could give your visual problem-solving a technical but concrete form through maps, layers, and questions about real communities.",
+      "It may let you work with digital tools without making software development the main career direction.",
+    ],
+    supportingProfileIds: ["inference-visual-thinking", "fact-programming"],
+    drawbacks: [
+      "The work can require careful data cleanup, consistent file organization, and learning specialized tools before the visual results become interesting.",
+    ],
+    dayToDay: [
+      "A technician may prepare location data, check it for errors, build a map, and adjust labels or symbols so the result can be understood quickly.",
+      "They often work with planners, researchers, or community teams that need a spatial question answered clearly.",
+    ],
+    lowRiskExploration:
+      "Create a simple map of useful student resources near your school and ask two classmates what information the map is still missing.",
+    unresolvedQuestions: [
+      "Would learning specialized mapping tools feel worthwhile if much of the work begins with cleaning and organizing data?",
+    ],
+    relatedOptions: [
+      { id: "option-gis-technician", label: "GIS technician", type: "career" },
+      { id: "option-geography", label: "Geography", type: "major" },
+    ],
+  },
 ];
+
+/** Normal thirteen-role assignment used by deterministic product fixtures. */
+export const DEMO_PATH_BRANCHES: PathBranch[] = DEMO_PATH_BRANCH_POOL.slice(0, 13);
+
+/** Complete fifteen-role assignment used to verify the upper cardinality and layout. */
+export const DEMO_PATH_BRANCHES_MAX: PathBranch[] = DEMO_PATH_BRANCH_POOL;

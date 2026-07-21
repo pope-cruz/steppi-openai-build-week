@@ -1393,3 +1393,112 @@ Use fixtures only. Do not make a live GPT-5.6 request or deploy.
   code; repeat this one check with a keyboard-capable browser runner before final
   submission.
 - No live or paid GPT-5.6 conversation request was made.
+
+---
+
+## 2026-07-21 — Open-notebook landing page
+
+### Product and design decision
+
+- Repositioned the home route explicitly as an AI guidance counsellor for
+  high-school students for the hackathon story while preserving the clear safety
+  boundary that Steppi does not predict the right career or replace a school
+  counsellor.
+- Chose an open notebook as the landing-page selling point: the left page holds
+  believable student notes and the right page opens those notes into seven varied,
+  unranked career roles.
+- Treated the notebook as an explanatory preview rather than changing the actual
+  intake or role-space interaction.
+
+### Implementation
+
+- Replaced the older three-path landing hero and numbered process row with a
+  landing-only header, asymmetric notebook hero, trust strip, intake example,
+  selected-role brief, low-risk experiment, role conversation, source disclosure,
+  final CTA, and footer.
+- Added route-scoped light and dark tokens, Bricolage Grotesque display type,
+  consistent blue accents, responsive single-column notebook behavior, and a
+  simple Steppi favicon.
+- Added a CSS-only notebook opening sequence and 40–60ms content stagger. Reduced
+  motion removes spatial transforms and keeps a short opacity reveal; pressable
+  CTAs use 160ms scale feedback.
+- Added render tests for the explicit AI guidance counsellor positioning, safety
+  language, seven unique unranked role examples, and all `/intake` CTAs.
+
+### Verification evidence
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed: 27 files, 197 tests.
+- `npm run build` — passed after network access allowed Next.js to fetch the
+  configured Google fonts. `/`, `/icon.svg`, and `/intake` are static routes.
+- Real Chrome checks passed at 1440×900 in light and dark modes and 390×844 in
+  light mode. Desktop keeps the two-line hero and open notebook inside the initial
+  viewport. Mobile preserves the CTA before the notebook and has no horizontal
+  overflow.
+- Full-page desktop and mobile inspection passed for every landing section.
+  Keyboard Tab order, visible focus rings, reduced motion, source disclosure,
+  heading order, and CTA wrapping passed.
+- Browser console errors: none. Framework error overlay: absent.
+- No live or paid GPT-5.6 request was made and no deployment was performed.
+
+### Follow-up palette and typography revision
+
+- Restored the landing page to the original Steppi light palette: `#fefffc`
+  canvas, white surfaces, green-gray neutrals, and the existing `#287fa6` blue
+  accent. Removed the landing-only automatic dark theme and route-specific dark
+  viewport colors.
+- Replaced Fraunces with Bricolage Grotesque in the shared display utility so the
+  landing page, intake, confirmation, role space, selected-role brief, and role
+  conversation use one display family. Geist remains the shared body face.
+- Updated the Steppi icon to the restored original palette.
+- Chrome verification at 1440×900 and 390×844 confirmed that `/` and `/intake`
+  remain light even when dark mode is requested, use Bricolage for display text,
+  use Geist for body copy, and have no horizontal overflow, console errors, or
+  framework overlay.
+- `npm run lint`, `npm run typecheck`, `npm run test` (27 files, 197 tests),
+  `npm run build`, and `git diff --check` passed.
+
+---
+
+## 2026-07-21 — Twelve-to-fifteen-role constellation
+
+### Product and implementation decision
+
+- Expanded the role-generation contract from 6–8 roles to 12–15 roles, with
+  thirteen as the normal target and the existing complete-set validation and
+  three-attempt ceiling preserved.
+- Increased the structured-output allowance from 9,000 to 15,000 tokens without
+  changing the `/api/paths` response shape, role schema fields, model, provider
+  timeout, or conversation flow.
+- Added a fifteen-role deterministic pool and kept thirteen roles as the normal
+  fixture assignment.
+- Replaced eight sparse fixed slots with four ordered constellation bands using
+  `3/3/3/3`, `3/4/3/3`, `3/4/4/3`, and `4/4/4/3` distributions for 12–15 roles.
+- Added responsive title widths, compact one- or two-column mobile packing, one
+  settle-in stagger, an opacity-only reduced-motion fallback, and one-time entry
+  state so selection never replays the animation.
+- Kept the constellation unranked and non-graphical: no edges, relationship
+  claims, dragging, or physics were added.
+- Kept the landing notebook as a curated role sample and removed its exact-count
+  claim so it remains consistent with the wider product role space.
+
+### Verification evidence
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed: 27 files, 205 tests.
+- `npm run build` — passed after network access allowed Next.js to retrieve the
+  configured Google fonts.
+- `git diff --check` — passed.
+- Real Chrome passed for 12, 13, and 15 roles at 1440×900, 15 roles at 1024×900,
+  and 15 roles at 390×844. Role counts and band distributions matched the
+  contract, no nodes overlapped, minimum controls remained at least 56px high,
+  and no viewport had horizontal overflow.
+- The 390px role cloud condensed fifteen roles into ten visual rows while keeping
+  long titles full-width and readable.
+- Enter selection, Space selection, selected-state rendering, focus return, and
+  immediate post-selection visibility passed with native buttons.
+- Reduced-motion emulation reported the opacity-only animation and no transform.
+- Browser console errors: none. Framework error overlay: absent.
+- No live or paid GPT-5.6 request was made and no deployment was performed.

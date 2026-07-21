@@ -12,7 +12,7 @@ import {
 import { DEMO_CONFIRMATION_SUMMARY } from "./demo-profile";
 import { VALID_PROFILE_FIXTURE } from "../test/profile-fixture";
 import { VALID_PROFILE_PATCH_FIXTURE } from "../test/profile-patch-fixture";
-import { DEMO_PATH_BRANCHES } from "./demo-paths";
+import { DEMO_PATH_BRANCHES, DEMO_PATH_BRANCHES_MAX } from "./demo-paths";
 
 describe("Steppi schemas", () => {
   it("accepts the representative intake fixture", () => {
@@ -83,15 +83,9 @@ describe("Steppi schemas", () => {
     ).toBe(false);
   });
 
-  it("accepts six, seven, and eight complete unranked roles", () => {
-    const eighthRole = {
-      ...structuredClone(DEMO_PATH_BRANCHES[0]),
-      id: "role-public-information-designer",
-      title: "Public information designer",
-    };
-
+  it("accepts twelve, thirteen, and fifteen complete unranked roles", () => {
     expect(
-      PathGenerationSchema.safeParse({ branches: DEMO_PATH_BRANCHES.slice(0, 6) })
+      PathGenerationSchema.safeParse({ branches: DEMO_PATH_BRANCHES.slice(0, 12) })
         .success,
     ).toBe(true);
     expect(
@@ -99,13 +93,13 @@ describe("Steppi schemas", () => {
     ).toBe(true);
     expect(
       PathGenerationSchema.safeParse({
-        branches: [...DEMO_PATH_BRANCHES, eighthRole],
+        branches: DEMO_PATH_BRANCHES_MAX,
       }).success,
     ).toBe(true);
   });
 
-  it("rejects fewer than six, more than eight, and ranked-like role fields", () => {
-    const ninthRole = {
+  it("rejects fewer than twelve, more than fifteen, and ranked-like role fields", () => {
+    const sixteenthRole = {
       ...structuredClone(DEMO_PATH_BRANCHES[0]),
       id: "role-public-information-designer",
       title: "Public information designer",
@@ -117,16 +111,12 @@ describe("Steppi schemas", () => {
     };
 
     expect(
-      PathGenerationSchema.safeParse({ branches: DEMO_PATH_BRANCHES.slice(0, 5) })
+      PathGenerationSchema.safeParse({ branches: DEMO_PATH_BRANCHES.slice(0, 11) })
         .success,
     ).toBe(false);
     expect(
       PathGenerationSchema.safeParse({
-        branches: [
-          ...DEMO_PATH_BRANCHES,
-          ninthRole,
-          { ...ninthRole, id: "role-ninth", title: "Ninth role" },
-        ],
+        branches: [...DEMO_PATH_BRANCHES_MAX, sixteenthRole],
       }).success,
     ).toBe(false);
     expect(

@@ -202,7 +202,7 @@ export const PathBranchSchema = z
 
 export const PathGenerationSchema = z
   .object({
-    branches: z.array(PathBranchSchema).min(6).max(8),
+    branches: z.array(PathBranchSchema).min(12).max(15),
   })
   .strict();
 

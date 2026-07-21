@@ -64,11 +64,10 @@ into a concise answer.
    and practical considerations.
 3. Steppi creates a validated two-sentence understanding that the student can
    accept, inspect in detail, or directly rewrite before continuing.
-4. Steppi generates approximately seven meaningfully different career-role
-   options.
+4. Steppi generates twelve to fifteen meaningfully different career-role
+   options, targeting thirteen.
 5. The roles appear as unranked floating nodes in an open visual possibility
-   space. The full visible set may contain roughly seven to ten roles when layout
-   and student context justify it.
+   space. The full visible set contains twelve to fifteen roles.
 6. The student opens any role and can understand it in under one minute through:
    - what the role is;
    - why it may fit the student;
@@ -98,7 +97,7 @@ comparison, or post-research refinement.
 - [ ] Structured-output validation before rendering
 - [ ] Exactly two generated confirmation sentences, direct student editing, and
       secondary detailed-profile disclosure
-- [ ] Approximately seven varied career-role options
+- [ ] Twelve to fifteen varied career-role options, targeting thirteen
 - [ ] Deterministic validation against near-duplicate role sets
 - [ ] Open, unranked floating role-node interface
 - [ ] Selection, switching, and return to the full possibility space
@@ -231,9 +230,9 @@ profile continues to provide breadth.
 
 ### Stage C: Career Possibility Space
 
-Steppi generates approximately seven initial career roles. The normal target is
-seven; the visible space may contain roughly seven to ten when student context and
-layout justify the variation.
+Steppi generates twelve to fifteen initial career roles. The normal target is
+thirteen; twelve, fourteen, or fifteen are valid when they produce a more honest,
+meaningfully varied set.
 
 The role set must:
 
@@ -441,7 +440,7 @@ Within 30 seconds, communicate:
 
 ### 9.3 Possibility Space
 
-- Approximately seven readable role nodes in the normal flow
+- Twelve to fifteen readable role nodes in the normal flow
 - No visual ordering that implies an objective rank
 - Clear current selection
 - Pointer and keyboard access
@@ -588,7 +587,7 @@ summary without invalid output replacing valid context.
 
 ### Milestone 3 — Role Possibility Space
 
-Complete when a confirmed context produces approximately seven validated,
+Complete when a confirmed context produces twelve to fifteen validated,
 meaningfully varied roles in an unranked floating space with accessible selection,
 switching, and mobile fallback.
 
@@ -621,14 +620,15 @@ are ready.
 - Track: Education
 - Initial audience: high-school students beginning college and career exploration
 - Breadth before depth
-- Approximately seven initial career roles for the normal Build Week flow
+- Twelve to fifteen initial career roles, targeting thirteen, for the normal
+  Build Week flow
 - Path generation alone may make up to three application-owned GPT-5.6 attempts
   per action; all other model calls retain their existing attempt policies
 - Two generated confirmation sentences with direct student editing
 - Student-approved confirmation wording resolves contradictions and priorities
   during role generation while the full profile preserves breadth
-- Roughly seven to ten visible roles may be acceptable when context and layout
-  justify it
+- Twelve, fourteen, or fifteen visible roles are acceptable around the normal
+  thirteen-role target when the complete set remains varied
 - Roles are possibilities, not rankings or predictions
 - The floating role space supports discovery and navigation
 - The visualization is not a living graph or graph editor
@@ -649,7 +649,7 @@ are ready.
 ## 16. Decisions Deferred
 
 - exact floating-node layout algorithm;
-- exact accepted count tolerance around the normal seven-role target;
+- live quality and latency calibration for the twelve-to-fifteen-role contract;
 - whether any role conversation is persisted across refresh;
 - general role-to-role comparison interaction;
 - save and remove behavior;
@@ -668,7 +668,7 @@ The Build Week MVP is done when a student can, without developer help:
 1. understand Steppi's purpose;
 2. complete the short intake;
 3. confirm or correct what Steppi understood;
-4. discover approximately seven varied and personally relevant roles;
+4. discover twelve to fifteen varied and personally relevant roles;
 5. understand any selected role quickly;
 6. see both plausible fit and realistic mismatch;
 7. imagine the role's day-to-day work;

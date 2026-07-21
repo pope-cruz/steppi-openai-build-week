@@ -25,9 +25,10 @@ const REQUEST_TIMEOUT_MS = 45_000;
 const RETRY_BACKOFF_MS = [250, 750] as const;
 
 export const MAX_PATH_ATTEMPTS = 3;
+export const PATH_MAX_OUTPUT_TOKENS = 15_000;
 
 export const PATH_INSTRUCTIONS = `You are Steppi, an educational exploration assistant for high-school students.
-Generate one complete unranked set of career-role possibilities from the confirmed student profile. Target seven roles and return no fewer than six and no more than eight.
+Generate one complete unranked set of career-role possibilities from the confirmed student profile. Target thirteen roles and return no fewer than twelve and no more than fifteen.
 
 Rules:
 - Return all roles together in one response. Never rank, score, tier, order, or label any role as the best fit.
@@ -36,7 +37,7 @@ Rules:
 - If retryCorrection is present, correct that application-identified problem while regenerating the complete role set.
 - If the approved summary conflicts with an older inference or profile detail, follow the approved summary. If it adds information, incorporate it.
 - Do not treat a stylistic omission from the short approved summary as a rejection of every omitted profile detail. Use the complete profile for breadth and the approved summary to resolve contradictions and priorities.
-- Target seven roles. Six or eight are allowed only when that produces a more honest, varied set.
+- Target thirteen roles. Twelve, fourteen, or fifteen are allowed only when that produces a more honest, varied set.
 - Make the roles meaningfully different across occupation families, work rhythms, environments, and ways of using the student's interests. Do not return minor title variants from one occupation family.
 - Give every role a unique stable id and a distinct career title.
 - Reference only IDs that exist in the supplied profile in supportingProfileIds.
@@ -223,7 +224,7 @@ async function requestPathsFromOpenAI({
     input: JSON.stringify(
       pathGenerationContext(profile, confirmedSummary, retryCorrection),
     ),
-    max_output_tokens: 9_000,
+    max_output_tokens: PATH_MAX_OUTPUT_TOKENS,
     text: {
       format: zodTextFormat(PathGenerationSchema, "path_generation"),
     },
@@ -444,7 +445,7 @@ function retryCorrectionFor(reason: PathGenerationDiagnostic["reason"]) {
     reason === "incomplete_max_output_tokens" ||
     reason === "parsed_output_missing"
   ) {
-    return "Regenerate one complete schema-valid object containing six to eight fully populated roles; do not omit, rename, or add fields.";
+    return "Regenerate one complete schema-valid object containing twelve to fifteen fully populated roles; do not omit, rename, or add fields.";
   }
   return undefined;
 }

@@ -11,6 +11,7 @@ import {
   generatePathBranches,
   MAX_PATH_ATTEMPTS,
   PATH_INSTRUCTIONS,
+  PATH_MAX_OUTPUT_TOKENS,
   pathGenerationContext,
   PathGenerationError,
   requireParsedPathOutput,
@@ -43,8 +44,9 @@ async function expectGenerationError(
 
 describe("generatePathBranches", () => {
   it("prompts for complete roles and exact allowed evidence IDs", () => {
-    expect(PATH_INSTRUCTIONS).toContain("Target seven roles");
-    expect(PATH_INSTRUCTIONS).toContain("no fewer than six and no more than eight");
+    expect(PATH_INSTRUCTIONS).toContain("Target thirteen roles");
+    expect(PATH_INSTRUCTIONS).toContain("no fewer than twelve and no more than fifteen");
+    expect(PATH_MAX_OUTPUT_TOKENS).toBe(15_000);
     expect(PATH_INSTRUCTIONS).toContain("Never rank, score, tier, order, or label");
     expect(PATH_INSTRUCTIONS).toContain("student's latest clarification");
     expect(PATH_INSTRUCTIONS).toContain("allowedSupportingProfileIds");
@@ -168,8 +170,8 @@ describe("generatePathBranches", () => {
     const options = deterministicOptions();
     const requestPaths = vi
       .fn()
-      .mockResolvedValueOnce(pathResult({ branches: DEMO_PATH_BRANCHES.slice(0, 5) }))
-      .mockResolvedValueOnce(pathResult({ branches: DEMO_PATH_BRANCHES.slice(0, 4) }))
+      .mockResolvedValueOnce(pathResult({ branches: DEMO_PATH_BRANCHES.slice(0, 11) }))
+      .mockResolvedValueOnce(pathResult({ branches: DEMO_PATH_BRANCHES.slice(0, 10) }))
       .mockResolvedValueOnce(pathResult({ branches: DEMO_PATH_BRANCHES }));
 
     await expect(
@@ -185,6 +187,9 @@ describe("generatePathBranches", () => {
       attempt: 2,
       retryCorrection: expect.stringContaining("schema-valid object"),
     });
+    expect(requestPaths.mock.calls[1][0].retryCorrection).toContain(
+      "twelve to fifteen",
+    );
   });
 
   it("corrects invalid evidence references and duplicate roles on later attempts", async () => {

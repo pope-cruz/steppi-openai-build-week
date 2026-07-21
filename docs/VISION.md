@@ -80,13 +80,14 @@ discarding useful structured context that the short summary does not repeat.
 
 ### 2. Career possibility space
 
-Steppi generates approximately seven initial career-role options.
+Steppi generates twelve to fifteen initial career-role options, targeting
+thirteen in the normal flow.
 
 The roles appear as floating nodes in an open visual space rather than as a
 ranked list.
 
-The full space may contain roughly seven to ten visible roles, depending on the
-student's context and the layout.
+The full space contains twelve to fifteen visible roles, depending on the
+student's context and the validated model output.
 
 The roles should be meaningfully different from one another. They may include:
 
@@ -264,7 +265,7 @@ The Build Week version includes:
 2. A short conversational intake.
 3. A validated two-sentence student-context reflection that the student can
    directly refine.
-4. Approximately seven generated career-role options.
+4. Twelve to fifteen generated career-role options, targeting thirteen.
 5. A floating role-node interface.
 6. A concise explanation for every role containing:
    - what it is;

@@ -14,7 +14,7 @@ function generationFixture() {
 }
 
 describe("path generation validation", () => {
-  it("accepts seven varied roles with valid profile evidence", () => {
+  it("accepts thirteen varied roles with valid profile evidence", () => {
     expect(validatePathGeneration(VALID_PROFILE_FIXTURE, generationFixture())).toEqual(
       DEMO_PATH_BRANCHES,
     );

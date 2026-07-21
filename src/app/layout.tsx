@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Geist } from "next/font/google";
+import { Bricolage_Grotesque, Geist } from "next/font/google";
 
 import "./globals.css";
 
@@ -9,9 +9,9 @@ const geist = Geist({
   display: "swap",
 });
 
-const fraunces = Fraunces({
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
-  variable: "--font-fraunces",
+  variable: "--font-bricolage",
   display: "swap",
 });
 
@@ -32,7 +32,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      className={`${geist.variable} ${fraunces.variable}`}
+      className={`${geist.variable} ${bricolage.variable}`}
       data-scroll-behavior="smooth"
       lang="en"
     >

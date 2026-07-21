@@ -10,8 +10,8 @@ describe("path map selection state", () => {
     const state = createPathMapState(VALID_PROFILE_FIXTURE, DEMO_PATH_BRANCHES);
 
     expect(state.selectedBranchId).toBeNull();
-    expect(state.branches).toHaveLength(7);
-    expect(new Set(state.branches.map((branch) => branch.id)).size).toBe(7);
+    expect(state.branches).toHaveLength(13);
+    expect(new Set(state.branches.map((branch) => branch.id)).size).toBe(13);
   });
 
   it("selects, switches, and clears without mutating profile or branch data", () => {

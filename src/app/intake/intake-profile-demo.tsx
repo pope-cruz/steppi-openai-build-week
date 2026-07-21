@@ -80,6 +80,8 @@ function subscribeToFixtureLocation() {
 
 type DevelopmentFixtureMode =
   | "profile"
+  | "profile-roles-12"
+  | "profile-roles-15"
   | "profile-live-paths"
   | "paths-api-failure"
   | "paths-timeout"
@@ -105,6 +107,8 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
   const fixture = new URLSearchParams(window.location.search).get("fixture");
   const fixtures: DevelopmentFixtureMode[] = [
     "profile",
+    "profile-roles-12",
+    "profile-roles-15",
     "profile-live-paths",
     "paths-api-failure",
     "paths-timeout",
@@ -144,6 +148,12 @@ function pathFixtureFor(
 ): DevelopmentPathFixture | undefined {
   if (fixture === "profile-live-paths") {
     return undefined;
+  }
+  if (fixture === "profile-roles-12") {
+    return "success_12";
+  }
+  if (fixture === "profile-roles-15") {
+    return "success_15";
   }
   if (fixture === "paths-api-failure") {
     return "api_failure";
