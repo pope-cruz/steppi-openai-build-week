@@ -24,27 +24,27 @@ const ERROR_DETAILS: Record<
   { message: string; retryable: boolean; status: number }
 > = {
   configuration_missing: {
-    message: "Path generation is not configured yet. Your confirmed profile is still available.",
+    message: "Steppi cannot open career roles yet. What you shared is still available.",
     retryable: false,
     status: 503,
   },
   invalid_model_configuration: {
-    message: "Path generation is not configured for GPT-5.6 yet. Your confirmed profile is still available.",
+    message: "Steppi cannot open career roles yet. What you shared is still available.",
     retryable: false,
     status: 503,
   },
   timeout: {
-    message: "Steppi took too long after up to three attempts to explore these roles. Your confirmed profile is safe; please try again.",
+    message: "Steppi took too long to open these roles. What you shared is still here; please try again.",
     retryable: true,
     status: 504,
   },
   api_failure: {
-    message: "Steppi could not explore roles after up to three attempts. Your confirmed profile is safe; please try again.",
+    message: "Steppi could not open these roles right now. What you shared is still here; please try again.",
     retryable: true,
     status: 502,
   },
   malformed_model_output: {
-    message: "After up to three attempts, Steppi could not safely assign the returned roles. Nothing incomplete was shown; please try again.",
+    message: "Steppi received a role set it could not safely show. Nothing incomplete was shown; please try again.",
     retryable: true,
     status: 502,
   },
@@ -71,7 +71,7 @@ export async function handlePathRequest(
         ok: false,
         error: {
           code: "invalid_input",
-          message: "The confirmed profile could not be read. Please return to it and try again.",
+          message: "What you confirmed could not be read. Please return to your reflection and try again.",
           retryable: false,
         },
       },
@@ -87,7 +87,7 @@ export async function handlePathRequest(
         ok: false,
         error: {
           code: "invalid_input",
-          message: "The confirmed profile is incomplete or invalid. Please review it before exploring roles.",
+          message: "What you confirmed is incomplete or invalid. Please review your reflection before exploring roles.",
           retryable: false,
         },
       },

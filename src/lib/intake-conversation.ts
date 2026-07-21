@@ -577,7 +577,7 @@ const ANCHOR_SCHOOL_QUESTION: ConversationQuestion = {
   purpose: null,
   acknowledgement: null,
   prompt:
-    "Looking at your classes, projects, and school activities, which concrete kinds of work—such as researching, solving, writing, explaining, presenting, designing, building, organizing, or helping—do you enjoy or dislike?",
+    "Across classes, projects, school or campus activities, jobs, or internships, which kinds of work—researching, solving, writing, explaining, presenting, designing, building, organizing, or helping—do you enjoy or dislike?",
   helper: "Specific moments are useful, even if your reaction was mixed.",
   placeholder: "At school, I tend to enjoy…",
 };
@@ -588,9 +588,9 @@ const ANCHOR_OUTSIDE_QUESTION: ConversationQuestion = {
   purpose: null,
   acknowledgement: null,
   prompt:
-    "Outside school—in clubs, hobbies, games, work, family responsibilities, communities, volunteering, or personal projects—which experiences have mattered to you, and which parts do you enjoy or avoid?",
+    "Outside class—in clubs, hobbies, games, volunteering, family responsibilities, communities, or personal projects—which experiences have mattered to you, and which parts do you enjoy or avoid?",
   helper: "Small, informal, and family experiences count too.",
-  placeholder: "Outside school, I have…",
+  placeholder: "Outside class, I have…",
 };
 
 export const FINAL_CONSIDERATION_QUESTION: ConversationQuestion = {
@@ -598,10 +598,16 @@ export const FINAL_CONSIDERATION_QUESTION: ConversationQuestion = {
   stage: "final",
   purpose: null,
   acknowledgement: null,
-  prompt: "Before I put this together, is there anything else Steppi should consider?",
-  helper: "“No,” “nothing,” and “I don’t know” are completely okay.",
-  placeholder: "One more thing—or nothing—is…",
-  quickResponses: ["Nothing", "I don’t know"],
+  prompt:
+    "One last question: what would make a career role worth a closer look for you right now?",
+  helper:
+    "Think about the work, people, setting, study connection, or a practical need. If you are unsure, ask Steppi to show you something unexpected.",
+  placeholder: "I’d look closer at a role if…",
+  quickResponses: [
+    "It connects to my studies",
+    "I can try it soon",
+    "Show me something unexpected",
+  ],
 };
 
 const FALLBACK_FOLLOW_UP_PROMPT =

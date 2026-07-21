@@ -47,6 +47,8 @@ const patch: ConversationTurnPatch = {
 
 describe("server-side intake turn interpreter", () => {
   it("limits GPT-5.6 to structured interpretation and allowed candidates", () => {
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/high-school and college students/i);
+    expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/do not ask whether they are in high school or college/i);
     expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/deterministic application code owns/i);
     expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/resolve-contradiction/i);
     expect(INTAKE_TURN_INSTRUCTIONS).toMatch(/multiple independent questions/i);

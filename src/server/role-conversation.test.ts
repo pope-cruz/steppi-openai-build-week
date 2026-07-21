@@ -42,6 +42,8 @@ describe("role conversation generation", () => {
     expect(params.max_output_tokens).toBe(2_200);
     expect(params.instructions).toContain("50–90 words");
     expect(params.instructions).toContain("70–120 words");
+    expect(params.instructions).toContain("high-school and college students");
+    expect(params.instructions).toContain("stage-neutral");
     expect(params.input).toContain(DEMO_CONFIRMATION_SUMMARY);
     expect(params.input).toContain(DEMO_PATH_BRANCHES[0].title);
   });

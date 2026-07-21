@@ -33,7 +33,7 @@ export function conversationOrientation({
   }
 
   if (stage === "profile") {
-    return "Enough context to build your profile";
+    return "Enough context to reflect back what you shared";
   }
 
   if (turnCount === 0) {

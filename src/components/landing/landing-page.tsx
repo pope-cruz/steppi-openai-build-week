@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 
 const trustPoints = [
   [Sparkles, "Possibilities, not predictions"],
-  [PencilLine, "You correct what Steppi hears"],
-  [BookOpenCheck, "Current facts include sources"],
+  [PencilLine, "You can correct what Steppi understood"],
+  [BookOpenCheck, "Current study and career facts include sources"],
 ] as const;
 
 export function LandingPage() {
@@ -33,13 +33,14 @@ export function LandingPage() {
 
       <section className="landing-container landing-hero">
         <div className="landing-hero__copy">
-          <p className="landing-eyebrow">AI guidance counsellor for high-school students</p>
+          <p className="landing-eyebrow">Career exploration for high-school and college students</p>
           <h1>
             <span>Start with what you know.</span>
             <span>Open up what&apos;s possible.</span>
           </h1>
           <p className="landing-hero__summary">
-            Steppi turns a short conversation into varied career roles you can understand, question, and explore.
+            Share what you enjoy, avoid, and wonder about—from classes and projects to work and life outside school.
+            Steppi opens it into varied career roles you can understand and explore.
           </p>
           <div className="landing-hero__actions">
             <Link className={cn(buttonVariants({ size: "lg" }), "landing-cta")} href={INTAKE_PATH}>
@@ -51,7 +52,7 @@ export function LandingPage() {
             </a>
           </div>
           <p className="landing-safety">
-            Steppi helps you explore. It does not predict the right career or replace your school counsellor.
+            No aptitude scores, rankings, or &ldquo;perfect match.&rdquo; You decide what is worth a closer look.
           </p>
         </div>
 
@@ -75,7 +76,9 @@ export function LandingPage() {
         <div className="landing-section-copy">
           <h2 id="conversation-title">A conversation, not a test.</h2>
           <p>
-            Start with classes, projects, responsibilities, or hobbies. Uncertainty is useful context too.
+            Start with classes, projects, jobs, responsibilities, activities, or hobbies. Uncertainty is useful context
+            too. AI helps Steppi connect what you share to less obvious roles; you can correct its read before opening
+            the role space.
           </p>
         </div>
         <div aria-label="Example intake conversation" className="conversation-example" role="group">
@@ -120,7 +123,7 @@ export function LandingPage() {
           <aside className="role-experiment">
             <Check aria-hidden="true" />
             <h3>Try it without choosing it</h3>
-            <p>Redesign a small school display and ask three classmates what they notice first.</p>
+            <p>Redesign a display in your school, campus, or community and ask three people what they notice first.</p>
           </aside>
         </div>
       </section>
@@ -128,7 +131,10 @@ export function LandingPage() {
       <section aria-labelledby="follow-up-title" className="landing-container landing-follow-up">
         <div className="landing-section-copy landing-follow-up__copy">
           <h2 id="follow-up-title">Ask what you actually want to know.</h2>
-          <p>Steppi stays with the role and checks current sources only when your question needs them.</p>
+          <p>
+            Ask about the work, what you could study, how your current studies connect, or how to try the role. Steppi
+            checks current sources when your question needs them.
+          </p>
         </div>
         <div aria-label="Example role conversation" className="follow-up-example" role="group">
           <div className="follow-up-question">How much of this job is creative, and how much is organizing people?</div>
@@ -158,7 +164,7 @@ export function LandingPage() {
         <Link className="landing-wordmark" href="/">
           Steppi<span>.</span>
         </Link>
-        <p>An AI guidance counsellor for exploring what comes next.</p>
+        <p>A career exploration tool for students figuring out what work could look like.</p>
       </footer>
     </main>
   );

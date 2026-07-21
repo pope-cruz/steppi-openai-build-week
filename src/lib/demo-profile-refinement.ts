@@ -90,7 +90,7 @@ export function developmentProfileRefinementPayload(
       error: {
         code: "api_failure",
         message:
-          "Steppi could not refine this summary right now. Your current profile and wording are safe; please try again.",
+          "Steppi could not revise this reflection right now. Your current wording is unchanged; please try again.",
         retryable: true,
       },
     } satisfies ProfileRefinementApiResponse;

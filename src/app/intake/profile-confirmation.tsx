@@ -94,7 +94,7 @@ export function ProfileDetails({ profile }: { profile: StudentProfile }) {
           }
         }}
       >
-        See the details Steppi is using
+        See the details behind this reflection
         <ChevronDown
           aria-hidden="true"
           className="size-4 shrink-0 transition-transform group-open:rotate-180"
@@ -111,7 +111,7 @@ export function ProfileDetails({ profile }: { profile: StudentProfile }) {
           items={profile.inferences.map(
             (inference) => `${inference.statement} ${inference.rationale}`,
           )}
-          title="Steppi’s tentative read"
+          title="What Steppi inferred"
         />
         <DetailList
           empty="No practical consideration surfaced clearly."
@@ -234,8 +234,8 @@ export function ProfileConfirmation({
               code: developmentPathFixture,
               message:
                 developmentPathFixture === "timeout"
-                  ? "Steppi tried three times but took too long to explore these roles. Your profile is safe; please try again."
-                  : "Steppi could not explore roles after up to three attempts. Your profile is safe; please try again.",
+                  ? "Steppi took too long to open these roles. What you shared is still here; please try again."
+                  : "Steppi could not open these roles right now. What you shared is still here; please try again.",
               retryable: true,
             },
           };
@@ -296,7 +296,7 @@ export function ProfileConfirmation({
           type: "fail",
           code: "api_failure",
           message:
-            "Steppi could not reach the role service. Your profile is safe; please try again.",
+            "Steppi could not open these roles right now. What you shared is still here; please try again.",
           retryable: true,
         });
       }
@@ -379,7 +379,7 @@ export function ProfileConfirmation({
               className="font-display mt-2 text-balance text-[clamp(2.2rem,6vw,3.6rem)] leading-[1.04] text-ink"
               id="profile-title"
             >
-              Here’s what Steppi heard.
+              Here’s what Steppi understood.
             </h1>
             <p className="mt-3 max-w-[38rem] text-sm leading-6 text-muted sm:text-base">
               A short reflection, not a verdict. Keep it, rewrite it in your own words, or check the details behind it.
@@ -523,7 +523,7 @@ export function ProfileConfirmation({
               ) : (
                 <ArrowRight />
               )}
-              {isPathLoading ? "Opening your role space…" : "Good to go!"}
+              {isPathLoading ? "Opening your role space…" : "Explore career roles"}
             </Button>
           </div>
         ) : null}
@@ -541,10 +541,9 @@ export function ProfileConfirmation({
               className="size-5 shrink-0 animate-spin text-primary"
             />
             <div>
-              <p className="font-semibold text-ink">Opening a varied role space…</p>
+              <p className="font-semibold text-ink">Finding a varied, unranked set of roles…</p>
               <p className="mt-1 text-sm leading-6 text-muted">
-                Steppi is using your full profile and approved wording. It may try
-                up to three times, stopping as soon as one complete role set is ready.
+                Steppi is using your conversation and approved wording. This can take a moment.
               </p>
             </div>
           </div>

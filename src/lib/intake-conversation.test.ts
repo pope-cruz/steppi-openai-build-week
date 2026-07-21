@@ -114,6 +114,7 @@ describe("deterministic intake controller", () => {
     });
     expect(first.stage).toBe("anchor-existing");
     expect(second?.stage).toBe("anchor-school");
+    expect(second?.prompt).toMatch(/school or campus activities, jobs, or internships/i);
 
     const secondTurn = turn(second!);
     const third = nextControllerQuestion({
@@ -122,6 +123,10 @@ describe("deterministic intake controller", () => {
       turns: [firstTurn, secondTurn],
     });
     expect(third?.stage).toBe("anchor-outside");
+    expect(third?.prompt).toMatch(/outside class/i);
+    expect([first.prompt, second?.prompt, third?.prompt].join(" ")).not.toMatch(
+      /are you in (?:high school|college)/i,
+    );
   });
 
   it("selects follow-ups using the fixed controller priority", () => {
@@ -241,8 +246,18 @@ describe("deterministic intake controller", () => {
     expect(FINAL_CONSIDERATION_QUESTION).toMatchObject({
       id: "final-consideration",
       stage: "final",
-      prompt: "Before I put this together, is there anything else Steppi should consider?",
+      prompt:
+        "One last question: what would make a career role worth a closer look for you right now?",
+      placeholder: "I’d look closer at a role if…",
+      quickResponses: [
+        "It connects to my studies",
+        "I can try it soon",
+        "Show me something unexpected",
+      ],
     });
+    expect(FINAL_CONSIDERATION_QUESTION.helper).not.toMatch(
+      /“no”|“nothing”|“i don’t know”/i,
+    );
     const finalTurn = turn(FINAL_CONSIDERATION_QUESTION, "Nothing");
     expect(
       nextControllerQuestion({

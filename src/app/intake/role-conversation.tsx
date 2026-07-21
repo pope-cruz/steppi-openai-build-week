@@ -21,7 +21,7 @@ import type { PathBranch } from "@/lib/schemas";
 export function suggestedRoleQuestions(branch: PathBranch) {
   return [
     `What might surprise me about ${branch.title}?`,
-    "What could be difficult about it?",
+    "How could my current or future studies connect to this?",
     "How can I try a small version of this?",
   ] as const;
 }

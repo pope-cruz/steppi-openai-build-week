@@ -39,9 +39,9 @@ export function OpenNotebookPreview() {
 
       <section aria-labelledby="notebook-roles-title" className="notebook-page notebook-page--right">
         <div className="notebook-page__number" aria-hidden="true">
-          What could fit
+          What I could explore
         </div>
-        <h2 id="notebook-roles-title">Roles worth opening</h2>
+        <h2 id="notebook-roles-title">Career roles to look into</h2>
         <p className="notebook-page__intro">A sample from a larger unranked set.</p>
         <ul className="notebook-roles">
           {notebookRoles.map((role, index) => (

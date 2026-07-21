@@ -45,6 +45,8 @@ describe("generateStudentProfile", () => {
   });
 
   it("asks for a warm, direct, exactly two-sentence confirmation", () => {
+    expect(PROFILE_INSTRUCTIONS).toContain("high-school and college students");
+    expect(PROFILE_INSTRUCTIONS).toContain("stage-neutral");
     expect(PROFILE_INSTRUCTIONS).toContain("exactly two concise sentences");
     expect(PROFILE_INSTRUCTIONS).toContain('using "you"');
     expect(PROFILE_INSTRUCTIONS).toContain("interests, experiences, or activities");

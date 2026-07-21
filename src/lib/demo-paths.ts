@@ -62,7 +62,7 @@ const DEMO_PATH_BRANCH_POOL: PathBranch[] = [
     summary:
       "Community program coordinators organize activities and services that help a group learn, connect, or solve a shared need.",
     whyItAppeared: [
-      "Your profile suggests that organizing and presenting in collaborative settings may be worth exploring.",
+      "What you shared suggests that organizing and presenting in collaborative settings may be worth exploring.",
       "Community-based work can also make local relationships and staying near Manila more relevant.",
     ],
     supportingProfileIds: ["inference-collaboration", "constraint-location"],
@@ -144,7 +144,7 @@ const DEMO_PATH_BRANCH_POOL: PathBranch[] = [
       "User research specialists study how people use a product or service and help teams understand what is confusing or useful.",
     whyItAppeared: [
       "This is one way to stay close to digital products while focusing more on people, questions, and patterns than programming.",
-      "Your collaborative profile inference may make sharing findings with a team worth testing.",
+      "Steppi’s tentative read of your collaborative experience may make sharing findings with a team worth testing.",
     ],
     supportingProfileIds: ["fact-programming", "inference-collaboration"],
     drawbacks: [
@@ -290,7 +290,7 @@ const DEMO_PATH_BRANCH_POOL: PathBranch[] = [
       "They turn those findings into a short explanation or presentation and discuss what the team should investigate next.",
     ],
     lowRiskExploration:
-      "Ask ten classmates the same focused question about a school service, group their answers into themes, and present the two strongest patterns.",
+      "Ask ten peers the same focused question about a school, campus, or community service, group their answers into themes, and present the two strongest patterns.",
     unresolvedQuestions: [
       "Would working with incomplete patterns feel interesting or frustrating when there is no single correct answer?",
     ],

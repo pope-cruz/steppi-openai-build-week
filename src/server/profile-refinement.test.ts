@@ -138,6 +138,8 @@ describe("profile refinement generation", () => {
   });
 
   it("instructs the model to avoid unnecessary follow-ups and path recommendations", () => {
+    expect(PROFILE_REFINEMENT_INSTRUCTIONS).toContain("high-school or college student");
+    expect(PROFILE_REFINEMENT_INSTRUCTIONS).toContain("stage-neutral");
     expect(PROFILE_REFINEMENT_INSTRUCTIONS).toContain(
       "Direct corrections should usually be applied immediately",
     );

@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { LandingPage } from "@/components/landing/landing-page";
 
 export const metadata: Metadata = {
-  title: "AI guidance counsellor for high-school students",
+  title: "Career exploration for high-school and college students",
   description:
-    "Steppi helps high-school students turn what they know about themselves into varied career roles they can understand, question, and explore.",
+    "Steppi helps high-school and college students turn their interests, studies, and experiences into varied career roles they can understand and explore.",
 };
 
 export default function Home() {

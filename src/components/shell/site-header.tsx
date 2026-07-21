@@ -18,7 +18,7 @@ export function SiteHeader({ context, className }: SiteHeaderProps) {
           Steppi<span className="text-primary">.</span>
         </Link>
         <p className="max-w-[12rem] text-right text-xs font-medium leading-snug text-muted sm:max-w-none sm:text-sm">
-          {context ?? "For Grade 11 students finding their next step"}
+          {context ?? "For students exploring career possibilities"}
         </p>
       </div>
     </header>

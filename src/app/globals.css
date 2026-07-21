@@ -324,6 +324,8 @@ body {
 
 .notebook-page {
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: 2.5rem 2.25rem;
   border: 1px solid var(--landing-line);
@@ -393,9 +395,9 @@ body {
 }
 
 .notebook-margin-note {
-  position: absolute;
-  right: 2rem;
-  bottom: 2.2rem;
+  align-self: flex-end;
+  margin-top: auto;
+  padding-top: 2rem;
   color: var(--landing-accent);
   font-size: 0.75rem;
   font-weight: 700;
@@ -410,6 +412,7 @@ body {
 
 .notebook-roles {
   display: flex;
+  flex-shrink: 0;
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 0.55rem;
@@ -437,12 +440,10 @@ body {
 }
 
 .notebook-role-note {
-  position: absolute;
-  right: 2.1rem;
-  bottom: 2.2rem;
-  left: 2.1rem;
   display: grid;
+  flex-shrink: 0;
   gap: 0.35rem;
+  margin-top: 1.25rem;
   padding-top: 0.85rem;
   border-top: 1px solid var(--landing-line-strong);
 }
@@ -880,11 +881,6 @@ body {
     border-radius: 0 0 1rem 1rem;
     transform-origin: center top;
     --page-start: translateY(8px);
-  }
-
-  .notebook-role-note {
-    right: 1.5rem;
-    left: 1.5rem;
   }
 
   .landing-trust-strip ul {

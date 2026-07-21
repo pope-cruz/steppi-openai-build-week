@@ -15,9 +15,9 @@ owner: Pope Cruz
 This document is the implementation contract for the OpenAI Build Week version
 of Steppi.
 
-Steppi helps high-school students discover career roles they may not know exist,
-understand why those roles might or might not suit them, and explore an
-interesting role through an extended conversation.
+Steppi helps high-school and college students discover career roles they may not
+know exist, understand why those roles might or might not suit them, and explore
+an interesting role through an extended conversation.
 
 The Build Week product demonstrates one polished breadth-before-depth journey:
 
@@ -36,13 +36,19 @@ comprehensive database, long-form report generator, or technical graph editor.
 
 **Track:** Education
 
-**Primary user:** A high-school student beginning to think about college and
-careers without enough exposure to understand the range of roles available.
+**Primary users:** High-school students beginning to think about fields of study
+and careers, and college students connecting their courses, experiences, and
+changing interests to possible work.
 
 **Core problem:** Students may recognize the subjects, activities, projects, and
 responsibilities they enjoy while knowing only a small number of familiar career
 titles. Existing tools often respond with abstract tests, broad categories,
 ranked recommendations, or reports that do not help the student imagine the work.
+
+**Education-track value:** Steppi builds career literacy across two transitions:
+discovering possible directions before college and connecting college learning
+to possible work. It does not prescribe a degree or act as an admissions, job
+search, or placement service.
 
 **Core promise:**
 
@@ -127,9 +133,11 @@ Do not build for Build Week:
 - arbitrary graph mutation;
 - a general-purpose graph editor;
 - comprehensive career or college databases;
+- personalized degree recommendations;
 - admissions-probability predictions;
 - scholarship or application management;
 - counselor dashboards;
+- internship search or job placement;
 - social features, gamification, or notifications;
 - automatic multi-year career plans;
 - mandatory research for every interaction;
@@ -150,6 +158,8 @@ These remain defaults rather than product doctrine:
 - Zod or the existing equivalent for runtime validation
 - server-side model calls only
 - environment-configured GPT-5.6 model
+- low reasoning effort and low text verbosity for the bounded path-generation
+  request
 - no automatic SDK retry; path generation alone may make up to three explicit
   sequential provider attempts per student action under the policy below
 - Vercel deployment unless the repository adopts another target
@@ -185,9 +195,10 @@ cover:
 - anything important Steppi may have missed.
 
 The current implementation uses three ordered anchors, one or two bounded
-adaptive follow-ups, and one final consideration question. That controller may
-remain while it supports a short, natural conversation and avoids requesting
-information the student already supplied.
+adaptive follow-ups, and one final priority question about what would make a
+career role worth a closer look right now. That controller may remain while it
+supports a short, natural conversation and avoids requesting information the
+student already supplied.
 
 The transcript must remain visible. Each Steppi turn asks one focused question,
 accepts incomplete or uncertain answers, and avoids abstract personality-test
@@ -618,7 +629,8 @@ are ready.
 ## 15. Decisions Made
 
 - Track: Education
-- Initial audience: high-school students beginning college and career exploration
+- Initial audience: high-school and college students exploring how their
+  interests, studies, and experiences connect to career roles
 - Breadth before depth
 - Twelve to fifteen initial career roles, targeting thirteen, for the normal
   Build Week flow

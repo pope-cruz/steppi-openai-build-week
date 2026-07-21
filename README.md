@@ -1,12 +1,12 @@
 # Steppi
 
-Steppi helps high-school students discover career roles they may not know exist,
-understand why those roles might or might not suit them, and explore interesting
-options through conversation. It supports exploration; it does not predict a
-student’s future or replace professional guidance.
+Steppi is a career exploration tool for high-school and college students. It
+helps students discover roles they may not know exist, understand what the work
+is like, and decide what they want to explore next. It supports exploration; it
+does not predict a student’s future or prescribe one correct path.
 
 The `/intake` flow now covers the core demo loop: a conversational intake,
-validated GPT-5.6 student profile, editable student-context confirmation, 6–8
+validated GPT-5.6 student profile, editable student-context confirmation, 12–15
 unranked role possibilities, a concise selected-role brief, and a compact
 role-specific conversation. Interpretive follow-ups use the confirmed context
 directly; questions that require unstable external facts use server-side web

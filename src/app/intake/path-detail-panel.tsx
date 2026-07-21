@@ -101,7 +101,7 @@ export function PathDetailPanel({
           variant="ghost"
         >
           <CornerUpLeft aria-hidden="true" />
-          Back to all paths
+          Back to all roles
         </Button>
       </div>
 
@@ -166,7 +166,7 @@ export function PathDetailPanel({
           <summary className="cursor-pointer list-none rounded-[var(--radius-control)] text-sm font-semibold text-ink outline-none focus-visible:ring-[3px] focus-visible:ring-[color:var(--color-focus)] [&::-webkit-details-marker]:hidden">
             <span className="inline-flex items-center gap-2">
               <span aria-hidden="true" className="text-primary group-open:rotate-45">+</span>
-              See what Steppi connected from your profile
+              See why this role appeared
             </span>
           </summary>
           <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_0.85fr]">
@@ -201,7 +201,7 @@ export function PathDetailPanel({
               </div>
               <div className="border-t border-border pt-5">
                 <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted">
-                  Related careers or majors
+                  Related roles or study options
                 </p>
                 {relatedDirections.length > 0 ? (
                   <ul className="mt-3 flex flex-wrap gap-2">
@@ -216,7 +216,7 @@ export function PathDetailPanel({
                   </ul>
                 ) : (
                   <p className="mt-2 text-sm text-muted">
-                    No related career or major was included in this hypothesis.
+                    No related role or study option was included for this possibility.
                   </p>
                 )}
               </div>

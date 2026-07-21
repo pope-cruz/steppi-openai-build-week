@@ -173,11 +173,15 @@ export const PathBranchSchema = z
         "One or two concise sentences explaining why this may not fit, framed as uncertainty to explore rather than a verdict.",
       ),
     dayToDay: z
-      .array(pathSentenceSchema)
+      .array(
+        pathSentenceSchema.describe(
+          "Exactly one concrete day-to-day sentence. Do not combine multiple sentences in one array item.",
+        ),
+      )
       .min(2)
       .max(3)
       .describe(
-        "Two or three concrete sentences describing common work, collaboration, environment, and rhythm.",
+        "An array of two or three items describing common work, collaboration, environment, and rhythm. Each item must contain exactly one sentence.",
       ),
     lowRiskExploration: pathSentenceSchema.describe(
       "One concrete, low-risk way the student can explore this role before committing.",

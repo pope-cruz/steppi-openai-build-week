@@ -290,7 +290,7 @@ function ConversationTranscript({
             <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-primary" />
             {loadingKind === "turn"
               ? "Taking that in…"
-              : "Building what I understood…"}
+              : "Putting together what you shared…"}
           </span>
         </SteppiMessage>
       ) : null}
@@ -332,7 +332,7 @@ function ConversationComposer({
   return (
     <form
       aria-busy={isLoading}
-      className="sticky bottom-3 z-10 mt-10 rounded-[var(--radius-panel)] border border-border-strong bg-[color:rgb(255_255_255_/_96%)] p-3 shadow-[var(--shadow-panel)] backdrop-blur sm:p-4"
+      className="z-10 mt-10 rounded-[var(--radius-panel)] border border-border-strong bg-[color:rgb(255_255_255_/_96%)] p-3 shadow-[var(--shadow-panel)] backdrop-blur sm:sticky sm:bottom-3 sm:p-4"
       data-conversation-composer=""
       data-loading={isLoading ? "true" : "false"}
       onSubmit={(event) => {
@@ -604,7 +604,7 @@ export function IntakeProfileDemo() {
         setProfileRequestState({
           status: "error",
           message:
-            "Steppi received a profile it could not safely use. Nothing was shown; please try again.",
+            "Steppi received a reflection it could not safely use. Nothing was shown; please try again.",
           retryable: true,
         });
         return;
@@ -632,7 +632,7 @@ export function IntakeProfileDemo() {
       setProfileRequestState({
         status: "error",
         message:
-          "Steppi could not reach the profile service. Your conversation is safe on this page; please try again.",
+          "Steppi could not put together your reflection right now. Your conversation is safe on this page; please try again.",
         retryable: true,
       });
     } finally {
@@ -814,7 +814,7 @@ export function IntakeProfileDemo() {
       }
       showSafeFallback(
         input,
-        "Steppi could not reach the conversation service. Your answer is still here.",
+        "Steppi could not respond to that answer right now. Your answer is still here.",
         true,
       );
     } finally {
@@ -966,7 +966,7 @@ export function IntakeProfileDemo() {
         <div>
           <p className="eyebrow">A conversation, not an assessment</p>
           <h1 className="font-display mt-4 max-w-[36rem] text-balance text-[clamp(2.25rem,6vw,3.75rem)] leading-[1.03] tracking-[-0.045em] text-ink">
-            Tell Steppi what you’re working through.
+            Tell Steppi what you enjoy, avoid, and wonder about.
           </h1>
           <p className="mt-4 text-sm leading-6 text-muted" role="status">
             {conversationOrientation({
@@ -1040,7 +1040,7 @@ export function IntakeProfileDemo() {
             <AlertCircle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-error" />
             <div>
               <h2 className="font-semibold text-ink" id="profile-error-title">
-                The profile was not created
+                Your reflection is not ready yet
               </h2>
               <p className="mt-1 text-sm leading-6 text-muted">
                 {profileRequestState.message}

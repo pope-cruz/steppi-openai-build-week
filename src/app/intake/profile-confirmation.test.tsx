@@ -21,11 +21,11 @@ describe("student-approved profile confirmation", () => {
       />,
     );
 
-    expect(markup).toContain("Here’s what Steppi heard.");
+    expect(markup).toContain("Here’s what Steppi understood.");
     expect(markup).toContain(DEMO_CONFIRMATION_SUMMARY);
-    expect(markup).toContain("Good to go!");
+    expect(markup).toContain("Explore career roles");
     expect(markup).toContain("Let me refine this");
-    expect(markup).toContain("See the details Steppi is using");
+    expect(markup).toContain("See the details behind this reflection");
     expect(markup).toContain("max-w-[55rem]");
     expect(markup).toContain("text-[clamp(1.4rem,2.8vw,2.5rem)]");
     expect(markup).toContain("leading-[1.35]");
@@ -42,7 +42,7 @@ describe("student-approved profile confirmation", () => {
     expect(markup).toContain("<details");
     expect(markup).not.toContain("<details open");
     expect(markup).toContain("What you shared");
-    expect(markup).toContain("Steppi’s tentative read");
+    expect(markup).toContain("What Steppi inferred");
     expect(markup).toContain("Practical considerations");
     expect(markup).toContain("What can stay open");
     expect(markup).toContain(VALID_PROFILE_FIXTURE.facts[0].statement);

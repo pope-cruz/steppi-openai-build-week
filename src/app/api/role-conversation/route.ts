@@ -31,12 +31,12 @@ const ERROR_DETAILS: Record<
     status: 400,
   },
   configuration_missing: {
-    message: "Role conversation is not configured yet.",
+    message: "Steppi cannot answer this role question yet. Please try again later.",
     retryable: false,
     status: 503,
   },
   invalid_model_configuration: {
-    message: "Role conversation is not configured for GPT-5.6 yet.",
+    message: "Steppi cannot answer this role question yet. Please try again later.",
     retryable: false,
     status: 503,
   },

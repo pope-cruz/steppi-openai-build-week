@@ -12,6 +12,8 @@ import {
   MAX_PATH_ATTEMPTS,
   PATH_INSTRUCTIONS,
   PATH_MAX_OUTPUT_TOKENS,
+  PATH_REASONING_EFFORT,
+  PATH_TEXT_VERBOSITY,
   pathGenerationContext,
   PathGenerationError,
   requireParsedPathOutput,
@@ -44,9 +46,13 @@ async function expectGenerationError(
 
 describe("generatePathBranches", () => {
   it("prompts for complete roles and exact allowed evidence IDs", () => {
+    expect(PATH_INSTRUCTIONS).toContain("high-school and college students");
+    expect(PATH_INSTRUCTIONS).toContain("stage-neutral");
     expect(PATH_INSTRUCTIONS).toContain("Target thirteen roles");
     expect(PATH_INSTRUCTIONS).toContain("no fewer than twelve and no more than fifteen");
     expect(PATH_MAX_OUTPUT_TOKENS).toBe(15_000);
+    expect(PATH_REASONING_EFFORT).toBe("low");
+    expect(PATH_TEXT_VERBOSITY).toBe("low");
     expect(PATH_INSTRUCTIONS).toContain("Never rank, score, tier, order, or label");
     expect(PATH_INSTRUCTIONS).toContain("student's latest clarification");
     expect(PATH_INSTRUCTIONS).toContain("allowedSupportingProfileIds");
@@ -55,7 +61,8 @@ describe("generatePathBranches", () => {
     expect(PATH_INSTRUCTIONS).toContain("one occupation family");
     expect(PATH_INSTRUCTIONS).toContain("one plain-language sentence");
     expect(PATH_INSTRUCTIONS).toContain("why the role may not fit");
-    expect(PATH_INSTRUCTIONS).toContain("two or three concrete sentences");
+    expect(PATH_INSTRUCTIONS).toContain("array of two or three items");
+    expect(PATH_INSTRUCTIONS).toContain("Put exactly one sentence in each array item");
     expect(PATH_INSTRUCTIONS).toContain("one specific, low-cost, low-commitment activity");
     expect(PATH_INSTRUCTIONS).toContain("never present a mismatch as a verdict");
     expect(PATH_INSTRUCTIONS).toContain("under one minute");
@@ -87,6 +94,7 @@ describe("generatePathBranches", () => {
       stage: "complete",
       reason: "validated_output",
       retryable: false,
+      elapsedMs: expect.any(Number),
       requestId: "req_valid",
     });
   });
@@ -264,6 +272,29 @@ describe("generatePathBranches", () => {
         stage: "structured_validation",
         reason: "schema_validation_failed",
       }),
+    );
+  });
+
+  it("gives targeted retry guidance when day-to-day items contain multiple sentences", async () => {
+    const options = deterministicOptions();
+    const invalidDayToDay = structuredClone(DEMO_PATH_BRANCHES);
+    invalidDayToDay[0].dayToDay[0] =
+      "You plan a project with teammates. You also present the result.";
+    const requestPaths = vi
+      .fn()
+      .mockResolvedValueOnce(pathResult({ branches: invalidDayToDay }))
+      .mockResolvedValueOnce(pathResult({ branches: DEMO_PATH_BRANCHES }));
+
+    await expect(
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
+        ...options,
+        requestPaths,
+      }),
+    ).resolves.toEqual(DEMO_PATH_BRANCHES);
+
+    expect(requestPaths).toHaveBeenCalledTimes(2);
+    expect(requestPaths.mock.calls[1][0].retryCorrection).toContain(
+      "exactly one sentence in each dayToDay item",
     );
   });
 
@@ -468,7 +499,9 @@ describe("generatePathBranches", () => {
     );
 
     expect(info).toHaveBeenCalledWith(
-      '[path-generation] {"attempt":1,"stage":"complete","reason":"validated_output","retryable":false,"requestId":"req_logged"}',
+      expect.stringMatching(
+        /^\[path-generation\] \{"attempt":1,"stage":"complete","reason":"validated_output","retryable":false,"elapsedMs":\d+,"requestId":"req_logged"\}$/,
+      ),
     );
     info.mockRestore();
   });

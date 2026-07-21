@@ -317,7 +317,7 @@ export function InitialPathMap({
           type: "fail",
           branchId: branch.id,
           requestId,
-          message: "Steppi could not reach the conversation service. Your question is still here.",
+          message: "Steppi could not answer right now. Your question is still here.",
           retryable: true,
         });
       }
@@ -387,7 +387,7 @@ export function InitialPathMap({
 
       <div
         aria-describedby="path-map-instructions"
-        aria-label="Career role possibilities based on your confirmed profile"
+        aria-label="Career role possibilities based on what you confirmed"
         className="relative mt-8 isolate overflow-hidden rounded-[1.75rem] border border-border-strong bg-surface"
         data-mobile-fallback="role-cloud"
         data-role-count={state.branches.length}

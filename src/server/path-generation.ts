@@ -26,8 +26,10 @@ const RETRY_BACKOFF_MS = [250, 750] as const;
 
 export const MAX_PATH_ATTEMPTS = 3;
 export const PATH_MAX_OUTPUT_TOKENS = 15_000;
+export const PATH_REASONING_EFFORT = "low";
+export const PATH_TEXT_VERBOSITY = "low";
 
-export const PATH_INSTRUCTIONS = `You are Steppi, an educational exploration assistant for high-school students.
+export const PATH_INSTRUCTIONS = `You are Steppi, a career-exploration tool for high-school and college students.
 Generate one complete unranked set of career-role possibilities from the confirmed student profile. Target thirteen roles and return no fewer than twelve and no more than fifteen.
 
 Rules:
@@ -45,13 +47,13 @@ Rules:
 - Use summary for one plain-language sentence explaining what the role or direction is.
 - Use whyItAppeared for one or two concise, student-facing sentences explaining why the role may fit. Ground each sentence in specific supplied profile facts, experiences, preferences, strengths, or clearly tentative inferences.
 - Use drawbacks for one or two concise sentences explaining why the role may not fit. Acknowledge uncertainty and describe something the student could notice or explore; never present a mismatch as a verdict.
-- Use dayToDay for two or three concrete sentences that help the student imagine common tasks, collaboration, work environment, and rhythm without turning the response into a career encyclopedia.
+- Use dayToDay as an array of two or three items that help the student imagine common tasks, collaboration, work environment, and rhythm without turning the response into a career encyclopedia. Put exactly one sentence in each array item; never combine multiple sentences in one item.
 - Use lowRiskExploration for one specific, low-cost, low-commitment activity the student can try without enrolling in a program or making a career decision.
 - Include at least one unresolved question per branch.
 - Related options may name general careers or majors, but do not recommend specific colleges or programs.
 - Do not assert current salaries, employment demand, admissions rates, rankings, tuition, program availability, costs, or other time-sensitive facts.
 - Do not diagnose aptitude or personality, predict outcomes, or shame the student's constraints.
-- Use conversational, plain, age-appropriate language and speak directly to the student where natural.
+- Use conversational, plain, student-facing language. Keep it stage-neutral unless the student has explicitly disclosed their education stage, and speak directly to the student where natural.
 - Keep every explanation concise enough to scan in under one minute.`;
 
 type PathProviderResult = {
@@ -102,6 +104,7 @@ export type PathGenerationDiagnostic = {
     | "validated_output";
   retryable: boolean;
   publicCode?: DiagnosticPublicCode;
+  elapsedMs?: number;
   upstreamStatus?: number;
   upstreamCode?: string;
   requestId?: string;
@@ -114,6 +117,7 @@ type GeneratePathsOptions = {
   requestPaths?: PathRequest;
   sleep?: (milliseconds: number) => Promise<void>;
   diagnosticSink?: (diagnostic: PathGenerationDiagnostic) => void;
+  now?: () => number;
 };
 
 class PathProviderOutputError extends Error {
@@ -225,8 +229,10 @@ async function requestPathsFromOpenAI({
       pathGenerationContext(profile, confirmedSummary, retryCorrection),
     ),
     max_output_tokens: PATH_MAX_OUTPUT_TOKENS,
+    reasoning: { effort: PATH_REASONING_EFFORT },
     text: {
       format: zodTextFormat(PathGenerationSchema, "path_generation"),
+      verbosity: PATH_TEXT_VERBOSITY,
     },
   });
 
@@ -421,7 +427,15 @@ function diagnosticForAttemptError({
   };
 }
 
-function retryCorrectionFor(reason: PathGenerationDiagnostic["reason"]) {
+function retryCorrectionFor(diagnostic: PathGenerationDiagnostic) {
+  const { reason } = diagnostic;
+
+  if (
+    reason === "schema_validation_failed" &&
+    diagnostic.issuePaths?.some((path) => path.includes(".dayToDay."))
+  ) {
+    return "Regenerate the complete role set with dayToDay as an array of two or three items for every role. Put exactly one sentence in each dayToDay item; never combine multiple sentences in one item.";
+  }
   if (
     reason === "invalid_evidence_reference" ||
     reason === "duplicate_evidence_ids"
@@ -460,6 +474,7 @@ export async function generatePathBranches(
   const requestPaths = options.requestPaths ?? requestPathsFromOpenAI;
   const sleep = options.sleep ?? defaultSleep;
   const diagnosticSink = options.diagnosticSink ?? defaultDiagnosticSink;
+  const now = options.now ?? Date.now;
 
   if (!apiKey.trim()) {
     const diagnostic: PathGenerationDiagnostic = {
@@ -505,6 +520,7 @@ export async function generatePathBranches(
   let retryCorrection: string | undefined;
 
   for (let attempt = 1; attempt <= MAX_PATH_ATTEMPTS; attempt += 1) {
+    const attemptStartedAt = now();
     let requestId: string | undefined;
 
     try {
@@ -524,6 +540,7 @@ export async function generatePathBranches(
         stage: "complete",
         reason: "validated_output",
         retryable: false,
+        elapsedMs: Math.max(0, Math.round(now() - attemptStartedAt)),
         ...(requestId ? { requestId } : {}),
       });
       return branches;
@@ -533,6 +550,10 @@ export async function generatePathBranches(
         error,
         requestId,
       });
+      diagnostic.elapsedMs = Math.max(
+        0,
+        Math.round(now() - attemptStartedAt),
+      );
       diagnostics.push(diagnostic);
       emitDiagnostic(diagnosticSink, diagnostic);
 
@@ -549,7 +570,7 @@ export async function generatePathBranches(
         );
       }
 
-      retryCorrection = retryCorrectionFor(diagnostic.reason);
+      retryCorrection = retryCorrectionFor(diagnostic);
       await sleep(RETRY_BACKOFF_MS[attempt - 1]);
     }
   }

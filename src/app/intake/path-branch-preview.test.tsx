@@ -132,7 +132,9 @@ describe("initial path map markup", () => {
     expect(markup).toContain("Why it may not fit you");
     expect(markup).toContain("What the day-to-day can feel like");
     expect(markup).toContain("Try it before committing");
-    expect(markup).toContain("See what Steppi connected from your profile");
+    expect(markup).toContain("Back to all roles");
+    expect(markup).toContain("See why this role appeared");
+    expect(markup).toContain("Related roles or study options");
   });
 
   it("renders a compact onboarding-style follow-up", () => {
@@ -152,6 +154,7 @@ describe("initial path map markup", () => {
     expect(markup).toContain(`Ask one thing about ${DEMO_PATH_BRANCHES[0].title}`);
     expect(markup).toContain("A short follow-up is enough");
     expect(markup).toContain("Ask a short follow-up");
+    expect(markup).toContain("How could my current or future studies connect to this?");
     expect(markup.match(/rounded-full/g)).toHaveLength(3);
     expect(markup).not.toContain("What should Steppi research next?");
   });

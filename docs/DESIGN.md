@@ -842,8 +842,8 @@ These are fixed unless explicitly changed:
 - Intake keeps a persistent transcript and shows one primary question per Steppi
   turn.
 - Intake uses three ordered anchors, one or two deterministic-purpose follow-ups,
-  and the exact `final-consideration` question, “Before I put this together, is
-  there anything else Steppi should consider?”.
+  and the exact `final-consideration` question, “One last question: what would
+  make a career role worth a closer look for you right now?”.
 - The public profile is exactly three sentences with **Looks right** and **Make a
   correction** actions; direct statements and inferences remain separate
   internally.

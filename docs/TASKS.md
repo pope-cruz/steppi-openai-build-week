@@ -15,8 +15,8 @@ See [SPEC.md](./SPEC.md) for the active Build Week contract,
 
 ## Current Product Direction
 
-Steppi is a career-exploration companion for high-school students. Its polished
-demo loop follows breadth before depth:
+Steppi is a career exploration tool for high-school and college students. Its
+polished demo loop follows breadth before depth:
 
 1. complete a short conversational intake;
 2. confirm or directly edit Steppi's student-context hypothesis;
@@ -30,20 +30,21 @@ or technical graph editor.
 
 ## Current Implemented Behavior
 
-- The landing page now positions Steppi explicitly as an AI guidance counsellor
-  for high-school students while stating that it does not predict the right
-  career or replace a school counsellor. An open-notebook hero connects student
+- The landing page now positions Steppi as a career exploration tool for
+  high-school and college students. AI appears as supporting technology rather
+  than as a counsellor or authority. An open-notebook hero connects student
   notes to a curated sample from the larger unranked role space, then previews
-  the intake, role brief, low-risk experiment, extended conversation, and
-  conditional sourcing.
+  the intake, role brief, study connections, low-risk experiment, extended
+  conversation, and conditional sourcing.
 - The landing page uses the original Steppi light palette, Bricolage Grotesque
   display type, CSS-only notebook entry motion with an opacity-only reduced-motion
   fallback, a single-column mobile notebook, and a Steppi icon. Bricolage is also
   the shared display face across the intake, confirmation, role space, and role
   conversation; Geist remains the body face.
 - The in-memory intake has three ordered anchors, controller-selected follow-ups,
-  one final consideration question, revision, transcript preservation, request
-  locking, loading, failure, malformed-output, fallback, and retry behavior.
+  one final priority question about what would make a role worth exploring,
+  revision, transcript preservation, request locking, loading, failure,
+  malformed-output, fallback, and retry behavior.
 - Server-only GPT-5.6 profile generation returns a validated structured profile
   and an exactly two-sentence `confirmationSummary` in one request.
 - The student can accept or directly rewrite the summary. Role generation receives
@@ -52,7 +53,10 @@ or technical graph editor.
   roles, targeting thirteen. Each role includes a concise explanation and valid
   profile-evidence references. It may make up to three sequential GPT-5.6
   attempts per click, stopping at the first complete validated set; SDK retries
-  remain disabled and no partial set reaches the client.
+  remain disabled and no partial set reaches the client. The request uses low
+  reasoning effort and low text verbosity, records bounded per-attempt elapsed
+  time, and gives targeted correction when day-to-day array items contain more
+  than one sentence.
 - Desktop shows four deterministic constellation bands with three or four
   title-only role pills per band. Mobile shows the same complete role set as a
   compact one- or two-column role cloud.
@@ -86,12 +90,18 @@ or technical graph editor.
   exists only as a conditional capability inside the role conversation.
 - All active intake, profile, path, and role-conversation state is in memory and
   clears on refresh.
+- Student-facing copy uses stage-neutral language, refers to internal profile
+  data as what the student shared or Steppi's reflection, and avoids exposing
+  service names or retry implementation details in failure states.
 
 ## Important Active Decisions
 
-- Hackathon-facing landing copy may describe Steppi as an AI guidance counsellor,
-  but it must also preserve the product boundary that Steppi supports exploration
-  and does not replace professional guidance.
+- Steppi is a career exploration tool, not an AI guidance counsellor. AI supports
+  context synthesis and role exploration without acting as an authority.
+- The Education-track value is career literacy across two transitions:
+  discovering possible directions before college and connecting college
+  learning to possible work. Degree recommendations, admissions planning,
+  internship search, and job placement remain out of scope.
 - The open notebook is a landing-page explanation of the product flow, not a new
   literal intake or role-space interface.
 - The original light palette remains the shared visual baseline across the
@@ -102,8 +112,9 @@ or technical graph editor.
 - The normal role-space target is thirteen, with twelve to fifteen accepted as
   one complete unranked set. The constellation is spatial presentation only: it
   has no edges, relationship claims, physics, or dragging.
-- The initial audience is high-school students beginning college and career
-  exploration.
+- The initial audience is high-school and college students exploring how their
+  interests, studies, and experiences connect to career roles. The primary demo
+  persona remains a high-school student.
 - The selected-role conversation is a compact tidbit below the existing brief,
   not a separate full-screen chat or dense report.
 - The normal answer targets are 50–90 words for interpretation and 70–120 words
@@ -192,6 +203,24 @@ has an explicit, bounded three-attempt reliability policy.
 - Final checks passed: `npm run lint`, `npm run typecheck`, `npm run test`
   (27 files, 205 tests), `npm run build`, and `git diff --check`.
 
+## Verification Completed — Expanded Student Audience
+
+- Landing, metadata, intake, confirmation, role-space, follow-up, prompt, and
+  public failure copy now supports high-school and college students while
+  keeping the primary demo persona in high school.
+- Deterministic coverage confirms the expanded audience, stage-neutral prompt
+  context, study-oriented follow-up, revised CTA, inclusive intake anchors, and
+  removal of counsellor and technical-service framing from active surfaces.
+- `npm run lint`, `npm run typecheck`, and `npm run test` passed; the suite
+  contains 27 files and 205 tests.
+- `npm run build` passed after network access allowed Next.js to retrieve the
+  existing configured Google fonts. `git diff --check` passed.
+- Real-browser checks passed at 1440×900 and 390×844 for the landing page and
+  intake, plus confirmation, loading, thirteen-role empty, and deterministic
+  role-generation failure states. No horizontal overflow, console errors, or
+  framework error overlay appeared; visible keyboard focus was confirmed.
+- No live or paid GPT-5.6 request was made and no deployment was performed.
+
 ## Current Blockers
 
 - Vercel Authentication still blocks anonymous Preview access; the deployed
@@ -203,8 +232,10 @@ has an explicit, bounded three-attempt reliability policy.
 - The new role-conversation provider boundary has deterministic mocked coverage
   but no fresh live or paid GPT-5.6 quality pass.
 - Intake duration and screen-reader behavior remain unmeasured.
-- The 12–15-role generation contract has deterministic coverage but has not been
-  calibrated with a fresh live or paid GPT-5.6 request.
+- A live 12–15-role request exposed two schema-validation retries because the
+  model combined multiple day-to-day sentences in one array item. The targeted
+  prompt/schema correction and latency settings have deterministic coverage but
+  have not been rechecked with another live or paid GPT-5.6 request.
 
 ## Exact Next Recommended Task
 

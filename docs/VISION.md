@@ -2,9 +2,9 @@
 
 ## Product
 
-Steppi helps high-school students discover career roles they may not know exist,
-understand why those roles might or might not suit them, and explore interesting
-options through an extended conversation.
+Steppi helps high-school and college students discover career roles they may not
+know exist, understand why those roles might or might not suit them, and explore
+interesting options through an extended conversation.
 
 ## Core promise
 
@@ -13,13 +13,15 @@ You do not need to choose your career today.
 You need to see more possibilities, understand what they are actually like, and
 know which ones are worth exploring further.
 
-## Target user
+## Target users
 
-Steppi initially serves high-school students who are beginning to think about
-college and careers but have limited exposure to the range of roles available.
+Steppi serves high-school students who are beginning to think about fields of
+study and careers, and college students who are connecting their courses,
+experiences, and changing interests to possible work. Both groups may have
+limited exposure to the range of roles available.
 
-They may know what subjects, activities, or projects they enjoy without knowing
-how those interests translate into real careers.
+They may know what subjects, activities, courses, jobs, or projects they enjoy
+without knowing how those experiences translate into real careers.
 
 They may also know a few familiar professions while remaining unaware of adjacent,
 emerging, interdisciplinary, or less visible roles.
@@ -53,6 +55,11 @@ Steppi should not overwhelm the student with detailed research, college lists,
 labor statistics, or complicated planning before the student has identified a
 role they actually want to understand.
 
+This is an Education-track product because it builds career literacy across two
+transitions: discovering possible directions before college and connecting
+college learning to possible work. It is not a degree recommendation engine,
+admissions planner, internship search, or job-placement service.
+
 ## Core user flow
 
 ### 1. Short conversational intake
@@ -60,8 +67,9 @@ role they actually want to understand.
 The student talks about:
 
 - programs, majors, or careers they have considered;
-- classes and school activities they enjoy;
-- projects, hobbies, responsibilities, and experiences outside school;
+- classes, projects, school or campus activities, jobs, and internships they
+  enjoy or dislike;
+- hobbies, responsibilities, and experiences outside class;
 - activities they dislike;
 - strengths they have noticed;
 - constraints or considerations that may affect their choices;
@@ -322,7 +330,7 @@ Steppi succeeds when:
 
 ## Demo story
 
-The demo follows a high-school student who enjoys visual projects, technology,
+The primary demo follows a high-school student who enjoys visual projects, technology,
 organizing group work, and presenting ideas but is uncertain about programming.
 
 After a short conversation, Steppi presents several floating career-role options,

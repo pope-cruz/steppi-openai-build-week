@@ -31,27 +31,27 @@ const ERROR_DETAILS: Record<
   { message: string; retryable: boolean; status: number }
 > = {
   configuration_missing: {
-    message: "Profile generation is not configured yet. Please try again later.",
+    message: "Steppi cannot put together your reflection yet. Please try again later.",
     retryable: false,
     status: 503,
   },
   invalid_model_configuration: {
-    message: "Profile generation is not configured for GPT-5.6 yet.",
+    message: "Steppi cannot put together your reflection yet. Please try again later.",
     retryable: false,
     status: 503,
   },
   timeout: {
-    message: "Steppi took too long to build the profile. Your sample answers are safe; please try again.",
+    message: "Steppi took too long to put together your reflection. Your answers are still here; please try again.",
     retryable: true,
     status: 504,
   },
   api_failure: {
-    message: "Steppi could not build the profile right now. Your sample answers are safe; please try again.",
+    message: "Steppi could not put together your reflection right now. Your answers are still here; please try again.",
     retryable: true,
     status: 502,
   },
   malformed_model_output: {
-    message: "Steppi received a profile it could not safely use. Nothing was shown; please try again.",
+    message: "Steppi received a reflection it could not safely use. Nothing was shown; please try again.",
     retryable: true,
     status: 502,
   },

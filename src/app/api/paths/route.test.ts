@@ -79,10 +79,8 @@ describe("path API route", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(body).toMatchObject({ ok: false, error: { code, retryable } });
     if (retryable) {
-      expect(body).toMatchObject({
-        ok: false,
-        error: { message: expect.stringMatching(/three|3/i) },
-      });
+      expect(serialized).toMatch(/try again|nothing incomplete/i);
+      expect(serialized).not.toMatch(/three|3 attempts/i);
     }
     expect(serialized).not.toContain("OPENAI_API_KEY");
     expect(serialized).not.toContain("private SDK detail");

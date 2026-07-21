@@ -20,27 +20,27 @@ const ERROR_DETAILS: Record<
   { message: string; retryable: boolean; status: number }
 > = {
   configuration_missing: {
-    message: "Profile refinement is not configured yet. You can still build your map from the current summary.",
+    message: "Steppi cannot revise this reflection yet. You can still explore roles from the current wording.",
     retryable: false,
     status: 503,
   },
   invalid_model_configuration: {
-    message: "Profile refinement is not configured for GPT-5.6 yet. You can still build your map from the current summary.",
+    message: "Steppi cannot revise this reflection yet. You can still explore roles from the current wording.",
     retryable: false,
     status: 503,
   },
   timeout: {
-    message: "Steppi took too long to refine this summary. Your current profile and wording are safe; please try again.",
+    message: "Steppi took too long to revise this reflection. Your current wording is unchanged; please try again.",
     retryable: true,
     status: 504,
   },
   api_failure: {
-    message: "Steppi could not refine this summary right now. Your current profile and wording are safe; please try again.",
+    message: "Steppi could not revise this reflection right now. Your current wording is unchanged; please try again.",
     retryable: true,
     status: 502,
   },
   malformed_model_output: {
-    message: "Steppi received a refinement it could not safely apply. Your current profile is unchanged; please try again.",
+    message: "Steppi received a revision it could not safely apply. Your current wording is unchanged; please try again.",
     retryable: true,
     status: 502,
   },
@@ -69,7 +69,7 @@ export async function handleProfileRefinementRequest(
         ok: false,
         error: {
           code: "invalid_input",
-          message: "The refinement could not be read. Your current profile is unchanged.",
+          message: "The revision could not be read. Your current wording is unchanged.",
           retryable: false,
         },
       },
@@ -84,7 +84,7 @@ export async function handleProfileRefinementRequest(
         ok: false,
         error: {
           code: "invalid_input",
-          message: "The refinement is incomplete or invalid. Your current profile is unchanged.",
+          message: "The revision is incomplete or invalid. Your current wording is unchanged.",
           retryable: false,
         },
       },

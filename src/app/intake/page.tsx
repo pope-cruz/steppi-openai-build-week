@@ -8,7 +8,7 @@ export const metadata = {
 export default function IntakeFoundationPage() {
   return (
     <main className="min-h-screen">
-      <SiteHeader context="Adaptive intake · profile hypothesis" />
+      <SiteHeader context="Career exploration · a short conversation" />
       <section className="page-container py-14 sm:py-20">
         <IntakeProfileDemo />
       </section>

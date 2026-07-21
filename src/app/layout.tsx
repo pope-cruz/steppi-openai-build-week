@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | Steppi",
   },
   description:
-    "A transparent way for Grade 11 students to explore realistic career and college directions.",
+    "A transparent career exploration tool for high-school and college students.",
 };
 
 export const viewport: Viewport = {

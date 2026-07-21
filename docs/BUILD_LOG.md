@@ -1502,3 +1502,106 @@ Use fixtures only. Do not make a live GPT-5.6 request or deploy.
 - Reduced-motion emulation reported the opacity-only animation and no transform.
 - Browser console errors: none. Framework error overlay: absent.
 - No live or paid GPT-5.6 request was made and no deployment was performed.
+
+---
+
+## 2026-07-21 — High-school and college career-exploration positioning
+
+### Product and copy decision
+
+- Repositioned Steppi as a career exploration tool for high-school and college
+  students. AI now appears as supporting technology rather than as a guidance
+  counsellor or authority.
+- Defined the Education-track value as career literacy across two transitions:
+  discovering possible directions before college and connecting college
+  learning to possible work.
+- Kept the primary demo persona in high school while making landing, intake,
+  confirmation, role-space, follow-up, and failure language stage-neutral.
+- Added school, campus, job, and internship context to the shared intake without
+  adding an education-stage gate or separate flows.
+- Replaced public profile, hypothesis, service, and retry-implementation jargon
+  with what the student shared, Steppi's reflection, and actionable retry copy.
+- Added a study-connection starter question while preserving the existing role
+  and conversation contracts, conditional research boundary, and non-goals.
+- Added `PRODUCT.md` as supporting design context; `docs/SPEC.md` and
+  `docs/VISION.md` remain authoritative.
+
+### Verification evidence
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed: 27 files, 205 tests.
+- `npm run build` — passed after network access allowed Next.js to retrieve the
+  existing configured Google fonts.
+- `git diff --check` — passed.
+- Real-browser checks passed at 1440×900 and 390×844 for landing and intake,
+  plus deterministic confirmation, loading, thirteen-role empty, and
+  role-generation failure states. The primary CTA remained visible on mobile,
+  headings and the notebook fit their containers, and no viewport had horizontal
+  overflow.
+- Visible keyboard focus appeared on the wordmark. Browser console errors: none.
+  Framework error overlay: absent.
+- No live or paid GPT-5.6 request was made and no deployment was performed.
+
+---
+
+## 2026-07-21 — Notebook overlap and path-generation latency diagnosis
+
+### Diagnosis and implementation
+
+- Reproduced the landing-notebook defect at desktop width. The selected-role
+  explanation was pinned over a role list whose content could outgrow the fixed
+  page space. Moved both notebook notes into normal flex flow, prevented the
+  role list and explanation from shrinking through each other, and added an
+  explicit separation between the final role pill and explanation.
+- Inspected the already-captured live path-generation diagnostics. Attempt 1
+  failed structured validation for every first `dayToDay` item; attempt 2 failed
+  the same way; attempt 3 returned a validated role set. The second and third
+  provider passes added roughly 31 and 36 seconds respectively. This confirms
+  that the observed latency came from two full schema-validation regenerations,
+  not client rendering or SDK auto-retry.
+- Clarified the Structured Output description and model instructions: `dayToDay`
+  is an array of two or three items and every item contains exactly one sentence.
+  A retry with a `dayToDay` issue path now receives that same targeted correction
+  instead of only generic schema guidance.
+- Set path generation to low reasoning effort and low text verbosity, retaining
+  the model, 15,000-token safety ceiling, 45-second per-attempt timeout, complete
+  role schema, deterministic validation, and three-attempt reliability ceiling.
+- Added bounded `elapsedMs` to safe per-attempt diagnostics so a future slow
+  request distinguishes provider time, validation retries, and timeouts without
+  logging student content or raw output.
+
+### Verification evidence
+
+- `npm run lint` and `npm run typecheck` passed. `npm run test` passed with 27
+  files and 206 tests, including a new regression that proves multi-sentence
+  `dayToDay` output receives targeted retry guidance.
+- `npm run build` passed after network access allowed Next.js to retrieve the
+  existing configured Google fonts. `git diff --check` passed.
+- In-app browser verification passed at desktop and 390x844. The settled desktop
+  layout has a 15px gap before the explanation; mobile has a 20px gap. Neither
+  viewport has horizontal overflow, and browser warnings/errors were absent.
+- No additional live or paid GPT-5.6 request was made and no deployment was
+  performed. The latency mitigation remains deterministically verified rather
+  than live re-calibrated.
+
+---
+
+## 2026-07-21 — Useful final intake priority question
+
+- Replaced the generic final catch-all and its visible “Nothing” / “I don’t
+  know” replies with one focused question: what would make a career role worth a
+  closer look right now.
+- Added three useful optional replies covering study connection, a near-term way
+  to try the work, and openness to an unexpected role. Free text remains the
+  primary input, and typed uncertainty or a decline still completes safely
+  without forcing an invented preference.
+- Made the composer flow normally on small screens while retaining its sticky
+  desktop behavior. This prevents the taller quick-reply row from covering the
+  final question on mobile.
+- `npm run lint`, `npm run typecheck`, and `npm run test` passed; the suite has
+  27 files and 206 tests. `npm run build` and `git diff --check` passed.
+- In-app browser verification passed at desktop and 390x844: the revised prompt
+  and controls rendered without overlap or horizontal overflow, and the
+  inspected console contained no warnings or errors.
+- No live or paid GPT-5.6 request was made and no deployment was performed.
