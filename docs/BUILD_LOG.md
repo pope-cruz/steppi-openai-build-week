@@ -1634,3 +1634,50 @@ Use fixtures only. Do not make a live GPT-5.6 request or deploy.
   repeated in the final scope review.
 - No product code, live or paid GPT-5.6 request, browser flow, or deployment was
   involved in this documentation-only update.
+
+---
+
+## 2026-07-22 — GPT-5.6 Luna benchmark latency mitigation
+
+### Diagnosis and implementation
+
+- Confirmed from local development diagnostics that the slow benchmark was
+  dominated by path-generation validation retries: three consecutive provider
+  calls took 33,512 ms, 34,119 ms, and 34,698 ms. The first two complete
+  responses were rejected as `roles_too_similar`, making the observed request
+  roughly 102 seconds despite each individual call completing in about 34
+  seconds.
+- Added deterministic near-duplicate pruning before strict path validation. A
+  13–15-role response can now discard later duplicate roles and complete after
+  one provider call when at least twelve meaningfully different roles remain.
+  Responses that would fall below twelve roles still use the existing targeted,
+  bounded retry path.
+- Standardized every active code fallback and setup example on
+  `gpt-5.6-luna`; `OPENAI_MODEL` continues to take precedence at runtime.
+- Set intake interpretation, profile generation, profile refinement, and role
+  conversation to no reasoning and low text verbosity. Path generation keeps
+  low reasoning because it must construct a varied, evidence-linked role set.
+- Removed the redundant intake-interpretation request after every final answer;
+  the complete transcript already goes directly to profile generation.
+- Interpretive role questions no longer expose a web-search tool. The tool and
+  source include are attached with required tool choice only when deterministic
+  routing identifies a current or unstable factual question.
+
+### Verification evidence
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed: 27 files and 210 tests. New regressions cover final
+  intake handoff, no-tool interpretive chat, required current-source search,
+  one-call near-duplicate pruning, and retry when pruning would leave fewer than
+  twelve roles.
+- `npm run build` — passed after network access allowed Next.js to retrieve the
+  existing Google fonts. The initial restricted-network attempt failed only at
+  that font fetch.
+- In-app browser verification completed the deterministic intake through the
+  final answer and reached the confirmation reflection without console warnings,
+  console errors, or a framework error overlay.
+- No fresh live or paid GPT-5.6 request was made and no deployment was performed.
+  The next benchmark should confirm provider latency on the user's active API
+  environment; the captured three-call case is expected to avoid its second and
+  third calls.

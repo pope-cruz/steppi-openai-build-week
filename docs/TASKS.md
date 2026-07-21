@@ -45,18 +45,22 @@ or technical graph editor.
   one final priority question about what would make a role worth exploring,
   revision, transcript preservation, request locking, loading, failure,
   malformed-output, fallback, and retry behavior.
-- Server-only GPT-5.6 profile generation returns a validated structured profile
-  and an exactly two-sentence `confirmationSummary` in one request.
+- Server-only GPT-5.6 Luna profile generation returns a validated structured
+  profile and an exactly two-sentence `confirmationSummary` in one request. The
+  final intake answer goes directly to this request instead of first making a
+  redundant interpretation call; routine structured calls use no reasoning and
+  low text verbosity.
 - The student can accept or directly rewrite the summary. Role generation receives
   both the unchanged profile and latest approved `confirmedSummary`.
 - Path generation returns one validated set of 12–15 unranked, meaningfully varied
   roles, targeting thirteen. Each role includes a concise explanation and valid
-  profile-evidence references. It may make up to three sequential GPT-5.6
+  profile-evidence references. It may make up to three sequential GPT-5.6 Luna
   attempts per click, stopping at the first complete validated set; SDK retries
-  remain disabled and no partial set reaches the client. The request uses low
-  reasoning effort and low text verbosity, records bounded per-attempt elapsed
-  time, and gives targeted correction when day-to-day array items contain more
-  than one sentence.
+  remain disabled and no partial set reaches the client. If a 13–15-role response
+  contains a near-duplicate, deterministic pruning can retain a valid 12-role
+  set without another provider request. The request uses low reasoning effort
+  and low text verbosity, records bounded per-attempt elapsed time, and gives
+  targeted correction when day-to-day array items contain more than one sentence.
 - Desktop shows four deterministic constellation bands with three or four
   title-only role pills per band. Mobile shows the same complete role set as a
   compact one- or two-column role cloud.
@@ -73,10 +77,11 @@ or technical graph editor.
 - The synchronous `/api/role-conversation` boundary validates the complete
   profile, approved summary, selected role, role-scoped history, question,
   request identity, and anonymous safety identifier.
-- GPT-5.6 receives one stateless Responses API request per message with automatic
-  web-search access. Search is forced for deterministically recognized unstable
-  topics such as current programs, costs, admissions, licensing, salary, and
-  location-specific opportunities.
+- GPT-5.6 Luna receives one stateless Responses API request per message. Routine
+  interpretive questions use no reasoning, low text verbosity, and no search
+  tool. Search is attached and forced only for deterministically recognized
+  unstable topics such as current programs, costs, admissions, licensing,
+  salary, and location-specific opportunities.
 - Researched answers only keep provider-retrieved HTTPS URLs. Unsupported source
   blocks are removed; if trustworthy evidence does not survive, Steppi returns an
   honest unavailable response instead of an unsupported current claim.
@@ -128,7 +133,10 @@ or technical graph editor.
   into an unsupported factual response.
 - The three-attempt application retry policy applies only to path generation.
   Non-recoverable input, configuration, authentication, permission, and content-
-  filter failures stop immediately; other model calls are unchanged.
+  filter failures stop immediately. A complete response may be deterministically
+  pruned to remove near-duplicates only when at least twelve valid roles remain.
+- `OPENAI_MODEL` remains the runtime override; `gpt-5.6-luna` is the documented
+  and code-level fallback for every active model call.
 - No authentication, persistence, database, comprehensive dataset, global search,
   or general agent architecture is in scope for the Build Week demo.
 

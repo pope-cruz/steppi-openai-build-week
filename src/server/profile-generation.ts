@@ -9,7 +9,7 @@ import {
   type ProfileGeneration,
 } from "@/lib/schemas";
 
-const DEFAULT_MODEL = "gpt-5.6";
+const DEFAULT_MODEL = "gpt-5.6-luna";
 const REQUEST_TIMEOUT_MS = 45_000;
 
 export const PROFILE_INSTRUCTIONS = `You are Steppi, a career-exploration tool for high-school and college students.
@@ -135,8 +135,10 @@ async function requestProfileFromOpenAI({
     instructions: PROFILE_INSTRUCTIONS,
     input: JSON.stringify({ answers }),
     max_output_tokens: 3_000,
+    reasoning: { effort: "none" },
     text: {
       format: zodTextFormat(ProfileGenerationSchema, "student_profile"),
+      verbosity: "low",
     },
   });
 

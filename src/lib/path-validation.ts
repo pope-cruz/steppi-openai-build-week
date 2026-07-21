@@ -112,6 +112,46 @@ function primaryOptionLabels(branch: PathBranch) {
   );
 }
 
+function branchesAreTooSimilar(left: PathBranch, right: PathBranch) {
+  const titleSimilarity = jaccardSimilarity(
+    directionTokens(left.title),
+    directionTokens(right.title),
+  );
+  const directionSimilarity = jaccardSimilarity(
+    directionTokens(directionText(left)),
+    directionTokens(directionText(right)),
+  );
+
+  return titleSimilarity >= 0.6 || directionSimilarity >= 0.76;
+}
+
+export function pruneNearDuplicatePathBranches(generationInput: unknown) {
+  const generation = PathGenerationSchema.parse(generationInput);
+  const branches: PathBranch[] = [];
+  let prunedCount = 0;
+
+  for (const [index, branch] of generation.branches.entries()) {
+    const isNearDuplicate = branches.some(
+      (selected) =>
+        normalizedPathName(selected.title) === normalizedPathName(branch.title) ||
+        branchesAreTooSimilar(selected, branch),
+    );
+    const remainingCount = generation.branches.length - index - 1;
+
+    if (isNearDuplicate && branches.length + remainingCount >= 12) {
+      prunedCount += 1;
+      continue;
+    }
+
+    branches.push(branch);
+  }
+
+  return {
+    generation: prunedCount > 0 ? { branches } : generation,
+    prunedCount,
+  };
+}
+
 function assertMeaningfullyDifferent(branches: PathBranch[]) {
   for (let leftIndex = 0; leftIndex < branches.length; leftIndex += 1) {
     for (let rightIndex = leftIndex + 1; rightIndex < branches.length; rightIndex += 1) {
@@ -125,16 +165,7 @@ function assertMeaningfullyDifferent(branches: PathBranch[]) {
         );
       }
 
-      const titleSimilarity = jaccardSimilarity(
-        directionTokens(left.title),
-        directionTokens(right.title),
-      );
-      const directionSimilarity = jaccardSimilarity(
-        directionTokens(directionText(left)),
-        directionTokens(directionText(right)),
-      );
-
-      if (titleSimilarity >= 0.6 || directionSimilarity >= 0.76) {
+      if (branchesAreTooSimilar(left, right)) {
         throw new PathValidationError(
           "roles_too_similar",
           "Path branches are too similar to compare usefully.",

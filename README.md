@@ -127,7 +127,7 @@ Add server-only OpenAI credentials to `.env.local`:
 
 ```text
 OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-5.6
+OPENAI_MODEL=gpt-5.6-luna
 ```
 
 Then start the app:
@@ -186,7 +186,7 @@ is anonymously reachable, but it serves an older Grade 11 / three-path build.
 It is **not the submission demo** until the current 12–15-role product has been
 redeployed and its anonymous golden path has been verified.
 
-For Vercel, configure `OPENAI_API_KEY` and `OPENAI_MODEL=gpt-5.6` as server-side
+For Vercel, configure `OPENAI_API_KEY` and `OPENAI_MODEL=gpt-5.6-luna` as server-side
 environment variables for the target environment, then redeploy. Existing
 deployments do not inherit environment-variable changes automatically.
 

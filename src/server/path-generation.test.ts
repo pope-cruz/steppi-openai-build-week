@@ -200,7 +200,7 @@ describe("generatePathBranches", () => {
     );
   });
 
-  it("corrects invalid evidence references and duplicate roles on later attempts", async () => {
+  it("corrects invalid evidence and prunes one duplicate without another provider request", async () => {
     const options = deterministicOptions();
     const invalidEvidence = structuredClone(DEMO_PATH_BRANCHES);
     invalidEvidence[0].supportingProfileIds = ["missing-profile-item"];
@@ -209,6 +209,34 @@ describe("generatePathBranches", () => {
     const requestPaths = vi
       .fn()
       .mockResolvedValueOnce(pathResult({ branches: invalidEvidence }))
+      .mockResolvedValueOnce(pathResult({ branches: duplicate }));
+
+    const expected = duplicate.filter((_, index) => index !== 1);
+
+    await expect(
+      generatePathBranches(VALID_PROFILE_FIXTURE, DEMO_CONFIRMATION_SUMMARY, {
+        ...options,
+        requestPaths,
+      }),
+    ).resolves.toEqual(expected);
+    expect(requestPaths).toHaveBeenCalledTimes(2);
+    expect(requestPaths.mock.calls[1][0].retryCorrection).toContain(
+      "copy every supportingProfileIds value exactly",
+    );
+    expect(options.diagnosticSink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reason: "validated_output",
+        prunedRoleCount: 1,
+      }),
+    );
+  });
+
+  it("retries similar roles when pruning would leave fewer than twelve", async () => {
+    const options = deterministicOptions();
+    const duplicate = structuredClone(DEMO_PATH_BRANCHES.slice(0, 12));
+    duplicate[1].title = "Design in digital products";
+    const requestPaths = vi
+      .fn()
       .mockResolvedValueOnce(pathResult({ branches: duplicate }))
       .mockResolvedValueOnce(pathResult({ branches: DEMO_PATH_BRANCHES }));
 
@@ -218,10 +246,8 @@ describe("generatePathBranches", () => {
         requestPaths,
       }),
     ).resolves.toEqual(DEMO_PATH_BRANCHES);
+    expect(requestPaths).toHaveBeenCalledTimes(2);
     expect(requestPaths.mock.calls[1][0].retryCorrection).toContain(
-      "copy every supportingProfileIds value exactly",
-    );
-    expect(requestPaths.mock.calls[2][0].retryCorrection).toContain(
       "meaningfully different occupation families",
     );
   });

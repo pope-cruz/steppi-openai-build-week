@@ -1,7 +1,6 @@
 import {
   MAX_CONVERSATION_TURNS,
   firstConversationQuestion as firstControllerQuestion,
-  isFinalDeclineAnswer,
   type ConversationQuestion,
   type ConversationState,
   type ConversationTurn,
@@ -152,7 +151,7 @@ export function canStartRequest(status: "idle" | "loading" | "error") {
 }
 
 export function shouldInterpretConversationTurn(turn: ConversationTurn) {
-  return !(turn.stage === "final" && isFinalDeclineAnswer(turn.answer));
+  return turn.stage !== "final";
 }
 
 export function interpretationScopeKey(

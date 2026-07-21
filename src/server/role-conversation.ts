@@ -22,7 +22,7 @@ import {
   type RoleConversationErrorCode,
 } from "@/lib/role-conversation";
 
-const DEFAULT_MODEL = "gpt-5.6";
+const DEFAULT_MODEL = "gpt-5.6-luna";
 const REQUEST_TIMEOUT_MS = 45_000;
 
 const ROLE_CONVERSATION_INSTRUCTIONS = `You are Steppi, a warm career-exploration tool for high-school and college students.
@@ -115,6 +115,8 @@ export function buildRoleConversationResponseParams({
   dateChecked: string;
   model: string;
 }) {
+  const requiresCurrentSources = questionRequiresCurrentSources(request.question);
+
   return {
     model,
     instructions: ROLE_CONVERSATION_INSTRUCTIONS,
@@ -127,29 +129,33 @@ export function buildRoleConversationResponseParams({
       dateChecked,
     }),
     max_output_tokens: 2_200,
+    reasoning: { effort: "none" as const },
     store: false,
     safety_identifier: request.safetyIdentifier,
-    tools: [
-      {
-        type: "web_search" as const,
-        search_context_size: "medium" as const,
-        user_location: {
-          type: "approximate" as const,
-          city: "Manila",
-          country: "PH",
-          timezone: "Asia/Manila",
-        },
-      },
-    ],
-    tool_choice: questionRequiresCurrentSources(request.question)
-      ? ("required" as const)
-      : ("auto" as const),
-    include: ["web_search_call.action.sources" as const],
+    ...(requiresCurrentSources
+      ? {
+          tools: [
+            {
+              type: "web_search" as const,
+              search_context_size: "medium" as const,
+              user_location: {
+                type: "approximate" as const,
+                city: "Manila",
+                country: "PH",
+                timezone: "Asia/Manila",
+              },
+            },
+          ],
+          tool_choice: "required" as const,
+          include: ["web_search_call.action.sources" as const],
+        }
+      : {}),
     text: {
       format: zodTextFormat(
         RoleConversationGenerationSchema,
         "role_conversation_response",
       ),
+      verbosity: "low" as const,
     },
   };
 }

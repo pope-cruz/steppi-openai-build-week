@@ -28,7 +28,7 @@ function request(question = "What might surprise me about this work?"): RoleConv
 }
 
 describe("role conversation generation", () => {
-  it("uses one stored-false GPT-5.6 response with automatic conditional search", () => {
+  it("uses one low-latency stored-false GPT-5.6 response without search tools for interpretation", () => {
     const params = buildRoleConversationResponseParams({
       request: request(),
       dateChecked: "2026-07-20",
@@ -36,8 +36,11 @@ describe("role conversation generation", () => {
     });
 
     expect(params.store).toBe(false);
-    expect(params.tool_choice).toBe("auto");
-    expect(params.include).toEqual(["web_search_call.action.sources"]);
+    expect(params.reasoning).toEqual({ effort: "none" });
+    expect(params.text.verbosity).toBe("low");
+    expect(params).not.toHaveProperty("tools");
+    expect(params).not.toHaveProperty("tool_choice");
+    expect(params).not.toHaveProperty("include");
     expect(params.safety_identifier).toBe("safe-session-1");
     expect(params.max_output_tokens).toBe(2_200);
     expect(params.instructions).toContain("50–90 words");
@@ -56,6 +59,8 @@ describe("role conversation generation", () => {
     });
 
     expect(params.tool_choice).toBe("required");
+    expect(params.tools).toHaveLength(1);
+    expect(params.include).toEqual(["web_search_call.action.sources"]);
   });
 
   it("returns a concise interpretive message without retrieval", async () => {

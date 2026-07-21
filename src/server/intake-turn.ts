@@ -12,7 +12,7 @@ import {
   type ConversationTurnPatch,
 } from "@/lib/intake-conversation";
 
-const DEFAULT_MODEL = "gpt-5.6";
+const DEFAULT_MODEL = "gpt-5.6-luna";
 const REQUEST_TIMEOUT_MS = 25_000;
 
 export const INTAKE_TURN_INSTRUCTIONS = `You are Steppi's intake turn interpreter for high-school and college students.
@@ -104,11 +104,13 @@ async function requestIntakeTurnFromOpenAI({
     instructions: INTAKE_TURN_INSTRUCTIONS,
     input: JSON.stringify({ conversationState: state, transcript: turns }),
     max_output_tokens: 2_000,
+    reasoning: { effort: "none" },
     text: {
       format: zodTextFormat(
         ConversationTurnPatchSchema,
         "intake_turn_interpretation",
       ),
+      verbosity: "low",
     },
   });
 

@@ -173,6 +173,16 @@ describe("deterministic conversational intake shell", () => {
     expect(shouldInterpretConversationTurn(turns.at(-1)!)).toBe(false);
   });
 
+  it("sends every final answer directly to profile generation", () => {
+    const turn = addTurn(
+      [],
+      FINAL_CONSIDERATION_QUESTION,
+      "I want work where I can make useful things with other people.",
+    ).at(-1)!;
+
+    expect(shouldInterpretConversationTurn(turn)).toBe(false);
+  });
+
   it("scopes interpretation work to both revision and source-turn ID", () => {
     expect(interpretationScopeKey(3, "anchor-school")).toBe(
       "3:anchor-school",

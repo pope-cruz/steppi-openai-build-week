@@ -6,6 +6,7 @@ import { VALID_PROFILE_FIXTURE } from "@/test/profile-fixture";
 import {
   normalizedPathName,
   PathValidationError,
+  pruneNearDuplicatePathBranches,
   validatePathGeneration,
 } from "./path-validation";
 
@@ -76,6 +77,33 @@ describe("path generation validation", () => {
     expect(() => validatePathGeneration(VALID_PROFILE_FIXTURE, generation)).toThrow(
       "too similar",
     );
+  });
+
+  it("prunes a near-duplicate when a complete twelve-role set remains", () => {
+    const generation = generationFixture();
+    generation.branches[1].title = "Design in digital products";
+
+    const result = pruneNearDuplicatePathBranches(generation);
+
+    expect(result.prunedCount).toBe(1);
+    expect(result.generation.branches).toHaveLength(12);
+    expect(() =>
+      validatePathGeneration(VALID_PROFILE_FIXTURE, result.generation),
+    ).not.toThrow();
+  });
+
+  it("keeps a near-duplicate when pruning would create an incomplete role set", () => {
+    const generation = {
+      branches: generationFixture().branches.slice(0, 12),
+    };
+    generation.branches[1].title = "Design in digital products";
+
+    const result = pruneNearDuplicatePathBranches(generation);
+
+    expect(result.prunedCount).toBe(0);
+    expect(() =>
+      validatePathGeneration(VALID_PROFILE_FIXTURE, result.generation),
+    ).toThrow(PathValidationError);
   });
 
   it("rejects a role set that collapses into one underlying option", () => {

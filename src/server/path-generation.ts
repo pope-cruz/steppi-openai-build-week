@@ -10,6 +10,7 @@ import { z } from "zod";
 import type { PathApiErrorCode } from "@/lib/path-api";
 import {
   PathValidationError,
+  pruneNearDuplicatePathBranches,
   type PathValidationFailureReason,
   validatePathGeneration,
 } from "@/lib/path-validation";
@@ -20,7 +21,7 @@ import {
   type StudentProfile,
 } from "@/lib/schemas";
 
-const DEFAULT_MODEL = "gpt-5.6";
+const DEFAULT_MODEL = "gpt-5.6-luna";
 const REQUEST_TIMEOUT_MS = 45_000;
 const RETRY_BACKOFF_MS = [250, 750] as const;
 
@@ -109,6 +110,7 @@ export type PathGenerationDiagnostic = {
   upstreamCode?: string;
   requestId?: string;
   issuePaths?: string[];
+  prunedRoleCount?: number;
 };
 
 type GeneratePathsOptions = {
@@ -534,13 +536,17 @@ export async function generatePathBranches(
       });
       requestId = safeToken(providerResult.requestId);
       const output = requireParsedPathOutput(providerResult);
-      const branches = validatePathGeneration(profile, output);
+      const selection = pruneNearDuplicatePathBranches(output);
+      const branches = validatePathGeneration(profile, selection.generation);
       emitDiagnostic(diagnosticSink, {
         attempt,
         stage: "complete",
         reason: "validated_output",
         retryable: false,
         elapsedMs: Math.max(0, Math.round(now() - attemptStartedAt)),
+        ...(selection.prunedCount > 0
+          ? { prunedRoleCount: selection.prunedCount }
+          : {}),
         ...(requestId ? { requestId } : {}),
       });
       return branches;

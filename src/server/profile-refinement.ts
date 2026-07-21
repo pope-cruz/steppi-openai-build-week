@@ -11,7 +11,7 @@ import {
 } from "@/lib/profile-refinement";
 import type { StudentProfile } from "@/lib/schemas";
 
-const DEFAULT_MODEL = "gpt-5.6";
+const DEFAULT_MODEL = "gpt-5.6-luna";
 const REQUEST_TIMEOUT_MS = 25_000;
 
 export const PROFILE_REFINEMENT_INSTRUCTIONS = `You are Steppi's profile-refinement interpreter for a high-school or college student.
@@ -88,11 +88,13 @@ async function requestRefinementFromOpenAI({
     instructions: PROFILE_REFINEMENT_INSTRUCTIONS,
     input: JSON.stringify(request),
     max_output_tokens: 3_000,
+    reasoning: { effort: "none" },
     text: {
       format: zodTextFormat(
         ProfileRefinementModelOutputSchema,
         "profile_refinement_turn",
       ),
+      verbosity: "low",
     },
   });
 
