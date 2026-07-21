@@ -1605,3 +1605,32 @@ Use fixtures only. Do not make a live GPT-5.6 request or deploy.
   and controls rendered without overlap or horizontal overflow, and the
   inspected console contained no warnings or errors.
 - No live or paid GPT-5.6 request was made and no deployment was performed.
+
+---
+
+## 2026-07-22 — Hackathon submission README
+
+### Documentation update
+
+- Reframed the repository README around the Education-track problem, Steppi's
+  breadth-before-depth solution, the end-to-end demo journey, and the intended
+  student outcome.
+- Documented the meaningful GPT-5.6 role, structured-output boundaries,
+  conditional web research, responsible-AI guardrails, system architecture,
+  stack, local setup, demo prompts, deterministic fixtures, verification status,
+  and current limitations.
+- Kept the stale public Preview warning prominent so the older Grade 11 /
+  three-path deployment is not mistaken for the submission build.
+
+### Verification evidence
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed: 27 files and 206 tests.
+- `npm run build` — passed after network access allowed Next.js to retrieve the
+  existing configured Google fonts. The initial restricted-network attempt
+  failed only at the font fetch.
+- `git diff --check` — passed before the verification evidence was appended and
+  repeated in the final scope review.
+- No product code, live or paid GPT-5.6 request, browser flow, or deployment was
+  involved in this documentation-only update.

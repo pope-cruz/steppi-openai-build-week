@@ -4,7 +4,7 @@ project: Steppi
 event: OpenAI Build Week
 status: active
 version: 0.3
-last_updated: 2026-07-21
+last_updated: 2026-07-22
 ---
 
 # Steppi Operational Handoff
@@ -227,6 +227,19 @@ has an explicit, bounded three-attempt reliability policy.
   three-path build rather than the current high-school-and-college, 12–15-role
   product. Redeploy the current commit and verify the anonymous golden path
   before using that URL for submission.
+
+## Submission Documentation Completed on 2026-07-22
+
+- Reworked `README.md` into a hackathon-ready project overview centered on the
+  Education-track problem, breadth-before-depth student journey, meaningful
+  GPT-5.6 contribution, responsible-AI boundaries, architecture, demo flow, and
+  reproducible local setup.
+- Preserved the explicit warning that the currently linked public Preview is
+  stale and must not be used as the submission demo before redeployment and
+  anonymous golden-path verification.
+- Documentation verification passed: `npm run lint`, `npm run typecheck`,
+  `npm run test` (27 files and 206 tests), `npm run build`, and
+  `git diff --check`.
 
 ## Non-blocking Reliability Debt
 
