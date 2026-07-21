@@ -1681,3 +1681,19 @@ Use fixtures only. Do not make a live GPT-5.6 request or deploy.
   The next benchmark should confirm provider latency on the user's active API
   environment; the captured three-call case is expected to avoid its second and
   third calls.
+
+---
+
+## 2026-07-22 — Codex build-process documentation
+
+- Added a dedicated README section explaining that Codex was used across the
+  complete Build Week development loop: planning, implementation, AI integration
+  and safeguards, responsive design iteration, tests and real-browser QA,
+  debugging, and delivery documentation.
+- Kept authorship responsibilities precise: Pope Cruz directed the product and
+  made final decisions, while Codex served as the primary engineering
+  collaborator executing and verifying that direction.
+- Updated the README's verification count from 206 to the latest recorded 210
+  tests across 27 files.
+- This was a documentation-only change. No product code, live or paid GPT-5.6
+  request, browser flow, or deployment was involved.

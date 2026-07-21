@@ -63,6 +63,38 @@ bounded three-attempt application-level validation policy; incomplete role sets
 never reach the student. Role follow-ups are stateless (`store: false`), and the
 application forces web search for deterministically recognized unstable topics.
 
+## How Codex was used to build Steppi
+
+Codex was the primary engineering collaborator throughout the entire Build Week
+build—not just a tool used to generate a single screen or code snippet. Pope Cruz
+set the product direction, constraints, and final decisions; Codex helped turn
+that direction into a working, tested product across the full development loop:
+
+- **Planning and product definition:** translated the initial concept into the
+  product vision, implementation specification, milestone handoff, acceptance
+  criteria, and a continuously maintained build log.
+- **End-to-end implementation:** built and iterated on the Next.js interface,
+  conversational intake, profile confirmation, floating role space, selected-role
+  brief, role-specific conversation, server routes, and conditional research flow.
+- **AI integration and safety:** developed the GPT-5.6 prompts, Zod schemas,
+  deterministic validators, bounded retry behavior, source checks, and honest
+  failure states that keep unsupported or malformed output away from students.
+- **Design iteration:** refined the responsive visual system, interaction states,
+  keyboard behavior, reduced-motion treatment, mobile layouts, and student-facing
+  copy against Steppi's warm, calm, exploratory design direction.
+- **Testing and browser QA:** created unit and route tests plus deterministic
+  fixtures, ran linting, strict type checks, tests, and production builds, and
+  exercised the experience in a real browser across desktop, mobile, loading,
+  empty, error, retry, and malformed-output states.
+- **Debugging and delivery:** inspected logs and diffs, diagnosed model latency
+  and validation failures, tightened the implementation, audited secret exposure,
+  and maintained the README, deployment guidance, and verification evidence.
+
+This human-directed, Codex-executed workflow made the repository itself part of
+the collaboration: product intent lives in `docs/VISION.md`, the current contract
+in `docs/SPEC.md`, operational context in `docs/TASKS.md`, and the detailed record
+of implementation decisions and checks in `docs/BUILD_LOG.md`.
+
 ## Product principles
 
 - **Possibilities, not predictions.** Roles are unranked and framed as options
@@ -173,7 +205,7 @@ npm run test
 npm run build
 ```
 
-The latest completed product verification passed lint, strict type checking, 206
+The latest completed product verification passed lint, strict type checking, 210
 tests across 27 files, a production build, desktop and mobile browser checks,
 keyboard interaction, reduced motion, and malformed-output and failure-state
 fixtures. See [the build log](docs/BUILD_LOG.md) for detailed evidence and

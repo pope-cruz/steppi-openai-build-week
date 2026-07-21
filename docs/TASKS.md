@@ -242,6 +242,10 @@ has an explicit, bounded three-attempt reliability policy.
   Education-track problem, breadth-before-depth student journey, meaningful
   GPT-5.6 contribution, responsible-AI boundaries, architecture, demo flow, and
   reproducible local setup.
+- Added a dedicated account of how Codex supported the complete build lifecycle:
+  product definition, end-to-end implementation, AI safety boundaries, design
+  iteration, automated and browser verification, debugging, and delivery. The
+  wording keeps product direction and final decisions explicitly human-owned.
 - Preserved the explicit warning that the currently linked public Preview is
   stale and must not be used as the submission demo before redeployment and
   anonymous golden-path verification.
