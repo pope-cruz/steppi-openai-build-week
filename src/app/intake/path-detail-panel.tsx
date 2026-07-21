@@ -60,15 +60,15 @@ export function profileEvidence(profile: StudentProfile) {
 
 export function PathDetailPanel({
   branch,
+  conversation,
   evidence,
   onClear,
-  research,
   selectionLocked = false,
 }: {
   branch: PathBranch;
+  conversation?: ReactNode;
   evidence: Map<string, ProfileEvidence>;
   onClear: () => void;
-  research?: ReactNode;
   selectionLocked?: boolean;
 }) {
   const relatedDirections = branch.relatedOptions.filter(
@@ -224,7 +224,7 @@ export function PathDetailPanel({
           </div>
         </details>
       </div>
-      {research}
+      {conversation}
     </section>
   );
 }

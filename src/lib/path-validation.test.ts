@@ -29,9 +29,13 @@ describe("path generation validation", () => {
   it("rejects nonexistent and repeated profile evidence references", () => {
     const nonexistent = generationFixture();
     nonexistent.branches[0].supportingProfileIds = ["fact-does-not-exist"];
-    expect(() =>
-      validatePathGeneration(VALID_PROFILE_FIXTURE, nonexistent),
-    ).toThrow(PathValidationError);
+    try {
+      validatePathGeneration(VALID_PROFILE_FIXTURE, nonexistent);
+      throw new Error("Expected invalid evidence to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(PathValidationError);
+      expect(error).toMatchObject({ reason: "invalid_evidence_reference" });
+    }
 
     const repeated = generationFixture();
     repeated.branches[0].supportingProfileIds = [

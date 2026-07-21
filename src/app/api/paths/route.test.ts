@@ -6,7 +6,7 @@ import type { PathApiResponse } from "@/lib/path-api";
 import { PathGenerationError } from "@/server/path-generation";
 import { VALID_PROFILE_FIXTURE } from "@/test/profile-fixture";
 
-import { handlePathRequest } from "./route";
+import { handlePathRequest, maxDuration } from "./route";
 
 function pathRequest(body: unknown) {
   return new Request("http://localhost/api/paths", {
@@ -17,6 +17,10 @@ function pathRequest(body: unknown) {
 }
 
 describe("path API route", () => {
+  it("allows the bounded three-attempt provider budget", () => {
+    expect(maxDuration).toBe(150);
+  });
+
   it("returns only the validated branches on success", async () => {
     const generatePaths = vi.fn().mockResolvedValue(DEMO_PATH_BRANCHES);
     const response = await handlePathRequest(
@@ -74,6 +78,12 @@ describe("path API route", () => {
     expect(response.status).toBe(status);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(body).toMatchObject({ ok: false, error: { code, retryable } });
+    if (retryable) {
+      expect(body).toMatchObject({
+        ok: false,
+        error: { message: expect.stringMatching(/three|3/i) },
+      });
+    }
     expect(serialized).not.toContain("OPENAI_API_KEY");
     expect(serialized).not.toContain("private SDK detail");
   });

@@ -167,6 +167,11 @@ Each selected role can open an extended conversation grounded in:
 The conversation should help the student progressively understand the role
 rather than immediately produce a comprehensive report.
 
+In the interface, it is a compact continuation beneath the selected-role brief,
+using the same calm conversational language as onboarding at a smaller scale.
+Typical interpretive answers should stay near 50–90 words; source-backed answers
+may use 70–120 words before collapsed source details.
+
 Steppi may:
 
 - clarify what the work involves;

@@ -6,11 +6,23 @@ import {
 } from "@/lib/schemas";
 
 export class PathValidationError extends Error {
-  constructor(message: string) {
+  readonly reason: PathValidationFailureReason;
+
+  constructor(reason: PathValidationFailureReason, message: string) {
     super(message);
     this.name = "PathValidationError";
+    this.reason = reason;
   }
 }
+
+export type PathValidationFailureReason =
+  | "duplicate_role_titles"
+  | "roles_too_similar"
+  | "roles_collapsed"
+  | "unsupported_current_claim"
+  | "duplicate_role_ids"
+  | "duplicate_evidence_ids"
+  | "invalid_evidence_reference";
 
 const DIRECTION_STOP_WORDS = new Set([
   "a",
@@ -107,7 +119,10 @@ function assertMeaningfullyDifferent(branches: PathBranch[]) {
       const right = branches[rightIndex];
 
       if (normalizedPathName(left.title) === normalizedPathName(right.title)) {
-        throw new PathValidationError("Path branches contain duplicate normalized names.");
+        throw new PathValidationError(
+          "duplicate_role_titles",
+          "Path branches contain duplicate normalized names.",
+        );
       }
 
       const titleSimilarity = jaccardSimilarity(
@@ -120,7 +135,10 @@ function assertMeaningfullyDifferent(branches: PathBranch[]) {
       );
 
       if (titleSimilarity >= 0.6 || directionSimilarity >= 0.76) {
-        throw new PathValidationError("Path branches are too similar to compare usefully.");
+        throw new PathValidationError(
+          "roles_too_similar",
+          "Path branches are too similar to compare usefully.",
+        );
       }
     }
   }
@@ -132,6 +150,7 @@ function assertMeaningfullyDifferent(branches: PathBranch[]) {
 
   if (sharedAcrossAll) {
     throw new PathValidationError(
+      "roles_collapsed",
       "All career roles collapse into the same underlying direction.",
     );
   }
@@ -150,6 +169,7 @@ function assertNoUnsupportedCurrentClaims(branches: PathBranch[]) {
 
     if (UNSUPPORTED_CURRENT_CLAIM_PATTERNS.some((pattern) => pattern.test(claimText))) {
       throw new PathValidationError(
+        "unsupported_current_claim",
         "Path branches contain a current factual claim that requires research sources.",
       );
     }
@@ -175,17 +195,24 @@ export function validatePathGeneration(
   const branchIds = generation.branches.map((branch) => branch.id);
 
   if (new Set(branchIds).size !== branchIds.length) {
-    throw new PathValidationError("Path branches must have unique stable IDs.");
+    throw new PathValidationError(
+      "duplicate_role_ids",
+      "Path branches must have unique stable IDs.",
+    );
   }
 
   const validProfileIds = profileItemIds(profile);
   for (const branch of generation.branches) {
     if (new Set(branch.supportingProfileIds).size !== branch.supportingProfileIds.length) {
-      throw new PathValidationError("Path evidence references must be unique per branch.");
+      throw new PathValidationError(
+        "duplicate_evidence_ids",
+        "Path evidence references must be unique per branch.",
+      );
     }
 
     if (branch.supportingProfileIds.some((id) => !validProfileIds.has(id))) {
       throw new PathValidationError(
+        "invalid_evidence_reference",
         "A path branch references profile evidence that does not exist.",
       );
     }

@@ -3,228 +3,161 @@ title: Steppi Operational Handoff
 project: Steppi
 event: OpenAI Build Week
 status: active
-version: 0.2
+version: 0.3
 last_updated: 2026-07-20
 ---
 
 # Steppi Operational Handoff
 
-See [SPEC.md](./SPEC.md) for the current Build Week implementation contract,
+See [SPEC.md](./SPEC.md) for the active Build Week contract,
 [VISION.md](./VISION.md) for product direction, and
-[BUILD_LOG.md](./BUILD_LOG.md) for historical implementation and verification
-evidence. [DESIGN.md](./DESIGN.md) retains useful visual-craft guidance, but its
-former exact-three graph structure is explicitly superseded pending realignment.
+[BUILD_LOG.md](./BUILD_LOG.md) for implementation and verification history.
 
 ## Current Product Direction
 
-Steppi is a guided career-exploration companion for high-school students with
-limited exposure to available roles. The product follows **breadth before depth**:
+Steppi is a career-exploration companion for high-school students. Its polished
+demo loop follows breadth before depth:
 
-1. discover several varied roles;
-2. understand each role quickly; and
-3. explore an interesting role through an extended conversation.
+1. complete a short conversational intake;
+2. confirm or directly edit Steppi's student-context hypothesis;
+3. scan approximately seven varied, unranked career roles;
+4. understand one selected role in under a minute; and
+5. ask concise follow-ups in a role-specific conversation, using current-source
+   research only when the question requires unstable external facts.
 
-The intended Build Week experience presents approximately seven unranked career
-roles in a floating possibility space. Selecting a role should explain what it
-is, why it may fit, why it may not fit, and what its day-to-day work is like.
-The student can then ask natural follow-up questions. Current-source research is
-used only when an answer requires unstable external facts.
-
-The visualization supports discovery, switching, and orientation. It is not a
-living graph that every response must mutate.
+The role space supports discovery and switching. It is not a ranking, prediction,
+or technical graph editor.
 
 ## Current Implemented Behavior
 
-- A clear landing page introduces exploration rather than prediction.
-- The in-memory intake is a persistent conversation with three ordered anchors,
-  one or two controller-selected follow-ups, one final consideration question,
-  multiline composition, revision, request locking, transcript preservation,
-  loading, failure, malformed-output, fallback, and retry behavior.
-- Server-only GPT-5.6 profile generation now returns the unchanged validated
-  structured profile plus an exactly two-sentence, direct-address
-  `confirmationSummary` in the same request.
-- Confirmation leads with only that warm reflection. The complete structured
-  profile is collapsed by default in a secondary disclosure. The student can
-  accept it with **Good to go!** or directly edit it with **Let me refine this**.
-- The confirmation hierarchy keeps the page title dominant while the reflection
-  uses a 40px desktop cap, 1.35 line-height, and an 880px reading measure.
-- Profile generation now records content-safe server diagnostics for configuration,
-  provider request, incomplete provider response, and schema-validation failures;
-  public errors remain generic.
-- A saved edit becomes `confirmedSummary` without another model request or a
-  reverse transformation into profile fields. The legacy profile-refinement API
-  remains in the repository but no longer drives the normal confirmation screen.
-- Role generation receives the unchanged profile followed by `confirmedSummary`.
-  The approved wording resolves contradictions and priorities or adds context;
-  stylistic omissions do not discard useful structured details.
-- Path generation now returns one validated set of 6–8 unranked career roles,
-  targeting seven, in a single request. Every role includes the complete concise
-  selected-role explanation contract and valid profile-evidence references.
-- The desktop overview is a deterministic floating field of title-only role pills
-  with no edges, rankings, scores, or graph controls. Mobile renders the complete
-  same role set as a vertical list of large title-only pills.
-- Selecting one role opens a concise, student-facing role brief and preserves
-  the other roles. Supporting profile evidence, the unresolved question, and
-  related directions remain available through progressive disclosure. Its
-  presentation is now lighter and more compact, uses balanced fit/mismatch
-  sections, and translates internal confidence into warm exploration framing.
-- Selected-path research exists as a one-shot focused question followed by a
-  source-backed expansion. It is not yet an extended role conversation.
-- Research output uses strict structured validation, provider-retrieved source
-  allow-listing, atomic claim citations, safe partial acceptance, honest
-  no-result behavior, explicit retry, and state preservation.
-- The fixed post-research action **Prioritize affordable options near Manila** is
-  implemented. It performs a second validated affordability-focused research
-  pass, preserves baseline findings while loading or failing, supports explicit
-  retry, and preserves unrelated profile and map state.
-- All active student, transcript, profile, path, research, and refinement state is
-  in memory and clears on refresh.
-
-## Important Product-contract Correction
-
-The implementation previously reflected the former exact-three, graph-first,
-research-then-refinement demo contract. That completed history remains real, but
-the normal generation and overview flow is now aligned to the unranked role space.
-
-The current intended product differs in these ways:
-
-- approximately seven varied career roles replace exactly three ranked-like
-  branch roles as the Build Week target;
-- the role space is an unranked floating discovery surface rather than a fixed
-  central-student branch graph;
-- every role needs a short role-first explanation before research;
-- natural follow-up questions and an extended role conversation provide depth;
-- research is conditional on unstable external facts rather than mandatory after
-  role selection; and
-- the fixed Manila affordability action is optional historical demo capability,
-  not part of the default golden path or definition of completion.
-
-Do not delete the existing fixed refinement, its tests, or its validation and
-state-preservation mechanisms during product alignment. They remain useful
-technical evidence and may inform later work.
-
-## Product-alignment Gaps
-
-### Extended role conversation
-
-The current product supports one research-question composer for a selected path.
-It does not yet maintain an extended message history grounded in the selected
-role and student context, support interpretive answers without retrieval, or
-restore an existing role conversation after switching roles.
-
-### Research presentation
-
-The source-trust boundary is strong, but the default rendered result emphasizes
-atomic claim labels, title-source indices, confidence, URLs, and source directories.
-The intended presentation should lead with the direct answer, relevance, and
-caveats, with detailed provenance progressively disclosed.
+- The in-memory intake has three ordered anchors, controller-selected follow-ups,
+  one final consideration question, revision, transcript preservation, request
+  locking, loading, failure, malformed-output, fallback, and retry behavior.
+- Server-only GPT-5.6 profile generation returns a validated structured profile
+  and an exactly two-sentence `confirmationSummary` in one request.
+- The student can accept or directly rewrite the summary. Role generation receives
+  both the unchanged profile and latest approved `confirmedSummary`.
+- Path generation returns one validated set of 6–8 unranked, meaningfully varied
+  roles, targeting seven. Each role includes a concise explanation and valid
+  profile-evidence references. It may make up to three sequential GPT-5.6
+  attempts per click, stopping at the first complete validated set; SDK retries
+  remain disabled and no partial set reaches the client.
+- Desktop shows a deterministic floating field of title-only role pills. Mobile
+  shows the same complete role set as a vertical list.
+- Each selected role explains what it is, why it may fit, why it may not fit,
+  its day-to-day rhythm, and one low-risk experiment.
+- A compact conversation now sits directly beneath the selected-role brief and
+  visually continues the intake at a smaller scale.
+- The student can type a natural question or use one of three concise starter
+  prompts. Enter submits and Shift+Enter adds a line break.
+- Conversation messages and drafts are held separately per role during the active
+  visit. Switching roles restores the prior role conversation without leakage.
+- Interpretive answers target 2–4 sentences and roughly 50–90 words. Researched
+  answers target 3–5 sentences and roughly 70–120 words before source details.
+- The synchronous `/api/role-conversation` boundary validates the complete
+  profile, approved summary, selected role, role-scoped history, question,
+  request identity, and anonymous safety identifier.
+- GPT-5.6 receives one stateless Responses API request per message with automatic
+  web-search access. Search is forced for deterministically recognized unstable
+  topics such as current programs, costs, admissions, licensing, salary, and
+  location-specific opportunities.
+- Researched answers only keep provider-retrieved HTTPS URLs. Unsupported source
+  blocks are removed; if trustworthy evidence does not survive, Steppi returns an
+  honest unavailable response instead of an unsupported current claim.
+- Source links appear beside supported prose. Source title, publisher, and date
+  checked remain collapsed until the student opens the provenance disclosure.
+- Loading differentiates interpretation from current-source checking. API,
+  retrieval, timeout, and malformed-output failures preserve the question and
+  offer safe retry without duplicating the user message.
+- The former one-shot selected-role research, polling, research-node expansion,
+  and fixed Manila affordability refinement have been removed. Research now
+  exists only as a conditional capability inside the role conversation.
+- All active intake, profile, path, and role-conversation state is in memory and
+  clears on refresh.
 
 ## Important Active Decisions
 
-- The product provides breadth before depth.
-- Initial audience: high-school students beginning college and career exploration.
-- The intake remains conversational, concrete, correctable, and non-diagnostic.
-- The initial confirmation is exactly two generated sentences; direct student
-  edits take precedence over the formatting constraint and do not mutate the
-  original structured profile.
-- Role generation uses the complete profile for breadth and the approved summary
-  to resolve contradictions, additions, and priorities.
-- The normal Build Week target is approximately seven career roles; roughly seven
-  to ten may be acceptable when context and layout justify it.
-- Roles must be meaningfully varied and must not be presented as an objective
-  ranking or prediction.
-- The possibility space supports discovery and navigation; arbitrary graph
-  mutation is not required.
-- Every role must explain what it is, possible fit, possible mismatch, and
-  day-to-day work before deep research.
-- Students ask natural follow-up questions in an extended role conversation.
-- Interpretive guidance based on validated existing context does not require a
-  new retrieval pass.
-- Unstable external factual claims require current retrieved support.
-- Detailed claim-to-source provenance remains validated but should be
-  progressively disclosed.
-- The fixed Manila affordability refinement is implemented but optional and
-  outside the default golden path.
-- No authentication, persistence, database, comprehensive dataset, graph library,
-  or speculative infrastructure is part of the immediate alignment work.
+- The product provides breadth before depth and possibilities rather than
+  predictions or rankings.
+- The initial audience is high-school students beginning college and career
+  exploration.
+- The selected-role conversation is a compact tidbit below the existing brief,
+  not a separate full-screen chat or dense report.
+- The normal answer targets are 50–90 words for interpretation and 70–120 words
+  for researched prose; collapsed source metadata is excluded.
+- Conversation history is separate per role during the active visit.
+- Interpretive guidance grounded in validated existing context does not require
+  retrieval by default.
+- Unstable current claims require current retrieved support and progressively
+  disclosed provenance.
+- A missing or malformed source-backed answer fails safely; it does not degrade
+  into an unsupported factual response.
+- The three-attempt application retry policy applies only to path generation.
+  Non-recoverable input, configuration, authentication, permission, and content-
+  filter failures stop immediately; other model calls are unchanged.
+- No authentication, persistence, database, comprehensive dataset, global search,
+  or general agent architecture is in scope for the Build Week demo.
 
 ## Active Milestone
 
-**Milestone 5 — Extended Role Conversation**
+**Milestone 7 — Reliability and Submission**
 
-Milestone 2 — Student-context Confirmation is now implemented and deterministically
-verified with the two-sentence generation contract, direct student refinement,
-secondary details, and approved-summary precedence. The next product gap is one
-role-specific extended conversation with conditional retrieval.
+Milestone 5 (Extended Role Conversation) and Milestone 6 (Conditional Research)
+are implemented and deterministically verified. Path-generation assignment now
+has an explicit, bounded three-attempt reliability policy.
 
-## Recommended Implementation Sequence
+## Verification Completed on 2026-07-20
 
-1. ~~Enrich the selected-role explanation and validated path data contract.~~
-2. ~~Refine the selected-role explanation presentation.~~
-3. ~~Replace exact-three branch generation and overview with the
-   approximately-seven varied-role contract, unranked floating role space, and
-   accessible mobile fallback.~~
-4. ~~Align the concise student-context confirmation.~~
-5. **Add one role-specific extended conversation with natural questions and
-   conditional retrieval.**
-6. Simplify researched-answer presentation through progressive disclosure while
-   preserving source validation.
-7. Run full reliability, accessibility, deployment, and submission verification.
+- `npm run lint` — passed.
+- `npm run typecheck` — passed after Next.js regenerated its development route
+  types without the deleted `/api/research` route.
+- `npm run test` — passed, 26 files and 194 tests.
+- `npm run build` — passed; production output contains
+  `/api/role-conversation` and no `/api/research` route.
+- `git diff --check` — passed.
+- Desktop browser fixture verification passed for role selection, unchanged role
+  brief, interpretive loading/answer, current-source loading/answer, 80-word
+  researched fixture prose, collapsed and expanded provenance, role switching,
+  role-history restoration, retry without a duplicate question, and safe
+  malformed-output rejection.
+- Mobile browser verification at 390×844 passed with the complete vertical role
+  fallback, complete seven-role success state, exhausted-retry error fixture,
+  retry control, and no horizontal overflow.
+- The inspected browser session had no console errors and no framework error
+  overlay. The home route also rendered normally.
+- One authorized live local `profile-live-paths` action succeeded on the first
+  GPT-5.6 attempt and assigned seven validated roles. The dev logger collapsed
+  that completion object's fields; diagnostics now serialize as one safe JSON
+  message, covered by a deterministic regression test. No second paid call was
+  made.
 
-Do not combine these into one broad refactor. Preserve working downstream behavior
-until the corresponding alignment step explicitly changes it.
+## Current Blockers
+
+- Vercel Authentication still blocks anonymous Preview access; the deployed
+  golden path remains unavailable to judges until that project setting changes.
+
+## Non-blocking Reliability Debt
+
+- Refresh clears all active state, including per-role conversations.
+- The new role-conversation provider boundary has deterministic mocked coverage
+  but no fresh live or paid GPT-5.6 quality pass.
+- The browser-control surface focused native role buttons but did not dispatch
+  Enter or Space activation in this run. The controls remain semantic native
+  buttons with visible focus styles; real-browser keyboard activation should be
+  repeated with a keyboard-capable runner before final submission.
+- Intake duration and screen-reader behavior remain unmeasured.
+- The 6–8-role generation contract has not been calibrated against a materially
+  different live persona.
 
 ## Exact Next Recommended Task
 
 ```text
-Read AGENTS.md, docs/VISION.md, docs/SPEC.md, docs/TASKS.md, and the latest
-relevant docs/BUILD_LOG.md entries. Inspect the confirmed StudentProfile and
-confirmedSummary flow, selected-role state, existing research boundary, fixtures,
-and tests.
-
-Implement the smallest complete selected-role extended conversation in SPEC.md.
-Keep one conversation history scoped to one selected role, accept natural
-free-text follow-up questions, and ground each response in the validated profile,
-student-approved confirmedSummary, selected-role explanation, and prior messages.
-Answer interpretive questions without retrieval; use the existing validated
-research boundary only when a question requires unstable external facts.
-
-Preserve the conversational intake, two-sentence confirmation and direct editing,
-6–8 unranked role generation, floating role space, selected-role explanation,
-source trust boundary, and optional Manila refinement. Do not add authentication,
-persistence, a database, global search, per-role generation calls, or a general
-agent architecture.
-
-Use deterministic fixtures and mocked model/retrieval boundaries. Verify role-
-scoped history, natural questions, interpretive no-retrieval answers, conditional
-research, failure/retry, switching without cross-role leakage, desktop/mobile,
-keyboard use, and the console. Run lint, typecheck, tests, build, and
-git diff --check; update TASKS.md and BUILD_LOG.md accurately. Do not make a live
-or paid request unless separately authorized.
+Run the final submission reliability pass using deterministic fixtures only.
+Repeat the complete landing → intake/profile fixture → confirmation → seven-role
+space → selected-role brief → interpretive follow-up → researched follow-up flow
+with a real keyboard-capable browser runner and confirm Enter/Space role
+activation, focus return, Tab order, and screen-reader labels. Then recheck the
+public deployment configuration and remove Vercel Authentication if authorized.
+Do not make another live or paid GPT-5.6 request or deploy unless separately
+authorized.
 ```
-
-## Current Blockers
-
-- No known technical blocker prevents the selected-role conversation work.
-- Vercel Authentication still blocks anonymous Preview access; the current
-  deployed golden path remains unverified for judges.
-
-## Non-blocking Reliability Debt
-
-- Path timeout classification may report an SDK timeout as generic `api_failure`
-  because that route still relies on `error.name`.
-- Refresh clears all active state.
-- Intake duration and screen-reader behavior remain unmeasured.
-- Revised intake interpretation and profile refinement have deterministic but not
-  fresh live GPT-5.6 verification.
-- One fresh local GPT-5.6 profile request returned HTTP 200 with a complete,
-  schema-valid profile and confirmation summary. The intermittent prior failure
-  was not reproduced; representative-student comprehension and broader output
-  quality remain unverified.
-- The 6–8-role generation contract and seven-role fixture have not been calibrated
-  through a fresh live GPT-5.6 response or a materially different persona.
-- The enriched path contract and role brief are fixture-verified but have not had
-  a fresh live or paid GPT-5.6 generation; active path state is in memory, so no
-  persisted-data migration was required.
-- The fixed affordability refinement has deterministic provider-boundary and
-  browser evidence but no live or paid GPT-5.6 verification.

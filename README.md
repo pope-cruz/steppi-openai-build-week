@@ -1,8 +1,17 @@
 # Steppi
 
-Steppi helps Grade 11 students explore realistic career and college directions through a transparent, source-backed map. It supports exploration; it does not predict a student’s future or replace professional guidance.
+Steppi helps high-school students discover career roles they may not know exist,
+understand why those roles might or might not suit them, and explore interesting
+options through conversation. It supports exploration; it does not predict a
+student’s future or replace professional guidance.
 
-This repository contains the product shell and a narrow end-to-end intake and profile-generation flow. The `/intake` route asks one question at a time, preserves answers during back navigation, includes a deterministic adaptive follow-up, validates answers before submission, sends them to GPT-5.6 through a server-only route, and renders only a validated profile. Profile correction, the exploration map, research, and persistence are not implemented yet.
+The `/intake` flow now covers the core demo loop: a conversational intake,
+validated GPT-5.6 student profile, editable student-context confirmation, 6–8
+unranked role possibilities, a concise selected-role brief, and a compact
+role-specific conversation. Interpretive follow-ups use the confirmed context
+directly; questions that require unstable external facts use server-side web
+search and only render validated source-backed claims. All active state remains
+in memory and clears on refresh.
 
 ## Local setup
 
@@ -36,11 +45,30 @@ npm run build
 npm run start
 ```
 
-Open [http://localhost:3000/intake](http://localhost:3000/intake), complete the short intake, review the answers, and select **Build my profile**. The request is stateless and does not persist the answers or returned profile. Use **Start over** to clear the current in-memory intake.
+Open [http://localhost:3000/intake](http://localhost:3000/intake), complete the
+short intake, confirm or edit Steppi’s summary, select **Good to go!**, choose a
+role, and ask a follow-up beneath its role brief. Requests are stateless; refresh
+clears the intake, profile, role set, and role conversations.
 
-The route returns calm public error states for missing configuration, invalid input, timeout, upstream failure, and malformed model output. Raw SDK errors and environment values are not returned or logged.
+Development-only fixtures can exercise the role conversation without a paid
+request:
 
-A real local GPT-5.6 response was successfully validated and rendered before the current intake work block. Deterministic tests cover missing configuration, timeout, upstream failure, malformed output, response validation, and retryability without spending API credit.
+```text
+/intake?fixture=conversation-success
+/intake?fixture=conversation-researched
+/intake?fixture=conversation-unavailable
+/intake?fixture=conversation-api-failure
+/intake?fixture=conversation-malformed
+```
+
+The server routes return calm public error states for missing configuration,
+invalid input, timeout, upstream failure, retrieval failure, and malformed model
+output. Raw SDK errors and environment values are not returned to the browser.
+
+A previous real local GPT-5.6 profile response was validated and rendered.
+Role-conversation behavior is currently verified with deterministic fixtures and
+mocked model/retrieval boundaries; no new live or paid request is required for
+the demo checks.
 
 ## Deployment
 

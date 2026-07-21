@@ -1,9 +1,18 @@
 import OpenAI from "openai";
+import {
+  APIError,
+  ContentFilterFinishReasonError,
+  LengthFinishReasonError,
+} from "openai/error";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 
 import type { PathApiErrorCode } from "@/lib/path-api";
-import { PathValidationError, validatePathGeneration } from "@/lib/path-validation";
+import {
+  PathValidationError,
+  type PathValidationFailureReason,
+  validatePathGeneration,
+} from "@/lib/path-validation";
 import {
   ConfirmedSummarySchema,
   PathGenerationSchema,
@@ -13,6 +22,9 @@ import {
 
 const DEFAULT_MODEL = "gpt-5.6";
 const REQUEST_TIMEOUT_MS = 45_000;
+const RETRY_BACKOFF_MS = [250, 750] as const;
+
+export const MAX_PATH_ATTEMPTS = 3;
 
 export const PATH_INSTRUCTIONS = `You are Steppi, an educational exploration assistant for high-school students.
 Generate one complete unranked set of career-role possibilities from the confirmed student profile. Target seven roles and return no fewer than six and no more than eight.
@@ -20,6 +32,8 @@ Generate one complete unranked set of career-role possibilities from the confirm
 Rules:
 - Return all roles together in one response. Never rank, score, tier, order, or label any role as the best fit.
 - The input contains the complete structured profile followed by the student's approved summary. Treat that approved summary as the student's latest clarification.
+- The input also contains allowedSupportingProfileIds. Copy supportingProfileIds exactly from that allow-list; never invent, alter, or repeat an ID within one role.
+- If retryCorrection is present, correct that application-identified problem while regenerating the complete role set.
 - If the approved summary conflicts with an older inference or profile detail, follow the approved summary. If it adds information, incorporate it.
 - Do not treat a stylistic omission from the short approved summary as a rejection of every omitted profile detail. Use the complete profile for breadth and the approved summary to resolve contradictions and priorities.
 - Target seven roles. Six or eight are allowed only when that produces a more honest, varied set.
@@ -39,30 +53,133 @@ Rules:
 - Use conversational, plain, age-appropriate language and speak directly to the student where natural.
 - Keep every explanation concise enough to scan in under one minute.`;
 
+type PathProviderResult = {
+  output: unknown;
+  incompleteReason?: "max_output_tokens" | "content_filter" | null;
+  requestId?: string | null;
+};
+
 type PathRequest = (input: {
   profile: StudentProfile;
   confirmedSummary: string;
   apiKey: string;
   model: string;
-}) => Promise<unknown>;
+  attempt: number;
+  retryCorrection?: string;
+}) => Promise<PathProviderResult>;
+
+type DiagnosticPublicCode = Exclude<PathApiErrorCode, "invalid_input">;
+
+export type PathGenerationDiagnostic = {
+  attempt: number;
+  stage:
+    | "configuration"
+    | "input_validation"
+    | "provider_request"
+    | "provider_response"
+    | "structured_validation"
+    | "role_validation"
+    | "complete";
+  reason:
+    | "missing_api_key"
+    | "invalid_model"
+    | "invalid_confirmed_summary"
+    | "request_timeout"
+    | "request_aborted"
+    | "connection_failed"
+    | "retryable_upstream_status"
+    | "authentication_failed"
+    | "permission_denied"
+    | "request_rejected"
+    | "upstream_api_failure"
+    | "incomplete_max_output_tokens"
+    | "incomplete_content_filter"
+    | "parsed_output_missing"
+    | "provider_parse_failed"
+    | "schema_validation_failed"
+    | PathValidationFailureReason
+    | "validated_output";
+  retryable: boolean;
+  publicCode?: DiagnosticPublicCode;
+  upstreamStatus?: number;
+  upstreamCode?: string;
+  requestId?: string;
+  issuePaths?: string[];
+};
 
 type GeneratePathsOptions = {
   apiKey?: string;
   model?: string;
   requestPaths?: PathRequest;
+  sleep?: (milliseconds: number) => Promise<void>;
+  diagnosticSink?: (diagnostic: PathGenerationDiagnostic) => void;
 };
 
-export class PathGenerationError extends Error {
-  readonly code: Exclude<PathApiErrorCode, "invalid_input">;
+class PathProviderOutputError extends Error {
+  readonly reason:
+    | "incomplete_max_output_tokens"
+    | "incomplete_content_filter"
+    | "parsed_output_missing";
+  readonly retryable: boolean;
 
-  constructor(code: Exclude<PathApiErrorCode, "invalid_input">) {
-    super(code);
-    this.name = "PathGenerationError";
-    this.code = code;
+  constructor(
+    reason: PathProviderOutputError["reason"],
+    retryable: boolean,
+  ) {
+    super(reason);
+    this.name = "PathProviderOutputError";
+    this.reason = reason;
+    this.retryable = retryable;
   }
 }
 
+export class PathGenerationError extends Error {
+  readonly code: DiagnosticPublicCode;
+  readonly diagnostics: PathGenerationDiagnostic[];
+
+  constructor(
+    code: DiagnosticPublicCode,
+    diagnostics: PathGenerationDiagnostic[] = [],
+  ) {
+    super(code);
+    this.name = "PathGenerationError";
+    this.code = code;
+    this.diagnostics = diagnostics;
+  }
+}
+
+function defaultSleep(milliseconds: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function defaultDiagnosticSink(diagnostic: PathGenerationDiagnostic) {
+  const method = diagnostic.reason === "validated_output" ? console.info : console.warn;
+  method(`[path-generation] ${JSON.stringify(diagnostic)}`);
+}
+
+function emitDiagnostic(
+  sink: (diagnostic: PathGenerationDiagnostic) => void,
+  diagnostic: PathGenerationDiagnostic,
+) {
+  try {
+    sink(diagnostic);
+  } catch {
+    // Diagnostics must never change the user-visible generation result.
+  }
+}
+
+function safeToken(value: unknown, maximumLength = 128) {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return /^[a-z0-9._-]+$/i.test(trimmed) && trimmed.length <= maximumLength
+    ? trimmed
+    : undefined;
+}
+
 function isTimeoutError(error: unknown) {
+  if (error instanceof OpenAI.APIConnectionTimeoutError) {
+    return true;
+  }
   if (!(error instanceof Error)) {
     return false;
   }
@@ -77,12 +194,23 @@ function isTimeoutError(error: unknown) {
   );
 }
 
+function profileItemIds(profile: StudentProfile) {
+  return [
+    ...profile.facts.map((item) => item.id),
+    ...profile.inferences.map((item) => item.id),
+    ...profile.constraints.map((item) => item.id),
+    ...profile.uncertainties.map((item) => item.id),
+    ...profile.tensions.map((item) => item.id),
+  ];
+}
+
 async function requestPathsFromOpenAI({
   profile,
   confirmedSummary,
   apiKey,
   model,
-}: Parameters<PathRequest>[0]) {
+  retryCorrection,
+}: Parameters<PathRequest>[0]): Promise<PathProviderResult> {
   const client = new OpenAI({
     apiKey,
     maxRetries: 0,
@@ -92,24 +220,233 @@ async function requestPathsFromOpenAI({
   const response = await client.responses.parse({
     model,
     instructions: PATH_INSTRUCTIONS,
-    input: JSON.stringify(pathGenerationContext(profile, confirmedSummary)),
+    input: JSON.stringify(
+      pathGenerationContext(profile, confirmedSummary, retryCorrection),
+    ),
     max_output_tokens: 9_000,
     text: {
       format: zodTextFormat(PathGenerationSchema, "path_generation"),
     },
   });
 
-  return response.output_parsed;
+  return {
+    output: response.output_parsed,
+    incompleteReason: response.incomplete_details?.reason,
+    requestId: response._request_id,
+  };
 }
 
 export function pathGenerationContext(
   profile: StudentProfile,
   confirmedSummary: string,
+  retryCorrection?: string,
 ) {
   return {
     confirmedProfile: profile,
     studentApprovedSummary: ConfirmedSummarySchema.parse(confirmedSummary),
+    allowedSupportingProfileIds: profileItemIds(profile),
+    ...(retryCorrection ? { retryCorrection } : {}),
   };
+}
+
+export function requireParsedPathOutput({
+  incompleteReason,
+  output,
+}: Pick<PathProviderResult, "incompleteReason" | "output">) {
+  if (output !== null && output !== undefined) {
+    return output;
+  }
+
+  if (incompleteReason === "max_output_tokens") {
+    throw new PathProviderOutputError("incomplete_max_output_tokens", true);
+  }
+  if (incompleteReason === "content_filter") {
+    throw new PathProviderOutputError("incomplete_content_filter", false);
+  }
+  throw new PathProviderOutputError("parsed_output_missing", true);
+}
+
+function publicCodeForDiagnostics(diagnostics: PathGenerationDiagnostic[]) {
+  const priority: Record<DiagnosticPublicCode, number> = {
+    configuration_missing: 0,
+    invalid_model_configuration: 0,
+    api_failure: 1,
+    timeout: 2,
+    malformed_model_output: 3,
+  };
+
+  return diagnostics.reduce<DiagnosticPublicCode>(
+    (selected, diagnostic) =>
+      diagnostic.publicCode && priority[diagnostic.publicCode] > priority[selected]
+        ? diagnostic.publicCode
+        : selected,
+    "api_failure",
+  );
+}
+
+function apiFailureDiagnostic(
+  error: APIError,
+  attempt: number,
+): PathGenerationDiagnostic {
+  const upstreamStatus = error.status;
+  const upstreamCode = safeToken(error.code, 80);
+  const requestId = safeToken(error.requestID);
+  const base = {
+    attempt,
+    stage: "provider_request" as const,
+    publicCode: "api_failure" as const,
+    ...(typeof upstreamStatus === "number" ? { upstreamStatus } : {}),
+    ...(upstreamCode ? { upstreamCode } : {}),
+    ...(requestId ? { requestId } : {}),
+  };
+
+  if (error instanceof OpenAI.APIUserAbortError) {
+    return { ...base, reason: "request_aborted", retryable: false };
+  }
+  if (error instanceof OpenAI.APIConnectionError) {
+    return { ...base, reason: "connection_failed", retryable: true };
+  }
+  if (error instanceof OpenAI.AuthenticationError) {
+    return { ...base, reason: "authentication_failed", retryable: false };
+  }
+  if (error instanceof OpenAI.PermissionDeniedError) {
+    return { ...base, reason: "permission_denied", retryable: false };
+  }
+  if (
+    upstreamStatus === 408 ||
+    upstreamStatus === 409 ||
+    upstreamStatus === 429 ||
+    (typeof upstreamStatus === "number" && upstreamStatus >= 500)
+  ) {
+    return { ...base, reason: "retryable_upstream_status", retryable: true };
+  }
+  return { ...base, reason: "request_rejected", retryable: false };
+}
+
+function diagnosticForAttemptError({
+  attempt,
+  error,
+  requestId,
+}: {
+  attempt: number;
+  error: unknown;
+  requestId?: string;
+}): PathGenerationDiagnostic {
+  const requestMetadata = requestId ? { requestId } : {};
+
+  if (error instanceof PathProviderOutputError) {
+    return {
+      attempt,
+      stage: "provider_response",
+      reason: error.reason,
+      retryable: error.retryable,
+      publicCode: "malformed_model_output",
+      ...requestMetadata,
+    };
+  }
+  if (error instanceof LengthFinishReasonError) {
+    return {
+      attempt,
+      stage: "provider_response",
+      reason: "incomplete_max_output_tokens",
+      retryable: true,
+      publicCode: "malformed_model_output",
+      ...requestMetadata,
+    };
+  }
+  if (error instanceof ContentFilterFinishReasonError) {
+    return {
+      attempt,
+      stage: "provider_response",
+      reason: "incomplete_content_filter",
+      retryable: false,
+      publicCode: "malformed_model_output",
+      ...requestMetadata,
+    };
+  }
+  if (error instanceof SyntaxError) {
+    return {
+      attempt,
+      stage: "provider_response",
+      reason: "provider_parse_failed",
+      retryable: true,
+      publicCode: "malformed_model_output",
+      ...requestMetadata,
+    };
+  }
+  if (error instanceof z.ZodError) {
+    return {
+      attempt,
+      stage: "structured_validation",
+      reason: "schema_validation_failed",
+      retryable: true,
+      publicCode: "malformed_model_output",
+      issuePaths: error.issues
+        .map((issue) => issue.path.join("."))
+        .filter(Boolean),
+      ...requestMetadata,
+    };
+  }
+  if (error instanceof PathValidationError) {
+    return {
+      attempt,
+      stage: "role_validation",
+      reason: error.reason,
+      retryable: true,
+      publicCode: "malformed_model_output",
+      ...requestMetadata,
+    };
+  }
+  if (isTimeoutError(error)) {
+    return {
+      attempt,
+      stage: "provider_request",
+      reason: "request_timeout",
+      retryable: true,
+      publicCode: "timeout",
+      ...requestMetadata,
+    };
+  }
+  if (error instanceof APIError) {
+    return apiFailureDiagnostic(error, attempt);
+  }
+  return {
+    attempt,
+    stage: "provider_request",
+    reason: "upstream_api_failure",
+    retryable: false,
+    publicCode: "api_failure",
+    ...requestMetadata,
+  };
+}
+
+function retryCorrectionFor(reason: PathGenerationDiagnostic["reason"]) {
+  if (
+    reason === "invalid_evidence_reference" ||
+    reason === "duplicate_evidence_ids"
+  ) {
+    return "Regenerate the complete role set and copy every supportingProfileIds value exactly from allowedSupportingProfileIds, without repeats.";
+  }
+  if (
+    reason === "duplicate_role_ids" ||
+    reason === "duplicate_role_titles" ||
+    reason === "roles_too_similar" ||
+    reason === "roles_collapsed"
+  ) {
+    return "Regenerate the complete role set with unique IDs, distinct titles, and meaningfully different occupation families, work rhythms, and environments.";
+  }
+  if (reason === "unsupported_current_claim") {
+    return "Regenerate the complete role set without salaries, rankings, demand, admissions, costs, availability, or other current claims.";
+  }
+  if (
+    reason === "schema_validation_failed" ||
+    reason === "provider_parse_failed" ||
+    reason === "incomplete_max_output_tokens" ||
+    reason === "parsed_output_missing"
+  ) {
+    return "Regenerate one complete schema-valid object containing six to eight fully populated roles; do not omit, rename, or add fields.";
+  }
+  return undefined;
 }
 
 export async function generatePathBranches(
@@ -119,44 +456,105 @@ export async function generatePathBranches(
 ): Promise<PathBranch[]> {
   const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY ?? "";
   const model = options.model ?? process.env.OPENAI_MODEL ?? DEFAULT_MODEL;
+  const requestPaths = options.requestPaths ?? requestPathsFromOpenAI;
+  const sleep = options.sleep ?? defaultSleep;
+  const diagnosticSink = options.diagnosticSink ?? defaultDiagnosticSink;
 
   if (!apiKey.trim()) {
-    throw new PathGenerationError("configuration_missing");
+    const diagnostic: PathGenerationDiagnostic = {
+      attempt: 0,
+      stage: "configuration",
+      reason: "missing_api_key",
+      retryable: false,
+      publicCode: "configuration_missing",
+    };
+    emitDiagnostic(diagnosticSink, diagnostic);
+    throw new PathGenerationError("configuration_missing", [diagnostic]);
   }
 
   if (!/^gpt-5\.6(?:-|$)/.test(model)) {
-    throw new PathGenerationError("invalid_model_configuration");
+    const diagnostic: PathGenerationDiagnostic = {
+      attempt: 0,
+      stage: "configuration",
+      reason: "invalid_model",
+      retryable: false,
+      publicCode: "invalid_model_configuration",
+    };
+    emitDiagnostic(diagnosticSink, diagnostic);
+    throw new PathGenerationError("invalid_model_configuration", [diagnostic]);
   }
 
   const parsedSummary = ConfirmedSummarySchema.safeParse(confirmedSummary);
   if (!parsedSummary.success) {
-    throw new PathGenerationError("malformed_model_output");
+    const diagnostic: PathGenerationDiagnostic = {
+      attempt: 0,
+      stage: "input_validation",
+      reason: "invalid_confirmed_summary",
+      retryable: false,
+      publicCode: "malformed_model_output",
+      issuePaths: parsedSummary.error.issues
+        .map((issue) => issue.path.join("."))
+        .filter(Boolean),
+    };
+    emitDiagnostic(diagnosticSink, diagnostic);
+    throw new PathGenerationError("malformed_model_output", [diagnostic]);
   }
 
-  let output: unknown;
+  const diagnostics: PathGenerationDiagnostic[] = [];
+  let retryCorrection: string | undefined;
 
-  try {
-    output = await (options.requestPaths ?? requestPathsFromOpenAI)({
-      profile,
-      confirmedSummary: parsedSummary.data,
-      apiKey,
-      model,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError || error instanceof PathValidationError) {
-      throw new PathGenerationError("malformed_model_output");
+  for (let attempt = 1; attempt <= MAX_PATH_ATTEMPTS; attempt += 1) {
+    let requestId: string | undefined;
+
+    try {
+      const providerResult = await requestPaths({
+        profile,
+        confirmedSummary: parsedSummary.data,
+        apiKey,
+        model,
+        attempt,
+        ...(retryCorrection ? { retryCorrection } : {}),
+      });
+      requestId = safeToken(providerResult.requestId);
+      const output = requireParsedPathOutput(providerResult);
+      const branches = validatePathGeneration(profile, output);
+      emitDiagnostic(diagnosticSink, {
+        attempt,
+        stage: "complete",
+        reason: "validated_output",
+        retryable: false,
+        ...(requestId ? { requestId } : {}),
+      });
+      return branches;
+    } catch (error) {
+      const diagnostic = diagnosticForAttemptError({
+        attempt,
+        error,
+        requestId,
+      });
+      diagnostics.push(diagnostic);
+      emitDiagnostic(diagnosticSink, diagnostic);
+
+      if (!diagnostic.retryable) {
+        throw new PathGenerationError(
+          diagnostic.publicCode ?? "api_failure",
+          diagnostics,
+        );
+      }
+      if (attempt === MAX_PATH_ATTEMPTS) {
+        throw new PathGenerationError(
+          publicCodeForDiagnostics(diagnostics),
+          diagnostics,
+        );
+      }
+
+      retryCorrection = retryCorrectionFor(diagnostic.reason);
+      await sleep(RETRY_BACKOFF_MS[attempt - 1]);
     }
-
-    if (isTimeoutError(error)) {
-      throw new PathGenerationError("timeout");
-    }
-
-    throw new PathGenerationError("api_failure");
   }
 
-  try {
-    return validatePathGeneration(profile, output);
-  } catch {
-    throw new PathGenerationError("malformed_model_output");
-  }
+  throw new PathGenerationError(
+    publicCodeForDiagnostics(diagnostics),
+    diagnostics,
+  );
 }

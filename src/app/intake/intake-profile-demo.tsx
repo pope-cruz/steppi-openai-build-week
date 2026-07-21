@@ -13,7 +13,7 @@ import {
   ProfileConfirmation,
   type DevelopmentPathFixture,
 } from "@/app/intake/profile-confirmation";
-import type { DevelopmentResearchFixture } from "@/app/intake/path-branch-preview";
+import type { DevelopmentConversationFixture } from "@/app/intake/path-branch-preview";
 import { Button } from "@/components/ui/button";
 import {
   developmentIntakeTurnPayload,
@@ -89,20 +89,12 @@ type DevelopmentFixtureMode =
   | "profile-refine-several"
   | "profile-refine-failure"
   | "profile-refine-malformed"
-  | "research-live"
-  | "research-success"
-  | "research-partial-success"
-  | "research-no-sources"
-  | "research-retrieval-failure"
-  | "research-api-failure"
-  | "research-malformed"
-  | "research-cancel"
-  | "research-timeout"
-  | "refinement-success"
-  | "refinement-no-sources"
-  | "refinement-retry"
-  | "refinement-malformed"
-  | "refinement-timeout"
+  | "conversation-live"
+  | "conversation-success"
+  | "conversation-researched"
+  | "conversation-unavailable"
+  | "conversation-api-failure"
+  | "conversation-malformed"
   | DevelopmentIntakeFixture;
 
 function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
@@ -122,20 +114,12 @@ function getDevelopmentFixtureSnapshot(): DevelopmentFixtureMode | null {
     "profile-refine-several",
     "profile-refine-failure",
     "profile-refine-malformed",
-    "research-live",
-    "research-success",
-    "research-partial-success",
-    "research-no-sources",
-    "research-retrieval-failure",
-    "research-api-failure",
-    "research-malformed",
-    "research-cancel",
-    "research-timeout",
-    "refinement-success",
-    "refinement-no-sources",
-    "refinement-retry",
-    "refinement-malformed",
-    "refinement-timeout",
+    "conversation-live",
+    "conversation-success",
+    "conversation-researched",
+    "conversation-unavailable",
+    "conversation-api-failure",
+    "conversation-malformed",
     "intake-success",
     "intake-alternate",
     "intake-practical",
@@ -174,47 +158,23 @@ function pathFixtureFor(
   return "success";
 }
 
-function researchFixtureFor(
+function conversationFixtureFor(
   fixture: DevelopmentFixtureMode,
-): DevelopmentResearchFixture | undefined {
-  if (fixture === "research-success") {
+): DevelopmentConversationFixture | undefined {
+  if (fixture === "conversation-success") {
     return "success";
   }
-  if (fixture === "research-partial-success") {
-    return "partial_success";
+  if (fixture === "conversation-researched") {
+    return "researched";
   }
-  if (fixture === "research-no-sources") {
-    return "no_useful_sources";
+  if (fixture === "conversation-unavailable") {
+    return "unavailable";
   }
-  if (fixture === "research-retrieval-failure") {
-    return "retrieval_failure";
-  }
-  if (fixture === "research-api-failure") {
+  if (fixture === "conversation-api-failure") {
     return "api_failure";
   }
-  if (fixture === "research-malformed") {
+  if (fixture === "conversation-malformed") {
     return "malformed_model_output";
-  }
-  if (fixture === "research-timeout") {
-    return "polling_timeout";
-  }
-  if (fixture === "research-cancel") {
-    return "polling_cancel";
-  }
-  if (fixture === "refinement-success") {
-    return "refinement_success";
-  }
-  if (fixture === "refinement-no-sources") {
-    return "refinement_no_useful_sources";
-  }
-  if (fixture === "refinement-retry") {
-    return "refinement_retry";
-  }
-  if (fixture === "refinement-malformed") {
-    return "refinement_malformed_model_output";
-  }
-  if (fixture === "refinement-timeout") {
-    return "refinement_polling_timeout";
   }
   return undefined;
 }
@@ -554,7 +514,7 @@ export function IntakeProfileDemo() {
         <ProfileConfirmation
           confirmationSummary={DEMO_CONFIRMATION_SUMMARY}
           developmentPathFixture={pathFixtureFor(developmentFixtureMode)}
-          developmentResearchFixture={researchFixtureFor(developmentFixtureMode)}
+          developmentConversationFixture={conversationFixtureFor(developmentFixtureMode)}
           onRestart={() => {
             setFixtureDismissed(true);
             restart();

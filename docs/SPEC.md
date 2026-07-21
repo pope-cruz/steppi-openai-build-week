@@ -151,7 +151,8 @@ These remain defaults rather than product doctrine:
 - Zod or the existing equivalent for runtime validation
 - server-side model calls only
 - environment-configured GPT-5.6 model
-- no automatic paid retry unless an explicit future decision allows it
+- no automatic SDK retry; path generation alone may make up to three explicit
+  sequential provider attempts per student action under the policy below
 - Vercel deployment unless the repository adopts another target
 - unit tests for schemas, validation, and state transitions
 - route tests where practical
@@ -244,6 +245,17 @@ The role set must:
 - avoid unsupported current external facts; and
 - remain understandable as a discovery space rather than a report.
 
+Each student-triggered path-generation action may make at most three sequential
+GPT-5.6 calls, stopping as soon as one complete role set passes structured and
+deterministic role validation. The application owns this ceiling; SDK retries
+remain disabled. Retryable failures are transient connection/timeout responses,
+HTTP 408/409/429/5xx, incomplete or missing parsed output, schema failures, and
+deterministic role-validation failures. Invalid input, missing or unsupported
+configuration, authentication/permission errors, and content-filter rejection
+stop immediately. Validation retries may add only fixed category-level corrective
+guidance, and every attempt receives the exact allow-list of profile evidence IDs.
+No partial role set is returned or assigned.
+
 The visual possibility space is the primary discovery and navigation surface.
 It is not a technical graph and does not need edges, branches, expansion levels,
 or mutation semantics. Roles appear as readable floating nodes with restrained
@@ -288,6 +300,15 @@ suggest low-risk experiments, explain common pathways, or surface majors and
 programs when relevant. The conversation should deepen progressively rather than
 produce a comprehensive report immediately.
 
+The conversation is a compact continuation directly beneath the selected-role
+brief. It should reuse the calm, one-question-at-a-time visual language of the
+intake without becoming a second full-screen surface. Default interpretive
+answers target two to four sentences and roughly 50–90 words. Answers that need
+current-source research target three to five sentences and roughly 70–120 words;
+source details sit outside that prose in collapsed progressive disclosure. These
+are prompt-level targets, while validated schemas retain a more generous hard
+ceiling for safe failure handling.
+
 Switching roles must not leave the student disoriented. The possibility space
 remains available. Long-term cross-session persistence is out of scope, but state
 within the active experience should remain coherent.
@@ -324,24 +345,11 @@ Current factual claims must never render without trustworthy retrieved support.
 If adequate evidence is unavailable, Steppi must say so and avoid fabricating an
 answer.
 
-### Existing Optional Affordability Refinement
-
-The repository already implements the fixed action **Prioritize affordable
-options near Manila** after a successful selected-path research result. It
-validates affordability evidence, preserves baseline research during loading and
-failure, supports explicit retry, and preserves unrelated state.
-
-This is completed technical work and may remain available as an optional demo
-capability. It is not part of the default golden path, not a requirement for the
-new role-conversation experience, and not part of the current definition of
-product completion. Do not generalize it into a graph-mutation system without an
-explicit future decision.
-
 ## 7. Behavioral Data Boundaries
 
-This documentation pass does not prescribe a replacement TypeScript schema.
-Implementation must evolve the existing validated contracts deliberately and
-with migration tests.
+The role conversation uses explicit runtime-validated request, response,
+message, answer-block, and source contracts. Invalid or partial model output
+must not enter rendered conversation state.
 
 The following behavioral boundaries are required.
 
@@ -608,16 +616,14 @@ Complete when the clean deployed golden path works without developer assistance,
 no secret is exposed, documentation matches behavior, and submission artifacts
 are ready.
 
-The previously implemented fixed Manila affordability refinement remains
-historical optional technical work. It is not one of the active product
-milestones above and is not required for the definition of done.
-
 ## 15. Decisions Made
 
 - Track: Education
 - Initial audience: high-school students beginning college and career exploration
 - Breadth before depth
 - Approximately seven initial career roles for the normal Build Week flow
+- Path generation alone may make up to three application-owned GPT-5.6 attempts
+  per action; all other model calls retain their existing attempt policies
 - Two generated confirmation sentences with direct student editing
 - Student-approved confirmation wording resolves contradictions and priorities
   during role generation while the full profile preserves breadth
@@ -628,21 +634,22 @@ milestones above and is not required for the definition of done.
 - The visualization is not a living graph or graph editor
 - Each role must be quickly understandable before deeper exploration
 - Deep exploration happens through an extended role conversation
+- The role conversation is a compact continuation below the selected-role brief
+- Conversation history is kept separately for each role during the active visit
 - Students ask natural follow-up questions
+- Interpretive answers target 50–90 words; researched answers target 70–120
+  words, excluding progressive source details
 - Research is conditional on unstable external factual claims
 - Interpretive guidance does not require retrieval by default
 - Current factual claims require trustworthy retrieved support
 - Detailed provenance is progressively disclosed
 - One polished exploration loop is more valuable than broad infrastructure
 - No authentication, persistent database, or comprehensive dataset for the MVP
-- The fixed Manila refinement is implemented but outside the default golden path
 
 ## 16. Decisions Deferred
 
 - exact floating-node layout algorithm;
 - exact accepted count tolerance around the normal seven-role target;
-- whether conversation history is separate per role or one filtered active
-  session after the Build Week demo;
 - whether any role conversation is persisted across refresh;
 - general role-to-role comparison interaction;
 - save and remove behavior;

@@ -13,7 +13,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 
 import {
   InitialPathMap,
-  type DevelopmentResearchFixture,
+  type DevelopmentConversationFixture,
 } from "@/app/intake/path-branch-preview";
 import { Button } from "@/components/ui/button";
 import { DEMO_PATH_BRANCHES } from "@/lib/demo-paths";
@@ -131,14 +131,14 @@ export function ProfileDetails({ profile }: { profile: StudentProfile }) {
 
 export function ProfileConfirmation({
   confirmationSummary,
+  developmentConversationFixture,
   developmentPathFixture,
-  developmentResearchFixture,
   onRestart,
   profile,
 }: {
   confirmationSummary: string;
+  developmentConversationFixture?: DevelopmentConversationFixture;
   developmentPathFixture?: DevelopmentPathFixture;
-  developmentResearchFixture?: DevelopmentResearchFixture;
   onRestart: () => void;
   profile: StudentProfile;
 }) {
@@ -220,8 +220,8 @@ export function ProfileConfirmation({
               code: developmentPathFixture,
               message:
                 developmentPathFixture === "timeout"
-                  ? "Steppi took too long to explore these roles. Your profile is safe; please try again."
-                  : "Steppi could not explore roles right now. Your profile is safe; please try again.",
+                  ? "Steppi tried three times but took too long to explore these roles. Your profile is safe; please try again."
+                  : "Steppi could not explore roles after up to three attempts. Your profile is safe; please try again.",
               retryable: true,
             },
           };
@@ -336,7 +336,8 @@ export function ProfileConfirmation({
       >
         <InitialPathMap
           branches={pathRequestState.branches}
-          developmentResearchFixture={developmentResearchFixture}
+          confirmedSummary={confirmedSummary}
+          developmentConversationFixture={developmentConversationFixture}
           profile={confirmedProfile}
         />
         <div className="mt-8 flex justify-end border-t border-border pt-6">
@@ -528,7 +529,8 @@ export function ProfileConfirmation({
             <div>
               <p className="font-semibold text-ink">Opening a varied role space…</p>
               <p className="mt-1 text-sm leading-6 text-muted">
-                Steppi is using your full profile and the wording you approved.
+                Steppi is using your full profile and approved wording. It may try
+                up to three times, stopping as soon as one complete role set is ready.
               </p>
             </div>
           </div>

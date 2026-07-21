@@ -9,7 +9,7 @@ import {
 } from "@/server/path-generation";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 150;
 
 const PathRequestSchema = z
   .object({
@@ -34,17 +34,17 @@ const ERROR_DETAILS: Record<
     status: 503,
   },
   timeout: {
-    message: "Steppi took too long to explore these roles. Your confirmed profile is safe; please try again.",
+    message: "Steppi took too long after up to three attempts to explore these roles. Your confirmed profile is safe; please try again.",
     retryable: true,
     status: 504,
   },
   api_failure: {
-    message: "Steppi could not explore roles right now. Your confirmed profile is safe; please try again.",
+    message: "Steppi could not explore roles after up to three attempts. Your confirmed profile is safe; please try again.",
     retryable: true,
     status: 502,
   },
   malformed_model_output: {
-    message: "Steppi received roles it could not safely compare. Nothing was shown; please try again.",
+    message: "After up to three attempts, Steppi could not safely assign the returned roles. Nothing incomplete was shown; please try again.",
     retryable: true,
     status: 502,
   },

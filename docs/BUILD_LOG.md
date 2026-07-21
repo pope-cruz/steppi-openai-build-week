@@ -29,6 +29,49 @@ it is historical evidence, not a second specification.
 
 ## Completed
 
+### 2026-07-20 — Bounded path-generation retries and safe assignment
+
+- Replaced the path service's generic one-attempt failure handling with at most
+  three application-owned sequential GPT-5.6 attempts per click. Generation
+  stops at the first complete schema-valid, evidence-valid, meaningfully varied
+  6–8-role set; SDK retries remain disabled, each provider attempt keeps its
+  45-second timeout, bounded backoff separates attempts, and `/api/paths` now has
+  a 150-second function duration.
+- Added safe classification for provider connection/status failures, timeouts,
+  provider parsing, incomplete and missing parsed output, output-token exhaustion,
+  structured Zod failures, invalid evidence references, duplicate/similar roles,
+  configuration, authentication/permission, and content-filter rejection. Only
+  transient, incomplete, schema, and deterministic role-validation failures retry. Mixed
+  exhausted failures use `malformed_model_output` → `timeout` → `api_failure`
+  precedence while preserving the existing public request/response shapes.
+- Every attempt receives the exact allowed profile-evidence IDs. Validation
+  retries add fixed category-level corrective guidance only. Safe diagnostics
+  contain attempt, stage, category, retryability, bounded upstream status/code,
+  and request ID when available; they never include prompts, student context,
+  raw output, provider messages, URLs, secrets, or credentials.
+- Updated loading and terminal error copy to explain the possible three attempts
+  and confirmed-profile preservation. The reducer remains unchanged and assigns
+  only the first fully validated role array.
+- Added deterministic coverage for first-attempt stop, first/second failure then
+  success, three-attempt exhaustion, non-retryable input/config/auth/permission/
+  content-filter failures, null parsed output, token exhaustion, Zod failure,
+  invalid evidence, duplicate roles, timeouts, mixed precedence, safe logging,
+  and the 150-second route duration.
+- Browser verification covered desktop and 390×844 loading, seven-role success,
+  exhausted-retry error, retry control, preserved profile, no horizontal
+  overflow, no framework overlay, and no console errors. Native Enter/Space role
+  activation still awaits the final keyboard-capable submission pass.
+- Used the one authorized controlled live local path action. It succeeded on the
+  first GPT-5.6 attempt and assigned seven validated roles. Next.js collapsed the
+  completion diagnostic's object argument to `{}` in the development log; the
+  sink now emits one safe serialized JSON message with a regression test. The
+  provider request ID from that already-completed call was not recoverable, and
+  no second paid request was made.
+- Final checks passed: `npm run lint`, `npm run typecheck`, `npm run test` (26
+  files, 194 tests), network-enabled `npm run build`, and `git diff --check`. The
+  first sandboxed build failed only because the existing Google Fonts were
+  unavailable; the identical approved network-enabled build passed.
+
 ### 2026-07-20 — Profile-reflection hierarchy and safe failure diagnostics
 
 - Reduced the confirmation reflection's visual dominance while preserving the
@@ -1285,3 +1328,68 @@ persistence, authentication, or database work. Close Milestone 3 verification:
 
 Use fixtures only. Do not make a live GPT-5.6 request or deploy.
 ```
+
+---
+
+## 2026-07-20 — Selected-role conversation replaces one-shot research
+
+### Scope decision
+
+- Replaced the selected-role one-shot research composer and follow-on fixed
+  affordability refinement with one compact, extended role conversation.
+- Kept the existing selected-role explanation intact and placed the conversation
+  directly beneath it as a smaller continuation of the onboarding language.
+- Set prompt-level response targets to 50–90 words for interpretive prose and
+  70–120 words for researched prose, excluding collapsed source metadata.
+- Kept research conditional: current unstable facts require retrieval, while
+  interpretation grounded in the confirmed student and role context does not.
+
+### Implementation
+
+- Added strict Zod contracts for role questions, role-scoped message history,
+  answer blocks, sources, API responses, and reducer state.
+- Added a synchronous server-only `/api/role-conversation` route backed by one
+  stateless GPT-5.6 Responses API request per message, `store: false`, no SDK
+  retries, an anonymous safety identifier, and web-search access.
+- Added deterministic classification that forces search for current programs,
+  costs, admissions, licensing, salary, and location-specific questions while
+  leaving the tool automatic for interpretive questions.
+- Added provider source allow-listing, server-owned checked dates, removal of
+  unsupported blocks, and an honest unavailable result when no supported current
+  answer survives.
+- Added a compact transcript/composer with three starter questions, Enter and
+  Shift+Enter behavior, differentiated loading copy, retry, start-over, message
+  limit, inline source markers, and collapsed provenance.
+- Added separate in-memory histories and drafts per role, stale-response
+  rejection, request locking, and retry without a duplicated user message.
+- Added success, researched, unavailable, API-failure, and malformed-output
+  development fixtures.
+- Removed the superseded research API, polling/job-token system, research nodes,
+  refinement UI/state, old fixtures, old schemas, and their tests.
+- Updated `SPEC.md`, `VISION.md`, `TASKS.md`, `README.md`, and the landing-page
+  description to match the implemented conversation model.
+
+### Verification evidence
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed after the dev server regenerated stale `.next/dev`
+  route types that still referenced the removed research route.
+- `npm run test` — passed: 26 files, 178 tests.
+- `npm run build` — passed after network access allowed Next.js to retrieve the
+  configured Google Fonts. Production routes contain `/api/role-conversation`
+  and no `/api/research` route.
+- `git diff --check` — passed.
+- Desktop deterministic-browser checks passed for the unchanged role brief,
+  compact interpretive flow, loading state, researched flow, 80-word sourced
+  fixture, collapsed/expanded provenance, role-scoped history restoration,
+  failure/retry without duplicate questions, malformed-output rejection, and
+  normal home-route rendering.
+- Mobile verification at 390×844 passed for the complete role list fallback,
+  full-width selected-role/chat layout, visible composer, and no horizontal
+  overflow.
+- Browser console errors: none. Framework error overlay: absent.
+- The browser-control surface focused native role buttons but did not dispatch
+  Enter or Space activation. Native button semantics and focus styling remain in
+  code; repeat this one check with a keyboard-capable browser runner before final
+  submission.
+- No live or paid GPT-5.6 conversation request was made.

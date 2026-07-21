@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const steps = [
   ["01", "Share what matters", "Your interests, experiences, and real-life constraints start the conversation."],
   ["02", "Check the understanding", "Facts, inferences, and open questions stay distinct—and correctable."],
-  ["03", "Explore, don’t predict", "Compare three different directions and choose what is worth researching."],
+  ["03", "Explore, don’t predict", "Scan varied role possibilities, then ask a short follow-up about one that interests you."],
 ] as const;
 
 export function LandingPage() {
