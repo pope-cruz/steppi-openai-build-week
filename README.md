@@ -46,9 +46,9 @@ npm run start
 ```
 
 Open [http://localhost:3000/intake](http://localhost:3000/intake), complete the
-short intake, confirm or edit Steppi’s summary, select **Good to go!**, choose a
-role, and ask a follow-up beneath its role brief. Requests are stateless; refresh
-clears the intake, profile, role set, and role conversations.
+short intake, confirm or edit Steppi’s summary, select **Explore career roles**,
+choose a role, and ask a follow-up beneath its role brief. Requests are stateless;
+refresh clears the intake, profile, role set, and role conversations.
 
 Development-only fixtures can exercise the role conversation without a paid
 request:
@@ -74,7 +74,11 @@ the demo checks.
 
 Preview URL: [steppi-openai-build-week-2ibzu4h54-pgc9002-3129s-projects.vercel.app](https://steppi-openai-build-week-2ibzu4h54-pgc9002-3129s-projects.vercel.app)
 
-The preview deployment is protected by Vercel Authentication. Both server-only OpenAI variables are configured for Preview, and the complete deployed intake-to-profile request has been browser-verified with a real GPT-5.6 response. The response passed the `StudentProfile` schema and rendered facts, inferences, constraints, uncertainty, and tensions separately.
+The preview URL is anonymously reachable, but it currently serves an older
+Grade 11 / three-path build. Do not use it for submission until the current
+high-school-and-college, 12–15-role product has been redeployed and verified.
+Both server-only OpenAI variables were previously configured for Preview; check
+their current Vercel scope before redeploying.
 
 On Vercel, add both variables under **Project Settings → Environment Variables** and scope them to **Preview** for preview testing:
 

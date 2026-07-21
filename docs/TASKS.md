@@ -19,7 +19,7 @@ Steppi is a career exploration tool for high-school and college students. Its
 polished demo loop follows breadth before depth:
 
 1. complete a short conversational intake;
-2. confirm or directly edit Steppi's student-context hypothesis;
+2. confirm or directly edit Steppi's reflection;
 3. scan twelve to fifteen varied, unranked career roles;
 4. understand one selected role in under a minute; and
 5. ask concise follow-ups in a role-specific conversation, using current-source
@@ -223,8 +223,10 @@ has an explicit, bounded three-attempt reliability policy.
 
 ## Current Blockers
 
-- Vercel Authentication still blocks anonymous Preview access; the deployed
-  golden path remains unavailable to judges until that project setting changes.
+- The public Preview is anonymously reachable, but it serves a stale Grade 11 /
+  three-path build rather than the current high-school-and-college, 12–15-role
+  product. Redeploy the current commit and verify the anonymous golden path
+  before using that URL for submission.
 
 ## Non-blocking Reliability Debt
 
@@ -244,9 +246,9 @@ Run the final submission reliability pass using deterministic fixtures only.
 Repeat the complete landing → intake/profile fixture → confirmation → thirteen-role
 space → selected-role brief → interpretive follow-up → researched follow-up flow
 with deterministic fixtures and confirm the full conversation handoff still
-works with the larger role set. Then recheck the public deployment configuration
-and remove Vercel Authentication if authorized. Screen-reader behavior remains a
-separate accessibility check.
+works with the larger role set. Then redeploy the current product if authorized
+and verify that the anonymous URL no longer serves the stale Grade 11 /
+three-path build. Screen-reader behavior remains a separate accessibility check.
 Do not make another live or paid GPT-5.6 request or deploy unless separately
 authorized.
 ```

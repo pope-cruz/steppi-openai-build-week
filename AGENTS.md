@@ -2,9 +2,9 @@
 
 ## Project purpose
 
-Steppi helps high-school students discover career roles they may not know exist,
-understand why those roles might or might not suit them, and explore interesting
-options through an extended conversation.
+Steppi helps high-school and college students discover career roles they may not
+know exist, understand why those roles might or might not suit them, and explore
+interesting options through an extended conversation.
 
 The product must help students explore possibilities. It must not claim to predict the correct career, diagnose aptitude, guarantee outcomes, or replace professional guidance.
 
@@ -47,7 +47,7 @@ Prioritize one polished end-to-end exploration loop:
     
 2. GPT-5.6 creates a structured profile.
     
-3. Student confirms or corrects the hypothesis.
+3. Student confirms or corrects Steppi's reflection.
     
 4. Steppi generates a broad but manageable set of varied career roles.
     
